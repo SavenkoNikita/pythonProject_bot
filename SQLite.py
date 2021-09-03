@@ -6,6 +6,7 @@ conn = sqlite3.connect(Data.way_sql, check_same_thread=False)
 cursor = conn.cursor()
 
 
+# Проверка на существование пользователя в БД
 def check_for_existence(user_id):
     info = cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
     if info.fetchone() is None:  # Если человека нет в бд
@@ -15,6 +16,7 @@ def check_for_existence(user_id):
     return user_status
 
 
+# Проверка на то, является ли пользователь админом
 def check_for_admin(user_id):
     info = cursor.execute('SELECT * FROM users WHERE status=? and user_id=?', ('admin', user_id))
     if info.fetchone() is None:  # Если человека не админ
@@ -61,11 +63,11 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
     return end_text
 
 
-def welcome(x):
-    us_id = x.from_user.id
-    us_first_name = x.from_user.first_name
-    us_last_name = x.from_user.last_name
-    us_username = x.from_user.username
+def welcome(message):
+    us_id = message.from_user.id
+    us_first_name = message.from_user.first_name
+    us_last_name = message.from_user.last_name
+    us_username = message.from_user.username
 
     db_table_val(user_id=us_id, user_first_name=us_first_name, user_last_name=us_last_name, username=us_username)
 

@@ -33,10 +33,22 @@ def full_name_user(message):
 @bot.message_handler(commands=['start'])
 def start_command(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    # Приветственное сообщение
-    Data.bot.send_message(message.from_user.id, 'Добро пожаловать ' + message.from_user.first_name)
-    print(answer_bot)
-    SQLite.welcome(message)
+    if SQLite.check_for_existence(message.from_user.id) == 'False':
+        # Приветственное сообщение
+        Data.bot.send_message(message.from_user.id, 'Добро пожаловать ' + message.from_user.first_name)
+        Data.bot.send_message(message.from_user.id, 'Продолжая работу с ботом, вы соглашаетесь с хранением и '
+                                                    'обработкой данных о вашем аккаунте. В базу данных занесены '
+                                                    'следующие данные:\n '
+                              + 'ID: ' + str(message.from_user.id) + '\n'
+                              + 'Имя: ' + str(message.from_user.first_name) + '\n'
+                              + 'Фамилия: ' + str(message.from_user.last_name) + '\n'
+                              + 'Username:  @' + str(message.from_user.username) + '\n')
+        print(answer_bot)
+        SQLite.welcome(message)
+    else:
+        end_text = 'Привет еще раз, ' + message.from_user.first_name + '\n' + 'Мы уже знакомы!'
+        Data.bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 @bot.message_handler(commands=['help'])
