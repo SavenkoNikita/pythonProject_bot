@@ -136,84 +136,84 @@ def random_name(user_id):
         print(answer_bot + text_message + '\n')
 
 
-@bot.message_handler(commands=['set_admin'])
-def set_to_admin(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_admin(message.from_user.id) == 'True':
-        text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека\n'
-        bot.send_message(message.from_user.id, text=text_message)
-        print(answer_bot + text_message + '\n')
-        bot.register_next_step_handler(message, receive_id)
-    else:
-        text_message = 'У вас нет прав для выполнения этой команды'
-        bot.send_message(message.from_user.id, text_message)
-        print(answer_bot + text_message + '\n')
+# @bot.message_handler(commands=['set_admin'])
+# def set_to_admin(message):
+#     print(full_name_user(message) + 'отправил команду ' + message.text)
+#     if SQLite.check_for_admin(message.from_user.id) == 'True':
+#         text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека\n'
+#         bot.send_message(message.from_user.id, text=text_message)
+#         print(answer_bot + text_message + '\n')
+#         bot.register_next_step_handler(message, receive_id)
+#     else:
+#         text_message = 'У вас нет прав для выполнения этой команды'
+#         bot.send_message(message.from_user.id, text_message)
+#         print(answer_bot + text_message + '\n')
 
 
-def receive_id(message):
-    try:
-        chat_id = message.chat.id
-        id_future_admin = message.forward_from.id
-        first_name_future_admin = str(message.forward_from.first_name)
-        last_name_future_admin = str(message.forward_from.last_name)
-        full_name_future_admin = first_name_future_admin + ' ' + last_name_future_admin
-        print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_admin +
-              ' содержащее текст:\n' + message.text)
-
-        answer_text = 'Пользователь <' + full_name_future_admin + '> добавлен в список администраторов'
-        msg = bot.send_message(chat_id, answer_text)
-        if SQLite.check_for_existence(id_future_admin) == 'True':
-            bot.register_next_step_handler(msg, SQLite.update_sqlite_table('admin', id_future_admin))
-            print(answer_bot + answer_text + '\n')
-        else:
-            end_text = 'Вы пытаетесь дать админские права пользователю который отсутствует в базе данных!'
-            bot.send_message(chat_id, end_text)
-            print(answer_bot + end_text + '\n')
-    except Exception as e:
-        bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_admin')
-        print(str(e))
-
-    return
-
-
-@bot.message_handler(commands=['set_user'])
-def set_to_user(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_admin(message.from_user.id) == 'True':
-        text_message = 'Чтобы пользователю присвоить статус <user>, перешли мне сообщение от этого человека\n'
-        bot.send_message(message.from_user.id, text=text_message)
-        print(answer_bot + text_message + '\n')
-        bot.register_next_step_handler(message, receive_id_user)
-    else:
-        text_message = 'У вас нет прав для выполнения этой команды'
-        bot.send_message(message.from_user.id, text_message)
-        print(answer_bot + text_message + '\n')
+# def receive_id(message):
+#     try:
+#         chat_id = message.chat.id
+#         id_future_admin = message.forward_from.id
+#         first_name_future_admin = str(message.forward_from.first_name)
+#         last_name_future_admin = str(message.forward_from.last_name)
+#         full_name_future_admin = first_name_future_admin + ' ' + last_name_future_admin
+#         print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_admin +
+#               ' содержащее текст:\n' + message.text)
+#
+#         answer_text = 'Пользователь <' + full_name_future_admin + '> добавлен в список администраторов'
+#         msg = bot.send_message(chat_id, answer_text)
+#         if SQLite.check_for_existence(id_future_admin) == 'True':
+#             bot.register_next_step_handler(msg, SQLite.update_sqlite_table('admin', id_future_admin))
+#             print(answer_bot + answer_text + '\n')
+#         else:
+#             end_text = 'Вы пытаетесь дать админские права пользователю который отсутствует в базе данных!'
+#             bot.send_message(chat_id, end_text)
+#             print(answer_bot + end_text + '\n')
+#     except Exception as e:
+#         bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_admin')
+#         print(str(e))
+#
+#     return
 
 
-def receive_id_user(message):
-    try:
-        chat_id = message.chat.id
-        id_future_user = message.forward_from.id
-        first_name_future_user = str(message.forward_from.first_name)
-        last_name_future_user = str(message.forward_from.last_name)
-        full_name_future_user = first_name_future_user + ' ' + last_name_future_user
-        print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_user +
-              ' содержащее текст:\n' + message.text)
+# @bot.message_handler(commands=['set_user'])
+# def set_to_user(message):
+#     print(full_name_user(message) + 'отправил команду ' + message.text)
+#     if SQLite.check_for_admin(message.from_user.id) == 'True':
+#         text_message = 'Чтобы пользователю присвоить статус <user>, перешли мне сообщение от этого человека\n'
+#         bot.send_message(message.from_user.id, text=text_message)
+#         print(answer_bot + text_message + '\n')
+#         bot.register_next_step_handler(message, receive_id_user)
+#     else:
+#         text_message = 'У вас нет прав для выполнения этой команды'
+#         bot.send_message(message.from_user.id, text_message)
+#         print(answer_bot + text_message + '\n')
 
-        answer_text = 'Пользователю <' + full_name_future_user + '> присвоен статус <user>'
-        msg = bot.send_message(chat_id, answer_text)
-        if SQLite.check_for_existence(id_future_user) == 'True':
-            bot.register_next_step_handler(msg, SQLite.update_sqlite_table('user', id_future_user))
-            print(answer_bot + answer_text + '\n')
-        else:
-            end_text = 'Вы пытаетесь присвоить пользователю статус <user>, который отсутствует в базе данных!'
-            bot.send_message(chat_id, end_text)
-            print(answer_bot + end_text + '\n')
 
-    except Exception as e:
-        bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_user')
-        print(str(e))
-    return
+# def receive_id_user(message):
+#     try:
+#         chat_id = message.chat.id
+#         id_future_user = message.forward_from.id
+#         first_name_future_user = str(message.forward_from.first_name)
+#         last_name_future_user = str(message.forward_from.last_name)
+#         full_name_future_user = first_name_future_user + ' ' + last_name_future_user
+#         print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_user +
+#               ' содержащее текст:\n' + message.text)
+#
+#         answer_text = 'Пользователю <' + full_name_future_user + '> присвоен статус <user>'
+#         msg = bot.send_message(chat_id, answer_text)
+#         if SQLite.check_for_existence(id_future_user) == 'True':
+#             bot.register_next_step_handler(msg, SQLite.update_sqlite_table('user', id_future_user))
+#             print(answer_bot + answer_text + '\n')
+#         else:
+#             end_text = 'Вы пытаетесь присвоить пользователю статус <user>, который отсутствует в базе данных!'
+#             bot.send_message(chat_id, end_text)
+#             print(answer_bot + end_text + '\n')
+#
+#     except Exception as e:
+#         bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_user')
+#         print(str(e))
+#     return
 
 
 @bot.message_handler(content_types=['text'])

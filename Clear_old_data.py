@@ -25,7 +25,7 @@ def clear(list_name):
             difference_date = some_date - now_date  # Получаем разницу между датами
             difference_date = difference_date.days  # Конвертируем дату в формат без учёта времени
             difference_date = int(difference_date) + 1
-            if difference_date < 0:  # Если дата сегодня или в прошлом
+            if difference_date < 0:  # Если дата в прошлом
                 sheet.delete_rows(2)  # Удаляем указанную в скобках строку
                 wb.save('test.xlsx')  # Сохранить книгу
                 file = open('test.xlsx', 'rb')
