@@ -28,7 +28,7 @@ def notifications():
 
 # notifications()
 
-
+# Функция для уведомления всех пользователей находящихся в БД
 def notification_all_reg(text_message):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
