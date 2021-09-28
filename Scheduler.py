@@ -5,7 +5,7 @@ import datetime
 import schedule
 import Clear_old_data
 import Data
-# import Notifications
+import Notifications
 import Read_file
 
 
@@ -31,6 +31,7 @@ def sh_send_dej():
         end_text = 'Ошибка чтения данных Dej'
 
     Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text=end_text)
+    Notifications.notifications_for_subscribers(end_text)
     return
 
 
@@ -112,7 +113,7 @@ def sh_notification():
 
 schedule.every().friday.at('16:00').do(sh_send_dej)
 schedule.every().day.at('07:00').do(sh_send_invent)
-schedule.every().day.at('07:01').do(sh_random_name)
+# schedule.every().day.at('07:01').do(sh_random_name)
 schedule.every().day.at('07:02').do(sh_notification)
 # schedule.every(5).seconds.do(sh_send_dej)
 # schedule.every(5).seconds.do(sh_send_invent)
