@@ -228,43 +228,43 @@ def random_name(user_id):
 #     return
 
 
-# @bot.message_handler(commands=['subscribe'])
-# def set_subscribe(message):
-#     print(full_name_user(message) + 'отправил команду ' + message.text)
-#     if SQLite.check_for_existence(message.from_user.id) == 'True':
-#         if SQLite.check_for_notification(message.from_user.id) == 'False':
-#             SQLite.update_sqlite_table('yes', message.from_user.id, 'notification')
-#             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
-#                        'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
-#             bot.send_message(message.from_user.id, end_text)
-#             print(answer_bot + end_text + '\n')
-#         else:
-#             end_text = 'Вы уже подписаны на уведомления.'
-#             bot.send_message(message.from_user.id, end_text)
-#             print(answer_bot + end_text + '\n')
-#     else:
-#         end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
-#         bot.send_message(message.from_user.id, end_text)
-#         print(answer_bot + end_text + '\n')
-#
-#
-# @bot.message_handler(commands=['unsubscribe'])
-# def set_subscribe(message):
-#     print(full_name_user(message) + 'отправил команду ' + message.text)
-#     if SQLite.check_for_existence(message.from_user.id) == 'True':
-#         if SQLite.check_for_notification(message.from_user.id) == 'True':
-#             SQLite.update_sqlite_table('no', message.from_user.id, 'notification')
-#             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
-#             bot.send_message(message.from_user.id, end_text)
-#             print(answer_bot + end_text + '\n')
-#         else:
-#             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
-#             bot.send_message(message.from_user.id, end_text)
-#             print(answer_bot + end_text + '\n')
-#     else:
-#         end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
-#         bot.send_message(message.from_user.id, end_text)
-#         print(answer_bot + end_text + '\n')
+@bot.message_handler(commands=['subscribe'])
+def set_subscribe(message):
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) == 'True':
+        if SQLite.check_for_notification(message.from_user.id) == 'False':
+            SQLite.update_sqlite_table('yes', message.from_user.id, 'notification')
+            end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
+                       'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
+            bot.send_message(message.from_user.id, end_text)
+            print(answer_bot + end_text + '\n')
+        else:
+            end_text = 'Вы уже подписаны на уведомления.'
+            bot.send_message(message.from_user.id, end_text)
+            print(answer_bot + end_text + '\n')
+    else:
+        end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
+
+
+@bot.message_handler(commands=['unsubscribe'])
+def set_subscribe(message):
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) == 'True':
+        if SQLite.check_for_notification(message.from_user.id) == 'True':
+            SQLite.update_sqlite_table('no', message.from_user.id, 'notification')
+            end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
+            bot.send_message(message.from_user.id, end_text)
+            print(answer_bot + end_text + '\n')
+        else:
+            end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
+            bot.send_message(message.from_user.id, end_text)
+            print(answer_bot + end_text + '\n')
+    else:
+        end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 @bot.message_handler(content_types=['text'])
