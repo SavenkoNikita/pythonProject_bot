@@ -10,7 +10,7 @@ import Read_file
 
 
 def clear(list_name):
-    comment = ''
+    # comment = ''
     opener = urllib.request.build_opener(SMBHandler)
     file_name = opener.open(Data.route)
     wb = load_workbook(file_name)  # Открываем нужную книгу
@@ -33,22 +33,23 @@ def clear(list_name):
                 file_name.close()
                 os.remove('test.xlsx')
                 del_data = '• Из списка ' + str(list_name) + ' удалены данные'
-                comment = comment + del_data
+                # comment = comment + del_data
                 print(del_data)
             else:
                 actual_data = '• В списке <' + str(list_name) + '> все данные актуальны'
-                comment = comment + actual_data
+                # comment = comment + actual_data
                 print(actual_data)
     elif some_date is None:
         none_data = '• В списке <' + str(list_name) + '> нет данных'
-        comment = comment + none_data
+        # comment = comment + none_data
         print(none_data)
 
 
+# Проверка данных на релевантность
 def check_relevance(list_name):
-    difference_date = Read_file.read_file(list_name)['Dif date']
-    while difference_date < 0:
-        difference_date = Read_file.read_file(list_name)['Dif date']
+    difference_date = Read_file.read_file(list_name)['Dif date']  # Извлекаем близжайшую дату из list_name
+    while difference_date < 0:  # Повторить если дата в прошлом
+        # difference_date = Read_file.read_file(list_name)['Dif date']
         clear(list_name)
     else:
         print('Данные релевантны')

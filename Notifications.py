@@ -59,3 +59,36 @@ def notification_all_reg(text_message):
 
 
 # notification_all_reg()
+
+
+# Уведомление пользователей которые подписаны на обновления
+# def notifications_for_subscribers(text_message):
+#     try:
+#         sqlite_connection = sqlite3.connect(Data.way_sql)
+#         cursor = sqlite_connection.cursor()
+#         print("Подключен к SQLite")
+#
+#         sqlite_select_query = 'SELECT * FROM users WHERE notification=?', 'yes'
+#         cursor.execute(str(sqlite_select_query))
+#         records = cursor.fetchall()
+#         print('ID всех пользователей:\n')
+#         all_user_sql = []
+#         for row in records:
+#             all_user_sql.append(row[1])
+#         cursor.close()
+#
+#     except sqlite3.Error as error:
+#         print("Ошибка при работе с SQLite", error)
+#     finally:
+#         if sqlite_connection:
+#             sqlite_connection.close()
+#             print("Соединение с SQLite закрыто")
+
+    # i = 0
+    # while i < len(all_user_sql):
+    #     print(all_user_sql[i])
+    #     Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
+    #     i += 1
+
+
+notifications_for_subscribers('Test')

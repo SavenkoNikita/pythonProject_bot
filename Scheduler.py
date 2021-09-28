@@ -5,7 +5,7 @@ import datetime
 import schedule
 import Clear_old_data
 import Data
-import Notifications
+# import Notifications
 import Read_file
 
 
