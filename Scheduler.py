@@ -97,6 +97,7 @@ def sh_notification():
             # Notifications.notification_all_reg(Notifications.notifications())
             Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'),
                                   text=Notifications.notifications())  # Отправить сообщение
+            Notifications.notifications_for_subscribers(Notifications.notifications())  # Уведомление подписчиков
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
             #                       text=Notifications.notifications())  # Отправить сообщение
             print(Notifications.notifications())
