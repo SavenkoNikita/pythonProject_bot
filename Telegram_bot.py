@@ -237,6 +237,7 @@ def set_subscribe(message):
             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
                        'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
             bot.send_message(message.from_user.id, end_text)
+            bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + ' подписался на уведомления.')
             print(answer_bot + end_text + '\n')
         else:
             end_text = 'Вы уже подписаны на уведомления.'
@@ -256,6 +257,8 @@ def set_subscribe(message):
             SQLite.update_sqlite_table('no', message.from_user.id, 'notification')
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
             bot.send_message(message.from_user.id, end_text)
+            bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                             text=full_name_user(message) + ' отписался от уведомлений.')
             print(answer_bot + end_text + '\n')
         else:
             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
