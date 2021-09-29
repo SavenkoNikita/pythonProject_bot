@@ -1,4 +1,5 @@
 import sqlite3
+import time
 
 import Data
 import Read_file
@@ -55,6 +56,7 @@ def notification_all_reg(text_message):
     while i < len(all_user_sql):
         print(all_user_sql[i])
         Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
+        time.sleep(1)
         i += 1
 
 
