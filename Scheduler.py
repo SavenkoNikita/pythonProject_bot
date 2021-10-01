@@ -93,7 +93,10 @@ def sh_notification():
     difference_date = Read_file.read_file(list_name)['Dif date']
 
     if read_type == 'date':  # Если return в Read_file.py возвращает дату то
-        if difference_date == 0:  # Если дата уведомления сегодня
+        if difference_date < 0:  # Если событие в прошлом
+            Clear_old_data.clear(list_name)  # Очистить старые данные
+            sh_notification()  # Перезапустить функцию
+        elif difference_date == 0:  # Если дата уведомления сегодня
             # Notifications.notification_all_reg(Notifications.notifications())
             Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'),
                                   text=Notifications.notifications())  # Отправить сообщение
@@ -101,8 +104,6 @@ def sh_notification():
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
             #                       text=Notifications.notifications())  # Отправить сообщение
             print(Notifications.notifications())
-            Clear_old_data.clear(list_name)  # Очистить старые данные
-            sh_notification()
         elif difference_date > 0:  # Если дата не наступила
             print('Рано уведомлять')
     else:  # Если return в Read_file.py возвращает НЕ дату то

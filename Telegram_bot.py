@@ -289,4 +289,4 @@ if __name__ == '__main__':
             time.sleep(3)
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Бот выдал ошибку: ' + str(e))
             print(str(e))
-            os.kill(os.getpid(), 9)
+            # os.kill(os.getpid(), 9)
