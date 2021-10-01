@@ -51,6 +51,7 @@ def start_command(message):
         print(answer_bot + end_text + '\n')
 
 
+#  Регистрация данных о пользователе в БД
 @bot.message_handler(commands=['register'])
 def register(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
@@ -68,6 +69,7 @@ def register(message):
         print(answer_bot + end_text + '\n')
 
 
+#  Список доступных команд
 @bot.message_handler(commands=['help'])
 def help_command(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
@@ -83,6 +85,7 @@ def help_command(message):
         print(answer_bot + end_text + '\n')
 
 
+#  Узнать кто следующий дежурный
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
@@ -114,6 +117,7 @@ def dej(message):
         print(answer_bot + end_text + '\n')
 
 
+#  Узнать кто следующий идёт на инвентаризацию
 @bot.message_handler(commands=['invent'])
 def invent(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
@@ -166,6 +170,7 @@ def invent(message):
         print(answer_bot + end_text + '\n')
 
 
+#  Получить случайное имя из сисадминов
 @bot.message_handler(commands=['random'])
 def random_name(user_id):
     print(full_name_user(user_id) + 'отправил команду ' + user_id.text)
