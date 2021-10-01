@@ -54,11 +54,16 @@ def start_command(message):
 @bot.message_handler(commands=['help'])
 def help_command(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    keyboard = telebot.types.InlineKeyboardMarkup()
-    keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
-    # bot.send_message(message.from_user.id, What_i_can_do.can_help(message), reply_markup=keyboard)
-    bot.send_message(message.chat.id, What_i_can_do.can_help(message), reply_markup=keyboard)
-    print(answer_bot + What_i_can_do.can_help(message) + '\n')
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
+        # bot.send_message(message.from_user.id, What_i_can_do.can_help(message), reply_markup=keyboard)
+        bot.send_message(message.chat.id, What_i_can_do.can_help(message), reply_markup=keyboard)
+        print(answer_bot + What_i_can_do.can_help(message) + '\n')
+    else:
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 @bot.message_handler(commands=['dezhurnyj'])
@@ -70,83 +75,97 @@ def dej(message):
     meaning = Read_file.read_file(list_name)['Text 3']
     read_type = Read_file.read_file(list_name)['Type']
 
-    if read_type == 'date':
-        Clear_old_data.check_relevance(list_name)
-        text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + str(
-            some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-        text_who = ' будет дежурить ' + meaning + '.'  # Имя следующего дежурного
-        end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-    elif read_type == 'incorrect':
-        end_text = some_date
-    elif read_type == 'none':
-        end_text = some_date
-    else:
-        end_text = 'Ошибка чтения данных Dej'
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        if read_type == 'date':
+            Clear_old_data.check_relevance(list_name)
+            text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + str(
+                some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
+            text_who = ' будет дежурить ' + meaning + '.'  # Имя следующего дежурного
+            end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
+        elif read_type == 'incorrect':
+            end_text = some_date
+        elif read_type == 'none':
+            end_text = some_date
+        else:
+            end_text = 'Ошибка чтения данных Dej'
 
-    bot.send_message(message.chat.id, text=end_text)
-    print(answer_bot + end_text + '\n')
+        bot.send_message(message.chat.id, text=end_text)
+        print(answer_bot + end_text + '\n')
+    else:
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 @bot.message_handler(commands=['invent'])
 def invent(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_admin(message.from_user.id) == 'True':
-        list_name = Data.sheets_file['Инвертаризация']  # Получаем имя страницы по ключу
-        some_date = Read_file.read_file(list_name)['Date 1']
-        meaning2 = Read_file.read_file(list_name)['Text 2']
-        read_type = Read_file.read_file(list_name)['Type']
-        difference_date = Read_file.read_file(list_name)['Dif date']
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
+            list_name = Data.sheets_file['Инвертаризация']  # Получаем имя страницы по ключу
+            some_date = Read_file.read_file(list_name)['Date 1']
+            meaning2 = Read_file.read_file(list_name)['Text 2']
+            read_type = Read_file.read_file(list_name)['Type']
+            difference_date = Read_file.read_file(list_name)['Dif date']
 
-        if read_type == 'date':
-            Clear_old_data.check_relevance(list_name)
+            if read_type == 'date':
+                Clear_old_data.check_relevance(list_name)
 
-            # Склоняем "день"
-            def count_day():
-                dd = ''
-                if difference_date == 0:
-                    dd = 'Сегодня инвертаризация.'
-                elif difference_date == 1:
-                    dd = 'До предстоящей инвентаризации остался 1 день.'
-                elif 1 < int(difference_date) <= 4:
-                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-                elif difference_date == 5:
-                    dd = 'До предстоящей инвентаризации осталось 5 дней.'
-                elif difference_date > 5:
-                    dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
+                # Склоняем "день"
+                def count_day():
+                    dd = ''
+                    if difference_date == 0:
+                        dd = 'Сегодня инвертаризация.'
+                    elif difference_date == 1:
+                        dd = 'До предстоящей инвентаризации остался 1 день.'
+                    elif 1 < int(difference_date) <= 4:
+                        dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+                    elif difference_date == 5:
+                        dd = 'До предстоящей инвентаризации осталось 5 дней.'
+                    elif difference_date > 5:
+                        dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
 
-                return dd
+                    return dd
 
-            text_day = count_day()  # Кол-во дней до инвентаризации
-            text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
-            end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
-        elif read_type == 'incorrect':
-            end_text = str(Read_file.read_file(list_name)['Error'])
-        elif read_type == 'none':
-            end_text = str(Read_file.read_file(list_name)['Error'])
+                text_day = count_day()  # Кол-во дней до инвентаризации
+                text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
+                end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
+            elif read_type == 'incorrect':
+                end_text = str(Read_file.read_file(list_name)['Error'])
+            elif read_type == 'none':
+                end_text = str(Read_file.read_file(list_name)['Error'])
+            else:
+                end_text = 'Ошибка чтения данных Invent'
+
+            bot.send_message(message.chat.id, text=end_text)
+            print(answer_bot + end_text + '\n')
         else:
-            end_text = 'Ошибка чтения данных Invent'
-
-        bot.send_message(message.chat.id, text=end_text)
-        print(answer_bot + end_text + '\n')
+            text_message = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(message.chat.id, text_message)
+            print(answer_bot + text_message + '\n')
     else:
-        text_message = 'У вас нет прав для выполнения этой команды'
-        bot.send_message(message.chat.id, text_message)
-        print(answer_bot + text_message + '\n')
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 @bot.message_handler(commands=['random'])
 def random_name(user_id):
     print(full_name_user(user_id) + 'отправил команду ' + user_id.text)
-    if SQLite.check_for_admin(user_id.from_user.id) == 'True':
-        list_name = ['Паша', 'Дима', 'Никита']
-        r_name = random.choice(list_name)
-        bot.send_message(user_id.chat.id, text=r_name)
-        print(answer_bot + r_name + '\n')
+    if SQLite.check_for_existence(user_id.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        if SQLite.check_for_admin(user_id.from_user.id) == 'True':  # Проверка админ ли юзер
+            list_name = ['Паша', 'Дима', 'Никита']
+            r_name = random.choice(list_name)
+            bot.send_message(user_id.chat.id, text=r_name)
+            print(answer_bot + r_name + '\n')
+        else:
+            text_message = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(user_id.from_user.id, text_message)
+            print(answer_bot + text_message + '\n')
     else:
-        text_message = 'У вас нет прав для выполнения этой команды'
-        bot.send_message(user_id.from_user.id, text_message)
-        print(answer_bot + text_message + '\n')
-
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(user_id.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 # @bot.message_handler(commands=['set_admin'])
 # def set_to_admin(message):
