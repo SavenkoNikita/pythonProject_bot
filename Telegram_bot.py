@@ -98,9 +98,9 @@ def dej(message):
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         if read_type == 'date':
             Clear_old_data.check_relevance(list_name)
-            text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + str(
-                some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-            text_who = ' будет дежурить ' + meaning + '.'  # Имя следующего дежурного
+            text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
+                       str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
+            text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
             end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
         elif read_type == 'incorrect':
             end_text = some_date

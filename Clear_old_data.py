@@ -47,7 +47,7 @@ def clear(list_name):
 
 # Проверка данных на релевантность
 def check_relevance(list_name):
-    difference_date = Read_file.read_file(list_name)['Dif date']  # Извлекаем близжайшую дату из list_name
+    difference_date = Read_file.read_file(list_name)['Dif date']  # Извлекаем ближайшую дату из list_name
     while difference_date < 0:  # Повторить если дата в прошлом
         # difference_date = Read_file.read_file(list_name)['Dif date']
         clear(list_name)

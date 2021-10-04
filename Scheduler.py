@@ -9,7 +9,7 @@ import Notifications
 import Read_file
 
 
-# Уведомление в IT_info о том кто дежурный
+# Уведомление в IT_info и подписчикам о том кто дежурный
 def sh_send_dej():
     list_name = Data.sheets_file['Дежурный']
     some_date = Read_file.read_file(list_name)['Date 1']
@@ -32,8 +32,11 @@ def sh_send_dej():
 
     Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text=end_text)
     Notifications.notifications_for_subscribers(end_text)
+    # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
     return
 
+
+# sh_send_dej()
 
 # Уведомление в GateKeepers о том кто на инвентаризацию
 def sh_send_invent():
@@ -97,7 +100,7 @@ def sh_notification():
             Clear_old_data.clear(list_name)  # Очистить старые данные
             sh_notification()  # Перезапустить функцию
         elif difference_date == 0:  # Если дата уведомления сегодня
-            # Notifications.notification_all_reg(Notifications.notifications())
+            Notifications.notification_all_reg(Notifications.notifications())
             Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'),
                                   text=Notifications.notifications())  # Отправить сообщение
             Notifications.notifications_for_subscribers(Notifications.notifications())  # Уведомление подписчиков
@@ -112,6 +115,8 @@ def sh_notification():
         print(some_date)
     return
 
+
+# sh_notification()  # Раскомментировать для тестов
 
 schedule.every().friday.at('16:00').do(sh_send_dej)
 schedule.every().day.at('07:00').do(sh_send_invent)
