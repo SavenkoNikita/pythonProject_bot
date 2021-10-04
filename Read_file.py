@@ -17,7 +17,7 @@ def read_file(list_name):
     # Получаем разницу между датами
     now_date = datetime.datetime.now()  # Получаем текущую дату
     some_date = sheet.cell(row=2, column=1).value  # Дата во 2й строке 1го столбца
-    error = 'Ошибка в листе ' + list_name + ':\n\n'
+    error = 'Ошибка в листе ' + list_name + ':\n'
     if some_date is not None:
         if isinstance(some_date, datetime.datetime):
             some_date = some_date
@@ -47,6 +47,8 @@ def read_file(list_name):
         error = error + 'Отсутствуют данные'
         read_type = 'none'
         read_data = {
+            'Date 1': error,
+            'Dif date': error,
             'Error': error,
             'Type': read_type
         }
