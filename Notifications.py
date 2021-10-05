@@ -96,3 +96,35 @@ def notifications_for_subscribers(text_message):
 
 
 # notifications_for_subscribers('Test')
+
+
+# Уведомление администраторов
+def notifications_for_admins(text_message):
+    try:
+        sqlite_connection = sqlite3.connect(Data.way_sql)
+        cursor = sqlite_connection.cursor()
+        print("Подключен к SQLite")
+
+        sqlite_select_query = 'SELECT * FROM users WHERE status = ?'
+        cursor.execute(sqlite_select_query, ['admin'])
+        records = cursor.fetchall()
+        print('ID всех администраторов:\n')
+        all_admin_sql = []
+        for row in records:
+            all_admin_sql.append(row[1])
+        cursor.close()
+        print(all_admin_sql)
+        i = 0
+        while i < len(all_admin_sql):
+            print(all_admin_sql[i])
+            Data.bot.send_message(chat_id=all_admin_sql[i], text='⚠ ОБЪЯВЛЕНИЕ ⚠' + '\n' + text_message)
+            i += 1
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
+
+
+# notifications_for_admins('Test')

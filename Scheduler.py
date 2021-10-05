@@ -59,9 +59,9 @@ def sh_send_invent():
             elif 1 < int(difference_date) <= 4:
                 dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
             elif difference_date == 5:
-                dd = 'До предстоящей инвентаризации осталось 5 дней.'
-            elif difference_date > 5:
-                dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
+                dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дней.'
+            # elif difference_date > 5:
+            #     dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
 
             return dd
 
@@ -75,7 +75,8 @@ def sh_send_invent():
     else:
         end_text = 'Ошибка чтения данных Invent'
 
-    Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
+    # Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
+    Notifications.notifications_for_admins(end_text)
 
 
 # Кто сегодня закрывает сигналы
@@ -115,8 +116,14 @@ def sh_notification():
         print(some_date)
     return
 
-
 # sh_notification()  # Раскомментировать для тестов
+
+# def sh_test():
+#     Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='test')
+#
+# schedule.every().second.do(sh_test)
+
+
 
 schedule.every().friday.at('16:00').do(sh_send_dej)
 schedule.every().day.at('07:00').do(sh_send_invent)
