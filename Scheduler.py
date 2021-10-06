@@ -60,14 +60,18 @@ def sh_send_invent():
                 dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
             elif difference_date == 5:
                 dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дней.'
-            # elif difference_date > 5:
-            #     dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
+            elif difference_date > 5:
+                dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
 
             return dd
 
         text_day = count_day()  # Кол-во дней до инвентаризации
         text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
         end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
+        if 0 <= difference_date <= 5:
+            # Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
+            Notifications.notifications_for_admins(end_text)
+            print(end_text)
     elif read_type == 'incorrect':
         end_text = str(Read_file.read_file(list_name)['Error'])
     elif read_type == 'none':
@@ -75,8 +79,7 @@ def sh_send_invent():
     else:
         end_text = 'Ошибка чтения данных Invent'
 
-    # Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
-    Notifications.notifications_for_admins(end_text)
+
 
 
 # Кто сегодня закрывает сигналы
@@ -101,7 +104,7 @@ def sh_notification():
             Clear_old_data.clear(list_name)  # Очистить старые данные
             sh_notification()  # Перезапустить функцию
         elif difference_date == 0:  # Если дата уведомления сегодня
-            Notifications.notification_all_reg(Notifications.notifications())
+            # Notifications.notification_all_reg(Notifications.notifications())
             Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'),
                                   text=Notifications.notifications())  # Отправить сообщение
             Notifications.notifications_for_subscribers(Notifications.notifications())  # Уведомление подписчиков
@@ -116,13 +119,13 @@ def sh_notification():
         print(some_date)
     return
 
+
 # sh_notification()  # Раскомментировать для тестов
 
 # def sh_test():
 #     Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='test')
 #
 # schedule.every().second.do(sh_test)
-
 
 
 schedule.every().friday.at('16:00').do(sh_send_dej)
