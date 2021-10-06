@@ -109,6 +109,7 @@ def welcome(message):
 
 
 # Обновление статуса пользователя в SQL
+
 def update_sqlite_table(status, user_id, column_name):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
@@ -130,6 +131,27 @@ def update_sqlite_table(status, user_id, column_name):
         if sqlite_connection:
             sqlite_connection.close()
             print("Соединение с SQLite закрыто")
+
+
+def log_out(message):
+    try:
+        sqlite_connection = sqlite3.connect(Data.way_sql)
+        cursor = sqlite_connection.cursor()
+        print("Подключен к SQLite")
+
+        sql_delete_query = 'DELETE from users where user_id = ' + str(message.from_user.id)
+        cursor.execute(sql_delete_query)
+        sqlite_connection.commit()
+        print("Запись успешно удалена")
+        cursor.close()
+
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
+
 
 
 # update_sqlite_table_notification('yes', 569292074, 'notification')

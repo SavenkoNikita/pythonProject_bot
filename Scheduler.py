@@ -80,8 +80,6 @@ def sh_send_invent():
         end_text = 'Ошибка чтения данных Invent'
 
 
-
-
 # Кто сегодня закрывает сигналы
 def sh_random_name():
     if datetime.datetime.today().isoweekday() <= 5:

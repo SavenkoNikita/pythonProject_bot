@@ -69,6 +69,24 @@ def register(message):
         print(answer_bot + end_text + '\n')
 
 
+#  Удаление данных о пользователе из БД
+@bot.message_handler(commands=['log_out'])
+def register(message):
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Если пользователь присутствует в БД
+        log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
+                           'Данные о вашем аккаунте успешно удалены!' + '\n' + \
+                           'Чтобы снова воспользоваться функционалом бота жми /register.'
+        Data.bot.send_message(message.from_user.id, log_out_message)
+        print(answer_bot)
+        SQLite.log_out(message)
+    # else:
+    #     end_text = 'Вы уже зарегистрированы!' + '\n' + \
+    #                'Чтобы узнать что умеет бот жми /help.'
+    #     Data.bot.send_message(message.from_user.id, end_text)
+    #     print(answer_bot + end_text + '\n')
+
+
 #  Список доступных команд
 @bot.message_handler(commands=['help'])
 def help_command(message):
@@ -188,6 +206,7 @@ def random_name(user_id):
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(user_id.from_user.id, end_text)
         print(answer_bot + end_text + '\n')
+
 
 # @bot.message_handler(commands=['set_admin'])
 # def set_to_admin(message):
