@@ -60,7 +60,7 @@ def register(message):
                            'Вы успешно зарегистрированы!' + '\n' + \
                            'Чтобы узнать что умеет бот жми /help.'
         Data.bot.send_message(message.from_user.id, register_message)
-        print(answer_bot)
+        print(answer_bot + register_message + '\n')
         SQLite.welcome(message)
     else:
         end_text = 'Вы уже зарегистрированы!' + '\n' + \
@@ -71,14 +71,14 @@ def register(message):
 
 #  Удаление данных о пользователе из БД
 @bot.message_handler(commands=['log_out'])
-def register(message):
+def log_out(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Если пользователь присутствует в БД
         log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
                            'Данные о вашем аккаунте успешно удалены!' + '\n' + \
                            'Чтобы снова воспользоваться функционалом бота жми /register.'
         Data.bot.send_message(message.from_user.id, log_out_message)
-        print(answer_bot)
+        print(answer_bot + log_out_message + '\n')
         SQLite.log_out(message)
     # else:
     #     end_text = 'Вы уже зарегистрированы!' + '\n' + \

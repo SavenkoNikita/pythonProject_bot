@@ -30,9 +30,9 @@ def sh_send_dej():
     else:
         end_text = 'Ошибка чтения данных Dej'
 
-    Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text=end_text)
-    Notifications.notifications_for_subscribers(end_text)
-    # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
+    Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+    Notifications.notifications_for_subscribers('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+    # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
     return
 
 
@@ -70,7 +70,7 @@ def sh_send_invent():
         end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
         if 0 <= difference_date <= 5:
             # Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
-            Notifications.notifications_for_admins(end_text)
+            Notifications.notifications_for_admins('⌚ ИНВЕНТАРИЗАЦИЯ ⌚' + '\n' + end_text)
             print(end_text)
     elif read_type == 'incorrect':
         end_text = str(Read_file.read_file(list_name)['Error'])
