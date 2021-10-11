@@ -30,7 +30,7 @@ def sh_send_dej():
     else:
         end_text = 'Ошибка чтения данных Dej'
 
-    Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+    # Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
     Notifications.notifications_for_subscribers('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
     # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
     return
