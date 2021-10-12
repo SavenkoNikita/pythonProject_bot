@@ -85,7 +85,7 @@ def notifications_for_subscribers(text_message):
         i = 0
         while i < len(all_user_sql):
             print(all_user_sql[i])
-            Data.bot.send_message(chat_id=all_user_sql[i], text='⚠ ОБЪЯВЛЕНИЕ ⚠' + '\n' + text_message)
+            Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
             i += 1
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)

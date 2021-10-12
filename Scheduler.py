@@ -16,23 +16,30 @@ def sh_send_dej():
     some_date2 = Read_file.read_file(list_name)['Date 2']
     meaning = Read_file.read_file(list_name)['Text 3']
     read_type = Read_file.read_file(list_name)['Type']
+    difference_date = Read_file.read_file(list_name)['Dif date']
 
     if read_type == 'date':
-        Clear_old_data.check_relevance(list_name)
-        text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + str(
-            some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-        text_who = ' будет дежурить ' + meaning + '.'  # Имя следующего дежурного
-        end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
+        if difference_date <= 0:  # Если событие в прошлом или сегодня
+            Clear_old_data.clear(list_name)  # Очистить старые данные
+            sh_send_dej()  # Перезапустить функцию
+        elif difference_date == 1:  # Если дата события завтра
+            text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
+                       str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
+            text_who = ' будет дежурить ' + meaning + '.'  # Имя следующего дежурного
+            end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
+            Notifications.notifications_for_subscribers('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+            print('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+        elif difference_date > 1:  # Если до даты события больше 1 дня
+            print('Рано уведомлять')
     elif read_type == 'incorrect':
         end_text = some_date
+        print(end_text)
     elif read_type == 'none':
         end_text = some_date
+        print(end_text)
     else:
         end_text = 'Ошибка чтения данных Dej'
-
-    # Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
-    Notifications.notifications_for_subscribers('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
-    # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+        print(end_text)
     return
 
 
@@ -103,11 +110,7 @@ def sh_notification():
             sh_notification()  # Перезапустить функцию
         elif difference_date == 0:  # Если дата уведомления сегодня
             # Notifications.notification_all_reg(Notifications.notifications())
-            Data.bot.send_message(chat_id=Data.list_groups.get('IT_info'),
-                                  text='⚠ ОБЪЯВЛЕНИЕ ⚠' + '\n' + Notifications.notifications())  # Отправить сообщение
-            # Notifications.notifications_for_subscribers(Notifications.notifications())  # Уведомление подписчиков
-            # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
-            #                       text='⚠ ОБЪЯВЛЕНИЕ ⚠' + '\n' + Notifications.notifications())  # Отправить сообщение
+            Notifications.notifications_for_subscribers(Notifications.notifications())  # Уведомление подписчиков
             print(Notifications.notifications())
         elif difference_date > 0:  # Если дата не наступила
             print('Рано уведомлять')
@@ -126,7 +129,8 @@ def sh_notification():
 # schedule.every().second.do(sh_test)
 
 
-schedule.every().friday.at('16:00').do(sh_send_dej)
+# schedule.every().friday.at('16:00').do(sh_send_dej)
+schedule.every().day.at('16:00').do(sh_send_dej)  # Проверяет и уведомляет о дежурном
 schedule.every().day.at('07:00').do(sh_send_invent)
 # schedule.every().day.at('07:01').do(sh_random_name)
 schedule.every().day.at('07:02').do(sh_notification)
