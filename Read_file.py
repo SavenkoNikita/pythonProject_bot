@@ -37,14 +37,14 @@ def read_file(list_name):
                 'Type': read_type
             }
         else:
-            error = error + 'Некорректные данные в поле "Дата". Необходимо указать в формате <дд.мм.гггг>'
+            error = error + 'Некорректные данные в поле "Дата". Необходимо указать в формате <дд.мм.гггг>' + '\n'
             read_type = 'incorrect'
             read_data = {
                 'Error': error,
                 'Type': read_type
             }
     elif some_date is None:
-        error = error + 'Отсутствуют данные'
+        error = error + 'Отсутствуют данные' + '\n'
         read_type = 'none'
         read_data = {
             'Date 1': error,

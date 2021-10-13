@@ -30,16 +30,16 @@ def sh_send_dej():
             Notifications.notifications_for_subscribers('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
             print('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
         elif difference_date > 1:  # Если до даты события больше 1 дня
-            print('Рано уведомлять')
+            print('Рано уведомлять' + '\n')
     elif read_type == 'incorrect':
         end_text = some_date
-        print(end_text)
+        print(end_text + '\n')
     elif read_type == 'none':
         end_text = some_date
-        print(end_text)
+        print(end_text + '\n')
     else:
         end_text = 'Ошибка чтения данных Dej'
-        print(end_text)
+        print(end_text + '\n')
     return
 
 
