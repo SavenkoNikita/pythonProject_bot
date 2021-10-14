@@ -1,3 +1,4 @@
-import Data
+import Notifications
+import Scheduler
 
-Data.bot.remove_webhook()
+Scheduler.sh_notification('Уведомления для админов', Notifications.notifications_for_admins(Notifications.notifications()))

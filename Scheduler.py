@@ -147,6 +147,28 @@ def sh_notification_all_reg():
     return
 
 
+def sh_notification(sheet_name, function):
+    list_name = Data.sheets_file[sheet_name]
+    some_date = Read_file.read_file(list_name)['Date 1']
+    read_type = Read_file.read_file(list_name)['Type']
+    difference_date = Read_file.read_file(list_name)['Dif date']
+
+    if read_type == 'date':  # Если return в Read_file.py возвращает дату то
+        if difference_date < 0:  # Если событие в прошлом
+            Clear_old_data.clear(list_name)  # Очистить старые данные
+            sh_notification()  # Перезапустить функцию
+        elif difference_date == 0:  # Если дата уведомления сегодня
+            # Notifications.notification_all_reg(Notifications.notifications())
+            Notifications.function  # Уведомление для всех
+            print(function)
+        elif difference_date > 0:  # Если дата не наступила
+            print('Рано уведомлять')
+    else:  # Если return в Read_file.py возвращает НЕ дату то
+        # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
+        #                       text=Notifications.notifications())  # Отправить сообщение
+        print(some_date)
+    return
+
 # sh_notification()  # Раскомментировать для тестов
 
 # def sh_test():
@@ -161,6 +183,9 @@ schedule.every().day.at('07:00').do(sh_send_invent)
 # schedule.every().day.at('07:01').do(sh_random_name)
 schedule.every().day.at('07:02').do(sh_notification_for_subscribers)
 schedule.every().day.at('07:03').do(sh_notification_all_reg)
+schedule.every().day.at('07:04').do(sh_notification('Уведомления для админов',
+                                                    Notifications.notifications_for_admins
+                                                    (Notifications.notifications())))
 # schedule.every(5).seconds.do(sh_send_dej)
 # schedule.every(5).seconds.do(sh_send_invent)
 # schedule.every(5).seconds.do(sh_notification)
