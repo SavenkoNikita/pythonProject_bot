@@ -11,10 +11,10 @@ def check_for_existence(user_id):
     info = cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
     if info.fetchone() is None:  # Если человека нет в бд
         user_status = 'False'
-        print(user_status + ' Человека нет в бд')
+        # print(user_status + ' Человека нет в бд')
     else:  # Если есть человек в бд
         user_status = 'True'
-        print(user_status + ' Человек есть в бд')
+        # print(user_status + ' Человек есть в бд')
     return user_status
 
 
@@ -33,10 +33,10 @@ def check_for_notification(user_id):
     info = cursor.execute('SELECT * FROM users WHERE notification=? and user_id=?', ('yes', user_id))
     if info.fetchone() is None:  # Если пользователь НЕ подписан на рассылку
         user_status = 'False'
-        print(user_status + ' Пользователь НЕ подписан на рассылку')
+        # print(user_status + ' Пользователь НЕ подписан на рассылку')
     else:  # Если пользователь подписан на рассылку
         user_status = 'True'
-        print(user_status + ' Пользователь подписан на рассылку')
+        # print(user_status + ' Пользователь подписан на рассылку')
     return user_status
 
 
