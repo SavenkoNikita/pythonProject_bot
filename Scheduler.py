@@ -76,15 +76,17 @@ def sh_send_invent():
         text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
         end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
         if 0 <= difference_date <= 5:
-            # Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
             Notifications.notifications_for_admins('⌚ ИНВЕНТАРИЗАЦИЯ ⌚' + '\n' + end_text)
             print(end_text)
     elif read_type == 'incorrect':
         end_text = str(Read_file.read_file(list_name)['Error'])
+        print('Ошибка в листе' + list_name + ':' + '\n' + end_text)
     elif read_type == 'none':
         end_text = str(Read_file.read_file(list_name)['Error'])
+        print('Ошибка в листе' + list_name + ':' + '\n' + end_text)
     else:
         end_text = 'Ошибка чтения данных Invent'
+        print('Ошибка в листе' + list_name + ':' + '\n' + end_text)
 
 
 # Кто сегодня закрывает сигналы
@@ -97,9 +99,9 @@ def sh_random_name():
         # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)  # Для тестов
 
 
-# Уведомления
-def sh_notification():
-    list_name = Data.sheets_file['Уведомления']
+# Уведомления для подписчиков
+def sh_notification_for_subscribers():
+    list_name = Data.sheets_file['Уведомления для подписчиков']
     some_date = Read_file.read_file(list_name)['Date 1']
     read_type = Read_file.read_file(list_name)['Type']
     difference_date = Read_file.read_file(list_name)['Dif date']
@@ -107,10 +109,34 @@ def sh_notification():
     if read_type == 'date':  # Если return в Read_file.py возвращает дату то
         if difference_date < 0:  # Если событие в прошлом
             Clear_old_data.clear(list_name)  # Очистить старые данные
-            sh_notification()  # Перезапустить функцию
+            sh_notification_for_subscribers()  # Перезапустить функцию
         elif difference_date == 0:  # Если дата уведомления сегодня
             # Notifications.notification_all_reg(Notifications.notifications())
             Notifications.notifications_for_subscribers(Notifications.notifications())  # Уведомление подписчиков
+            print(Notifications.notifications())
+        elif difference_date > 0:  # Если дата не наступила
+            print('Рано уведомлять')
+    else:  # Если return в Read_file.py возвращает НЕ дату то
+        # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
+        #                       text=Notifications.notifications())  # Отправить сообщение
+        print(some_date)
+    return
+
+
+# Уведомления для всех
+def sh_notification_all_reg():
+    list_name = Data.sheets_file['Уведомления для всех']
+    some_date = Read_file.read_file(list_name)['Date 1']
+    read_type = Read_file.read_file(list_name)['Type']
+    difference_date = Read_file.read_file(list_name)['Dif date']
+
+    if read_type == 'date':  # Если return в Read_file.py возвращает дату то
+        if difference_date < 0:  # Если событие в прошлом
+            Clear_old_data.clear(list_name)  # Очистить старые данные
+            sh_notification_all_reg()  # Перезапустить функцию
+        elif difference_date == 0:  # Если дата уведомления сегодня
+            # Notifications.notification_all_reg(Notifications.notifications())
+            Notifications.notification_all_reg(Notifications.notifications())  # Уведомление для всех
             print(Notifications.notifications())
         elif difference_date > 0:  # Если дата не наступила
             print('Рано уведомлять')
@@ -133,7 +159,8 @@ def sh_notification():
 schedule.every().day.at('16:00').do(sh_send_dej)  # Проверяет и уведомляет о дежурном
 schedule.every().day.at('07:00').do(sh_send_invent)
 # schedule.every().day.at('07:01').do(sh_random_name)
-schedule.every().day.at('07:02').do(sh_notification)
+schedule.every().day.at('07:02').do(sh_notification_for_subscribers)
+schedule.every().day.at('07:03').do(sh_notification_all_reg)
 # schedule.every(5).seconds.do(sh_send_dej)
 # schedule.every(5).seconds.do(sh_send_invent)
 # schedule.every(5).seconds.do(sh_notification)
