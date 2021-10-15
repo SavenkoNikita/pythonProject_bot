@@ -43,6 +43,7 @@ def read_file(list_name):
                 'Error': error,
                 'Type': read_type
             }
+            print(error)
     elif some_date is None:
         error = error + 'Отсутствуют данные' + '\n'
         read_type = 'none'
@@ -50,7 +51,9 @@ def read_file(list_name):
             'Date 1': error,
             'Dif date': error,
             'Error': error,
-            'Type': read_type
+            'Type': read_type,
+            'Text 2': error
         }
+        print(error)
 
     return read_data
