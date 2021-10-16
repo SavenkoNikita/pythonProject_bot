@@ -107,28 +107,33 @@ def help_command(message):
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    list_name = Data.sheets_file['Дежурный']
+    list_name = 'Дежурный'
     some_date = Read_file.read_file(list_name)['Date 1']
     some_date2 = Read_file.read_file(list_name)['Date 2']
     meaning = Read_file.read_file(list_name)['Text 3']
     read_type = Read_file.read_file(list_name)['Type']
+    difference_date = Read_file.read_file(list_name)['Dif date']
 
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         if read_type == 'date':
-            Clear_old_data.check_relevance(list_name)
-            text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
-                       str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-            text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
-            end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
+            if difference_date < 0:  # Если событие в прошлом
+                Clear_old_data.clear(list_name)  # Очистить старые данные
+                dej(message)  # Перезапустить функцию
+            elif difference_date == 0:  # Если дата уведомления сегодня
+                text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
+                           str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
+                text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
+                end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
+                bot.send_message(message.chat.id, text=end_text)
+                print(answer_bot + end_text + '\n')
         elif read_type == 'incorrect':
             end_text = some_date
         elif read_type == 'none':
             end_text = some_date
+            bot.send_message(message.chat.id, text=end_text)
+            print(answer_bot + end_text + '\n')
         else:
             end_text = 'Ошибка чтения данных Dej'
-
-        bot.send_message(message.chat.id, text=end_text)
-        print(answer_bot + end_text + '\n')
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
@@ -141,7 +146,7 @@ def invent(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
-            list_name = Data.sheets_file['Инвертаризация']  # Получаем имя страницы по ключу
+            list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
             some_date = Read_file.read_file(list_name)['Date 1']
             meaning2 = Read_file.read_file(list_name)['Text 2']
             read_type = Read_file.read_file(list_name)['Type']
