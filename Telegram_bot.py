@@ -106,6 +106,7 @@ def help_command(message):
 #  Узнать кто следующий дежурный
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
+    start = time.time()
     print(full_name_user(message) + 'отправил команду ' + message.text)
     list_name = 'Дежурный'
     some_date = Read_file.read_file(list_name)['Date 1']
@@ -125,24 +126,28 @@ def dej(message):
                 text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
                 end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
                 bot.send_message(message.chat.id, text=end_text)
-                print(answer_bot + end_text + '\n')
+                end = time.time()
+                print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         elif read_type == 'incorrect':
             end_text = some_date
         elif read_type == 'none':
             end_text = some_date
             bot.send_message(message.chat.id, text=end_text)
-            print(answer_bot + end_text + '\n')
+            end = time.time()
+            print('Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         else:
             end_text = 'Ошибка чтения данных Dej'
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
-        print(answer_bot + end_text + '\n')
+        end = time.time()
+        print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
 
 
 #  Узнать кто следующий идёт на инвентаризацию
 @bot.message_handler(commands=['invent'])
 def invent(message):
+    start = time.time()
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
@@ -181,16 +186,19 @@ def invent(message):
             else:
                 end_text = 'Ошибка чтения данных Invent'
 
-            bot.send_message(message.chat.id, text=end_text)
-            print(answer_bot + end_text + '\n')
+            bot.send_message(message.chat.id, end_text)
+            end = time.time()
+            print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         else:
-            text_message = 'У вас нет прав для выполнения этой команды'
-            bot.send_message(message.chat.id, text_message)
-            print(answer_bot + text_message + '\n')
+            end_text = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(message.chat.id, end_text)
+            end = time.time()
+            print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
-        print(answer_bot + end_text + '\n')
+        end = time.time()
+        print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
 
 
 #  Получить случайное имя из сисадминов
