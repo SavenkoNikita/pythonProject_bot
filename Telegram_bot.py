@@ -119,7 +119,7 @@ def dej(message):
             if difference_date < 0:  # Если событие в прошлом
                 Clear_old_data.clear(list_name)  # Очистить старые данные
                 dej(message)  # Перезапустить функцию
-            elif difference_date == 0:  # Если дата уведомления сегодня
+            elif difference_date >= 0:  # Если дата уведомления сегодня или в будущем
                 text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
                            str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
                 text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
