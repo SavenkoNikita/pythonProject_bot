@@ -18,7 +18,7 @@ def sh_send_dej(sheet_name):
     difference_date = Read_file.read_file(sheet_name)['Dif date']
 
     if read_type == 'date':
-        if difference_date <= 0:  # Если событие в прошлом или сегодня
+        if difference_date < 0:  # Если событие в прошлом
             Clear_old_data.clear(sheet_name)  # Очистить старые данные
             sh_send_dej(sheet_name)  # Перезапустить функцию
         elif difference_date == 1:  # Если дата события завтра
@@ -53,28 +53,29 @@ def sh_send_invent(sheet_name):
     difference_date = Read_file.read_file(sheet_name)['Dif date']
 
     if read_type == 'date':
-        Clear_old_data.check_relevance(sheet_name)
+        if difference_date < 0:  # Если событие в прошлом
+            Clear_old_data.check_relevance(sheet_name)  # Очистить старые данные
+            sh_send_invent(sheet_name)  # Перезапустить функцию
+        elif 0 <= difference_date <= 5:
+            # Склоняем "день"
+            def count_day():
+                dd = ''
+                if difference_date == 0:
+                    dd = 'Сегодня инвертаризация.'
+                elif difference_date == 1:
+                    dd = 'До предстоящей инвентаризации остался 1 день.'
+                elif 1 < int(difference_date) <= 4:
+                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+                elif difference_date == 5:
+                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дней.'
+                # elif difference_date > 5:
+                #     dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
 
-        # Склоняем "день"
-        def count_day():
-            dd = ''
-            if difference_date == 0:
-                dd = 'Сегодня инвертаризация.'
-            elif difference_date == 1:
-                dd = 'До предстоящей инвентаризации остался 1 день.'
-            elif 1 < int(difference_date) <= 4:
-                dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-            elif difference_date == 5:
-                dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дней.'
-            elif difference_date > 5:
-                dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
+                return dd
 
-            return dd
-
-        text_day = count_day()  # Кол-во дней до инвентаризации
-        text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
-        end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
-        if 0 <= difference_date <= 5:
+            text_day = count_day()  # Кол-во дней до инвентаризации
+            text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
+            end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
             Notifications.notification_for('⌚ ИНВЕНТАРИЗАЦИЯ ⌚' + '\n' + end_text, sheet_name, 'notification', 'yes')
             print(end_text)
     elif read_type == 'incorrect':
