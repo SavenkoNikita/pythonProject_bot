@@ -125,9 +125,33 @@ def dej(message):
                            str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
                 text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
                 end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-                bot.send_message(message.chat.id, text=end_text)
-                end = time.time()
-                print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+                if meaning == 'Дмитрий @L7kestyle':
+                    bot.send_message(message.chat.id, end_text)
+                    bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAEI3dVhbnLM4xnDFJ42hL-Az2Y5wQABuYkAAq8BAAI3hDAAAV3qyNfmaojdIQQ')
+                    end = time.time()
+                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+                elif meaning == 'Павел @Van_leff':
+                    bot.send_message(message.chat.id, end_text)
+                    bot.send_sticker(message.chat.id,
+                                     'CAACAgIAAxkBAAEI3fRhbnjFbLE-As0Kt0fXINgAASCn4g4AAngCAAJWnb0K_LoItZF9HAwhBA')
+                    end = time.time()
+                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+                elif meaning == 'Алексей':
+                    bot.send_message(message.chat.id, end_text)
+                    bot.send_sticker(message.chat.id,
+                                     'CAACAgIAAxkBAAEI3flhbnm-iSTEJPhsWsnCjC9N9ZOkcQACGwEAAp38IwABs3RXktUEV0AhBA')
+                    end = time.time()
+                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+                elif meaning == 'Никита @nikita_it_remit':
+                    bot.send_message(message.chat.id, end_text)
+                    bot.send_sticker(message.chat.id,
+                                     'CAACAgIAAxkBAAEI3f9hbnxmHX2voITw59wxUrnMeZc95AACBQEAAvcCyA_R5XS3RiWkoSEE')
+                    end = time.time()
+                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+                else:
+                    bot.send_message(message.chat.id, end_text)
+                    end = time.time()
+                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         elif read_type == 'incorrect':
             end_text = some_date
         elif read_type == 'none':
