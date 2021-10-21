@@ -47,7 +47,7 @@ def sh_send_dej(sheet_name):
 # Уведомление в GateKeepers о том кто на инвентаризацию
 def sh_send_invent(sheet_name):
     # list_name = Data.sheets_file['Инвертаризация']  # Получаем имя страницы по ключу
-    some_date = Read_file.read_file(sheet_name)['Date 1']
+    # some_date = Read_file.read_file(sheet_name)['Date 1']
     meaning2 = Read_file.read_file(sheet_name)['Text 2']
     read_type = Read_file.read_file(sheet_name)['Type']
     difference_date = Read_file.read_file(sheet_name)['Dif date']

@@ -153,6 +153,18 @@ def log_out(message):
             print("Соединение с SQLite закрыто")
 
 
+# def update_data_user(message):
+#     user_id = message.from_user.id
+#     user_first_name = message.from_user.first_name
+#     user_last_name = message.from_user.last_name
+#     username = message.from_user.username
+#
+#     if check_for_existence(user_id) == 'True':
+#         if user
+
+
+
+
 
 # update_sqlite_table_notification('yes', 569292074, 'notification')
 

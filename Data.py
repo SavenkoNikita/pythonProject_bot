@@ -35,3 +35,12 @@ sheets_file = [
 # Путь к базе данных
 way_sql = '/home/nik/Рабочий стол/Проекты python/Data_users_telegram_bot.db'
 
+
+name_sticker = {
+    'Дмитрий @L7kestyle': 'CAACAgIAAxkBAAEI3dVhbnLM4xnDFJ42hL-Az2Y5wQABuYkAAq8BAAI3hDAAAV3qyNfmaojdIQQ',
+    'Павел @Van_leff': 'CAACAgIAAxkBAAEI3fRhbnjFbLE-As0Kt0fXINgAASCn4g4AAngCAAJWnb0K_LoItZF9HAwhBA',
+    'Алексей': 'CAACAgIAAxkBAAEI3flhbnm-iSTEJPhsWsnCjC9N9ZOkcQACGwEAAp38IwABs3RXktUEV0AhBA',
+    'Никита @nikita_it_remit': 'CAACAgIAAxkBAAEI3f9hbnxmHX2voITw59wxUrnMeZc95AACBQEAAvcCyA_R5XS3RiWkoSEE'
+}
+
+

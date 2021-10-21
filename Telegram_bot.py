@@ -1,5 +1,4 @@
 import datetime
-import os
 import random
 import time
 
@@ -125,27 +124,9 @@ def dej(message):
                            str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
                 text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
                 end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-                if meaning == 'Дмитрий @L7kestyle':
+                if meaning in Data.name_sticker:
                     bot.send_message(message.chat.id, end_text)
-                    bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAEI3dVhbnLM4xnDFJ42hL-Az2Y5wQABuYkAAq8BAAI3hDAAAV3qyNfmaojdIQQ')
-                    end = time.time()
-                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-                elif meaning == 'Павел @Van_leff':
-                    bot.send_message(message.chat.id, end_text)
-                    bot.send_sticker(message.chat.id,
-                                     'CAACAgIAAxkBAAEI3fRhbnjFbLE-As0Kt0fXINgAASCn4g4AAngCAAJWnb0K_LoItZF9HAwhBA')
-                    end = time.time()
-                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-                elif meaning == 'Алексей':
-                    bot.send_message(message.chat.id, end_text)
-                    bot.send_sticker(message.chat.id,
-                                     'CAACAgIAAxkBAAEI3flhbnm-iSTEJPhsWsnCjC9N9ZOkcQACGwEAAp38IwABs3RXktUEV0AhBA')
-                    end = time.time()
-                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-                elif meaning == 'Никита @nikita_it_remit':
-                    bot.send_message(message.chat.id, end_text)
-                    bot.send_sticker(message.chat.id,
-                                     'CAACAgIAAxkBAAEI3f9hbnxmHX2voITw59wxUrnMeZc95AACBQEAAvcCyA_R5XS3RiWkoSEE')
+                    bot.send_sticker(message.chat.id, Data.name_sticker.get(meaning))
                     end = time.time()
                     print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
                 else:
@@ -154,13 +135,17 @@ def dej(message):
                     print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         elif read_type == 'incorrect':
             end_text = some_date
+            end = time.time()
+            print(end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         elif read_type == 'none':
             end_text = some_date
             bot.send_message(message.chat.id, text=end_text)
             end = time.time()
-            print('Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+            print(end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
         else:
             end_text = 'Ошибка чтения данных Dej'
+            end = time.time()
+            print(end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
