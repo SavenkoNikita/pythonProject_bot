@@ -91,6 +91,7 @@ def log_out(message):
 def help_command(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)
         keyboard = telebot.types.InlineKeyboardMarkup()
         keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
         # bot.send_message(message.from_user.id, What_i_can_do.can_help(message), reply_markup=keyboard)
@@ -115,6 +116,7 @@ def dej(message):
     difference_date = Read_file.read_file(list_name)['Dif date']
 
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)
         if read_type == 'date':
             if difference_date < 0:  # Если событие в прошлом
                 Clear_old_data.clear(list_name)  # Очистить старые данные
@@ -159,6 +161,7 @@ def invent(message):
     start = time.time()
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
             list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
             some_date = Read_file.read_file(list_name)['Date 1']
@@ -215,6 +218,7 @@ def invent(message):
 def random_name(user_id):
     print(full_name_user(user_id) + 'отправил команду ' + user_id.text)
     if SQLite.check_for_existence(user_id.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)
         if SQLite.check_for_admin(user_id.from_user.id) == 'True':  # Проверка админ ли юзер
             list_name = ['Паша', 'Дима', 'Никита']
             r_name = random.choice(list_name)
@@ -314,6 +318,7 @@ def random_name(user_id):
 def set_subscribe(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':
+        SQLite.update_data_user(message)
         if SQLite.check_for_notification(message.from_user.id) == 'False':
             SQLite.update_sqlite_table('yes', message.from_user.id, 'notification')
             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
@@ -337,6 +342,7 @@ def set_subscribe(message):
 def set_subscribe(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':
+        SQLite.update_data_user(message)
         if SQLite.check_for_notification(message.from_user.id) == 'True':
             SQLite.update_sqlite_table('no', message.from_user.id, 'notification')
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
@@ -357,6 +363,7 @@ def set_subscribe(message):
 
 @bot.message_handler(content_types=['text'])
 def other_functions(message):
+    SQLite.update_data_user(message)
     print(full_name_user(message) + 'написал: ' + '"' + message.text + '"')
     i_can = "Чтобы узнать что я умею напиши /help."
     bot.send_message(message.chat.id, i_can)

@@ -69,6 +69,15 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
         end_text = 'К боту подключился новый пользователь!\n' + data_user() + '\n'
         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
         print(end_text)
+    elif check_for_existence(user_id) == 'True':
+        # обновление изменений данных о пользователе:
+        sqlite_update_query = 'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? WHERE user_id =' + str(user_id)
+        column_values = (user_first_name, user_last_name, username)
+        cursor.execute(sqlite_update_query, column_values)
+        conn.commit()
+        end_text = 'Обновлены данные пользователя\n' + data_user() + '\n'
+        Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
+        print(end_text)
     else:
         end_text = 'Пользователь уже есть в базе данных!\n' + data_user() + '\n'
         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
@@ -153,14 +162,43 @@ def log_out(message):
             print("Соединение с SQLite закрыто")
 
 
-# def update_data_user(message):
-#     user_id = message.from_user.id
-#     user_first_name = message.from_user.first_name
-#     user_last_name = message.from_user.last_name
-#     username = message.from_user.username
-#
-#     if check_for_existence(user_id) == 'True':
-#         if user
+def update_data_user(message):
+    user_id = message.from_user.id
+    user_first_name = message.from_user.first_name
+    user_last_name = message.from_user.last_name
+    username = message.from_user.username
+
+    try:
+        sqlite_connection = sqlite3.connect(Data.way_sql)
+        cursor = sqlite_connection.cursor()
+        print("Подключен к SQLite")
+
+        sql_select_query = 'SELECT * FROM users WHERE user_id=?'
+        cursor.execute(sql_select_query, (user_id,))
+        records = cursor.fetchall()
+        for row in records:
+            user_id_SQL = row[1]
+            user_first_name_SQL = row[2]
+            user_last_name_SQL = row[3]
+            username_SQL = row[4]
+
+        if user_id == user_id_SQL and \
+                user_first_name != user_first_name_SQL or \
+                user_last_name != user_last_name_SQL or \
+                username != username_SQL:
+            db_table_val(user_id, user_first_name, user_last_name, username)
+
+        cursor.close()
+
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
+
+
+
 
 
 
