@@ -1,4 +1,5 @@
 import sqlite3
+import time
 
 import Data
 
@@ -62,7 +63,22 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
         return end_data
 
     if check_for_existence(user_id) == 'False':
-        # добавление пользователя:
+        sqlite_select_query = 'SELECT * from users where user_id'
+        cursor.execute(sqlite_select_query)
+        records = cursor.fetchall()
+        print('ID всех пользователей:\n')
+        all_user_sql = []
+        for row in records:
+            all_user_sql.append(row[1])
+        # cursor.close()
+        text_message = 'Присоединился новый пользователь. Нас уже ' + str(len(all_user_sql) + 1) + '!'
+
+        i = 0
+        while i < len(all_user_sql):
+            print(all_user_sql[i])
+            Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
+            time.sleep(1)
+            i += 1
         cursor.execute('INSERT INTO users (user_id, user_first_name, user_last_name, username) VALUES (?, ?, ?, ?)',
                        (user_id, user_first_name, user_last_name, username))
         conn.commit()
