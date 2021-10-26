@@ -199,7 +199,7 @@ def update_data_user(message):
             user_last_name_SQL = row[3]
             username_SQL = row[4]
 
-        if user_id == user_id_SQL and \
+        if user_id == user_id_SQL or \
                 user_first_name != user_first_name_SQL or \
                 user_last_name != user_last_name_SQL or \
                 username != username_SQL:
