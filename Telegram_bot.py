@@ -6,6 +6,7 @@ import telebot
 
 import Clear_old_data
 import Data
+import Other_function
 import Read_file
 import SQLite
 import What_i_can_do
@@ -124,7 +125,7 @@ def dej(message):
             elif difference_date >= 0:  # Если дата уведомления сегодня или в будущем
                 text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
                            str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-                text_who = 'будет дежурить ' + meaning + '.'  # Имя следующего дежурного
+                text_who = 'будет дежурить ' + str(Other_function.get_data_user_SQL(Data.user_data, meaning)) + '.'  # Имя следующего дежурного
                 end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
                 if meaning in Data.name_sticker:
                     bot.send_message(message.chat.id, end_text)

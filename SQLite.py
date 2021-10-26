@@ -87,7 +87,8 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
         print(end_text)
     elif check_for_existence(user_id) == 'True':
         # обновление изменений данных о пользователе:
-        sqlite_update_query = 'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? WHERE user_id =' + str(user_id)
+        sqlite_update_query = 'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? WHERE user_id ='\
+                              + str(user_id)
         column_values = (user_first_name, user_last_name, username)
         cursor.execute(sqlite_update_query, column_values)
         conn.commit()
@@ -214,15 +215,29 @@ def update_data_user(message):
             print("Соединение с SQLite закрыто")
 
 
+def get_user_info(user_id):
+    try:
+        sqlite_connection = sqlite3.connect(Data.way_sql)
+        cursor = sqlite_connection.cursor()
+        print("Подключен к SQLite")
+
+        sql_select_query = """select * from users where user_id = ?"""
+        cursor.execute(sql_select_query, (user_id,))
+        records = cursor.fetchall()
+        for row in records:
+            if row[4] is not None:  # Если в SQL есть запись о юзернейме
+                name_and_username = row[2] + ' @' + row[4]  # Получаем имя и юзернейм
+            else:
+                name_and_username = row[2]  # Получаем имя
+            return name_and_username
+
+        cursor.close()
+
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
 
 
-
-
-
-
-# update_sqlite_table_notification('yes', 569292074, 'notification')
-
-# update_sqlite_table('admin', 368861606)
-
-# check_for_existence(1827221970)
-# check_for_notification(1827221970)
