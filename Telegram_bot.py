@@ -75,8 +75,8 @@ def log_out(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Если пользователь присутствует в БД
         log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
-                           'Данные о вашем аккаунте успешно удалены!' + '\n' + \
-                           'Чтобы снова воспользоваться функционалом бота жми /register.'
+                          'Данные о вашем аккаунте успешно удалены!' + '\n' + \
+                          'Чтобы снова воспользоваться функционалом бота жми /register.'
         Data.bot.send_message(message.from_user.id, log_out_message)
         print(answer_bot + log_out_message + '\n')
         SQLite.log_out(message)
@@ -128,10 +128,10 @@ def dej(message):
                 text_who = 'будет дежурить ' + str(Other_function.get_data_user_SQL
                                                    (Data.user_data, meaning)) + '.'  # Имя следующего дежурного
                 end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-                if Other_function.get_key(Data.user_data, meaning) in Data.name_sticker:
+                if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, meaning)) is not None:
                     bot.send_message(message.chat.id, end_text)
-                    bot.send_sticker(message.chat.id, Data.name_sticker.get(Other_function.get_key(Data.user_data,
-                                                                                                   meaning)))
+                    bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data,
+                                                                                                     meaning)))
                     end = time.time()
                     print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
                 else:
@@ -218,7 +218,8 @@ def invent(message):
 
 #  Получить случайное имя из сисадминов
 @bot.message_handler(commands=['random'])
-def random_name(user_id):
+def random_name(message):
+    user_id = message.from_user.id
     print(full_name_user(user_id) + 'отправил команду ' + user_id.text)
     if SQLite.check_for_existence(user_id.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)
@@ -362,6 +363,22 @@ def set_subscribe(message):
         end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
         print(answer_bot + end_text + '\n')
+
+
+@bot.message_handler(commands=['change_sticker'])
+def change_sticker_1(message):
+    msg = bot.send_message(message.from_user.id, 'Отправь мне стикер который хочешь привязать в своей учётной записи!')
+    bot.register_next_step_handler(msg, change_sticker_2)
+
+
+def change_sticker_2(message):
+    user_id = message.from_user.id
+    print(user_id)
+    answer = message.sticker.file_id
+    print(answer)
+    SQLite.update_sqlite_table(answer, user_id, 'sticker')
+    bot.send_message(message.from_user.id, 'Стикер обновлён')
+    print('Стикер обновлён')
 
 
 @bot.message_handler(content_types=['text'])

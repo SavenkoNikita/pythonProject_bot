@@ -241,3 +241,31 @@ def get_user_info(user_id):
             print("Соединение с SQLite закрыто")
 
 
+def get_user_sticker(user_id):
+    try:
+        sqlite_connection = sqlite3.connect(Data.way_sql)
+        cursor = sqlite_connection.cursor()
+        print("Подключен к SQLite")
+
+        sql_select_query = """select * from users where user_id = ?"""
+        cursor.execute(sql_select_query, (user_id,))
+        records = cursor.fetchall()
+        for row in records:
+            if row[7] is not None:  # Если в SQL есть запись о
+                name_and_username = row[7]  # Получаем
+                # print(row[7])
+            else:
+                name_and_username = None  # Получаем
+            return name_and_username
+
+        cursor.close()
+
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
+
+
+# get_user_sticker(1827221970)
