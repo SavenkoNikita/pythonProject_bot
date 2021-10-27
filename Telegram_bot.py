@@ -269,7 +269,7 @@ def receive_id(message):
                 bot.send_message(message.from_user.id, answer_text)
                 print(answer_text + '\n')
             else:
-                end_text = 'Нельзя присвоить статус <admin> поскольку он им уже является'
+                end_text = 'Нельзя пользователю присвоить статус <admin> поскольку он им уже является'
                 bot.send_message(message.from_user.id, end_text)
         else:
             end_text = 'Вы пытаетесь дать админские права пользователю который отсутствует в базе данных!'
@@ -312,7 +312,7 @@ def receive_id_user(message):
                 bot.send_message(message.from_user.id, answer_text)
                 print(answer_text + '\n')
             else:
-                end_text = 'Нельзя присвоить статус <user> поскольку он им уже является'
+                end_text = 'Нельзя пользователю присвоить статус <user> поскольку он им уже является'
                 bot.send_message(message.from_user.id, end_text)
         else:
             end_text = 'Вы пытаетесь присвоить пользователю статус <user>, который отсутствует в базе данных!'
