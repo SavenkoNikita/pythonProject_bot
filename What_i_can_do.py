@@ -24,6 +24,7 @@ list_command_admin = [
     *list_command_user,
     "• Узнать кто следующий на инвентаризацию жми /invent",
     "• Получить случайное имя /random",
+    "• Сменить стикер /change_sticker",
     # "• Дать пользователю админские права /set_admin",
     # "• Присвоить пользователю статус <user> /set_user",
     # '/set_admin'
