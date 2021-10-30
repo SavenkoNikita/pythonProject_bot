@@ -3,10 +3,14 @@ import time
 
 import Clear_old_data
 import Data
+import Other_function
 import Read_file
 
 
 # Проверяет тип данных в 1м столбце 2й строки в указанном листе
+import SQLite
+
+
 def notifications(sheet_name):
     some_date = Read_file.read_file(sheet_name)['Date 1']
     meaning2 = Read_file.read_file(sheet_name)['Text 2']
@@ -108,3 +112,36 @@ def notification_for(text_message, sheet_name, column, column_meaning):
     else:
         print('В ' + sheet_name + ' нет данных или не подходящий формат.')
         print('Ошибку выдал notification_for')
+
+
+# Уведомления для юзеров с указанными параметрами
+def send_sticker_for(user_first_name, column, column_meaning):
+    try:
+        sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
+        sqlite_connection = sqlite3.connect(Data.way_sql)
+        cursor = sqlite_connection.cursor()
+        print('Подключен к SQLite')
+
+        sqlite_select_query = 'SELECT * FROM users WHERE ' + column + ' = ?'
+        cursor.execute(sqlite_select_query, [column_meaning])
+        records = cursor.fetchall()
+        print('Список ID:\n')
+        all_id_sql = []
+        for row in records:
+            all_id_sql.append(row[1])
+        cursor.close()
+        print(all_id_sql)
+        i = 0
+        while i < len(all_id_sql):
+            print(all_id_sql[i])
+            Data.bot.send_sticker(all_id_sql[i], sticker)
+            # Data.bot.send_sticker(chat_id=all_id_sql[i], SQLite.get_user_sticker(Other_function.get_key(Data.user_data, sticker_in_user_id)))
+            i += 1
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
+
+

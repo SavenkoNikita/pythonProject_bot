@@ -6,28 +6,38 @@ import schedule
 import Clear_old_data
 import Data
 import Notifications
+import Other_function
 import Read_file
 
 
-# Уведомление в IT_info и подписчикам о том кто дежурный
-def sh_send_dej(sheet_name):
-    some_date = Read_file.read_file(sheet_name)['Date 1']
-    some_date2 = Read_file.read_file(sheet_name)['Date 2']
-    meaning = Read_file.read_file(sheet_name)['Text 3']
-    read_type = Read_file.read_file(sheet_name)['Type']
-    difference_date = Read_file.read_file(sheet_name)['Dif date']
+# Уведомление подписчиков о том кто дежурный
+import SQLite
+from Telegram_bot import bot
 
-    if read_type == 'date':
+
+def sh_send_dej(sheet_name):
+    some_date = Read_file.read_file(sheet_name)['Date 1']  # Дата во 2й строке 1го столбца
+    some_date2 = Read_file.read_file(sheet_name)['Date 2']  # Дата во 2й строке 2го столбца
+    meaning = Read_file.read_file(sheet_name)['Text 3']  # Текст во 2й строке 3го столбца
+    read_type = Read_file.read_file(sheet_name)['Type']  # Тип данных во 2й строке 1го столбца
+    difference_date = Read_file.read_file(sheet_name)['Dif date']  # Получаем разницу между датами
+
+    if read_type == 'date':  # Если тип данных в sheet_name во 2й строке 1го столбца является датой
         if difference_date < 0:  # Если событие в прошлом
             Clear_old_data.clear(sheet_name)  # Очистить старые данные
+            time.sleep(5)  # Задержка в секундах
             sh_send_dej(sheet_name)  # Перезапустить функцию
         elif difference_date == 1:  # Если дата события завтра
             text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
                        str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-            text_who = ' будет дежурить ' + meaning + '.'  # Имя следующего дежурного
+            text_who = ' будет дежурить ' + str(Other_function.get_data_user_SQL(Data.user_data, meaning)) + \
+                       '.'  # Имя дежурного
             end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-            Notifications.notification_for('► ДЕЖУРНЫЙ ◄' + '\n' + end_text, sheet_name, 'notification', 'yes')
-            print('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, meaning)) is not None:
+                text_message = '► ДЕЖУРНЫЙ ◄' + '\n' + end_text
+                Notifications.notification_for(text_message, sheet_name, 'notification', 'yes')
+                print('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+                Notifications.send_sticker_for(meaning, 'notification', 'yes')
         elif difference_date > 1:  # Если до даты события больше 1 дня
             print('Рано уведомлять' + '\n')
     elif read_type == 'incorrect':
@@ -41,8 +51,6 @@ def sh_send_dej(sheet_name):
         print(end_text + '\n')
     return
 
-
-# sh_send_dej()
 
 # Уведомление в GateKeepers о том кто на инвентаризацию
 def sh_send_invent(sheet_name):
@@ -134,19 +142,17 @@ def sh_notification(sheet_name):
         elif difference_date == 0:  # Если дата уведомления сегодня
             if sheet_name in Data.sheets_file:
                 if sheet_name == 'Уведомления для всех':
-                    function = Notifications.notification_all_reg(Notifications.notifications(sheet_name), sheet_name)
+                    Notifications.notification_all_reg(Notifications.notifications(sheet_name), sheet_name)
                 elif sheet_name == 'Уведомления для подписчиков':
-                    function = Notifications.notification_for(Notifications.notifications(sheet_name), sheet_name,
-                                                              'notification', 'yes')
+                    Notifications.notification_for(Notifications.notifications(sheet_name), sheet_name, 'notification',
+                                                   'yes')
                 elif sheet_name == 'Уведомления для админов':
-                    function = Notifications.notification_for(Notifications.notifications(sheet_name), sheet_name,
-                                                              'status', 'admin')
+                    Notifications.notification_for(Notifications.notifications(sheet_name), sheet_name, 'status',
+                                                   'admin')
                 elif sheet_name == 'Инвентаризация':
-                    function = sh_send_invent(sheet_name)
+                    sh_send_invent(sheet_name)
                 else:
                     print('В файле нет страницы с названием ' + sheet_name)
-                function  # Выполняемая функция
-                print(function)
         elif difference_date > 0:  # Если дата не наступила
             print('Отчёт sh_notification:\n')
             print('В ' + sheet_name + ' рано уведомлять')

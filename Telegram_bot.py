@@ -220,21 +220,21 @@ def invent(message):
 @bot.message_handler(commands=['random'])
 def random_name(message):
     user_id = message.from_user.id
-    print(full_name_user(user_id) + 'отправил команду ' + user_id.text)
-    if SQLite.check_for_existence(user_id.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(user_id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)
-        if SQLite.check_for_admin(user_id.from_user.id) == 'True':  # Проверка админ ли юзер
+        if SQLite.check_for_admin(user_id) == 'True':  # Проверка админ ли юзер
             list_name = ['Паша', 'Дима', 'Никита']
             r_name = random.choice(list_name)
-            bot.send_message(user_id.chat.id, text=r_name)
+            bot.send_message(user_id, text=r_name)
             print(answer_bot + r_name + '\n')
         else:
             text_message = 'У вас нет прав для выполнения этой команды'
-            bot.send_message(user_id.from_user.id, text_message)
+            bot.send_message(user_id, text_message)
             print(answer_bot + text_message + '\n')
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
-        bot.send_message(user_id.from_user.id, end_text)
+        bot.send_message(user_id, end_text)
         print(answer_bot + end_text + '\n')
 
 
@@ -268,6 +268,8 @@ def receive_id(message):
                 SQLite.update_sqlite_table('admin', id_future_admin, 'status')
                 bot.send_message(message.from_user.id, answer_text)
                 print(answer_text + '\n')
+                bot.send_message(id_future_admin, 'Администратор <' + message.from_user.first_name +
+                                 '> предоставил вам права администратора')
             else:
                 end_text = 'Нельзя пользователю присвоить статус <admin> поскольку он им уже является'
                 bot.send_message(message.from_user.id, end_text)
@@ -311,6 +313,8 @@ def receive_id_user(message):
                 SQLite.update_sqlite_table('user', id_future_user, 'status')
                 bot.send_message(message.from_user.id, answer_text)
                 print(answer_text + '\n')
+                bot.send_message(id_future_user, 'Администратор <' + message.from_user.first_name +
+                                 '> лишил вас прав администратора')
             else:
                 end_text = 'Нельзя пользователю присвоить статус <user> поскольку он им уже является'
                 bot.send_message(message.from_user.id, end_text)
