@@ -1,6 +1,5 @@
 import sqlite3
 import time
-
 import Data
 import Other_function
 import Read_file
