@@ -114,7 +114,7 @@ def dej(message):
     difference_date = Read_file.read_file(list_name)['Dif date']
 
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
-        SQLite.update_data_user(message)
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if read_type == 'date':
             start = time.time()  # Засекает время начала выполнения скрипта
             if difference_date < 0:  # Если событие в прошлом
@@ -168,7 +168,7 @@ def invent(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     start = time.time()  # Засекает время начала выполнения скрипта
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
-        SQLite.update_data_user(message)
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         start = time.time()  # Засекает время начала выполнения скрипта
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
             start = time.time()  # Засекает время начала выполнения скрипта
@@ -228,7 +228,7 @@ def random_name(message):
     user_id = message.from_user.id
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(user_id) == 'True':  # Проверка на наличие юзера в БД
-        SQLite.update_data_user(message)  #
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(user_id) == 'True':  # Проверка админ ли юзер
             list_name = ['Паша', 'Дима', 'Никита']  # Список имён для рандома
             r_name = random.choice(list_name)  # Получение рандомного значения из списка
@@ -247,15 +247,21 @@ def random_name(message):
 @bot.message_handler(commands=['set_admin'])
 def set_to_admin(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
-        text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека\n'
-        bot.send_message(message.from_user.id, text=text_message)  # Бот пришлёт выше указанный текст
-        print(text_message + '\n')
-        bot.register_next_step_handler(message, receive_id)  # Регистрация следующего действия
-    else:  # Если пользователь не админ, бот сообщит об этом
-        text_message = 'У вас нет прав для выполнения этой команды'
-        bot.send_message(message.from_user.id, text_message)
-        print(text_message + '\n')
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+            text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека\n'
+            bot.send_message(message.from_user.id, text=text_message)  # Бот пришлёт выше указанный текст
+            print(text_message + '\n')
+            bot.register_next_step_handler(message, receive_id)  # Регистрация следующего действия
+        else:  # Если пользователь не админ, бот сообщит об этом
+            text_message = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(message.from_user.id, text_message)
+            print(text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 def receive_id(message):
@@ -294,43 +300,50 @@ def receive_id(message):
 @bot.message_handler(commands=['set_user'])
 def set_to_user(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_admin(message.from_user.id) == 'True':
-        text_message = 'Чтобы пользователю присвоить статус <user>, перешли мне сообщение от этого человека\n'
-        bot.send_message(message.from_user.id, text=text_message)
-        print(answer_bot + text_message + '\n')
-        bot.register_next_step_handler(message, receive_id_user)
-    else:
-        text_message = 'У вас нет прав для выполнения этой команды'
-        bot.send_message(message.from_user.id, text_message)
-        print(text_message + '\n')
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+            text_message = 'Чтобы пользователю присвоить статус <user>, перешли мне сообщение от этого человека\n'
+            bot.send_message(message.from_user.id, text=text_message)  # Бот пришлёт выше указанный текст
+            print(answer_bot + text_message + '\n')
+            bot.register_next_step_handler(message, receive_id_user)  # Регистрация следующего действия
+        else:  # Если пользователь не админ, бот сообщит об этом
+            text_message = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(message.from_user.id, text_message)
+            print(text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 def receive_id_user(message):
     try:
-        chat_id = message.chat.id
-        id_future_user = message.forward_from.id
-        first_name_future_user = str(message.forward_from.first_name)
-        last_name_future_user = str(message.forward_from.last_name)
-        full_name_future_user = first_name_future_user + ' ' + last_name_future_user
+        chat_id = message.chat.id  # Получаем id чата
+        id_future_user = message.forward_from.id  # Получаем id человека полученного из пересылаемого сообщения
+        first_name_future_user = str(message.forward_from.first_name)  # Получаем имя будущего юзера
+        last_name_future_user = str(message.forward_from.last_name)  # Получаем фамилию будущего юзера
+        full_name_future_user = first_name_future_user + ' ' + last_name_future_user  # Склеиваем данные воедино
         print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_user +
               ' содержащее текст:\n' + message.text)
         answer_text = 'Пользователю <' + full_name_future_user + '> присвоен статус <user>'
-        if SQLite.check_for_existence(id_future_user) == 'True':
-            if SQLite.check_for_admin(id_future_user) == 'True':
-                SQLite.update_sqlite_table('user', id_future_user, 'status')
-                bot.send_message(message.from_user.id, answer_text)
+        if SQLite.check_for_existence(id_future_user) == 'True':  # Проверка на наличие человека в БД
+            if SQLite.check_for_admin(id_future_user) == 'True':  # Проверка админ ли юзер
+                SQLite.update_sqlite_table('user', id_future_user, 'status')  # Обновляем статус нового юзера в БД
+                bot.send_message(message.from_user.id, answer_text)  # Бот уведомляет об этом того кто выполнил запрос
                 print(answer_text + '\n')
                 bot.send_message(id_future_user, 'Администратор <' + message.from_user.first_name +
-                                 '> лишил вас прав администратора')
-            else:
+                                 '> лишил вас прав администратора')  # Бот уведомляет нового юзера, что
+                # пользователь <Имя>, лишил его прав админа
+            else:  # Если тот, кого лишают прав админа, уже и так юзер, бот сообщит об ошибке
                 end_text = 'Нельзя пользователю присвоить статус <user> поскольку он им уже является'
                 bot.send_message(message.from_user.id, end_text)
-        else:
+        else:  # Если того, кого пытаются лишить прав админа, нет в БД, бот сообщит об ошибке
             end_text = 'Вы пытаетесь присвоить пользователю статус <user>, который отсутствует в базе данных!'
             bot.send_message(chat_id, end_text)
             print(end_text + '\n')
 
-    except Exception as e:
+    except Exception as e:  # В любом другом случае бот сообщит об ошибке
         bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_user')
         print(str(e))
     return
@@ -339,22 +352,22 @@ def receive_id_user(message):
 @bot.message_handler(commands=['subscribe'])
 def set_subscribe(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':
-        SQLite.update_data_user(message)
-        if SQLite.check_for_notification(message.from_user.id) == 'False':
-            SQLite.update_sqlite_table('yes', message.from_user.id, 'notification')
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+        if SQLite.check_for_notification(message.from_user.id) == 'False':  # Если пользователь не подписчик
+            SQLite.update_sqlite_table('yes', message.from_user.id, 'notification')  # Присвоить статус <подписан>
             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
                        'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
-            bot.send_message(message.from_user.id, end_text)
+            bot.send_message(message.from_user.id, end_text)  # Отправка текста выше
             #  Отсылка уведомлений о действии разработчику
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + 'подписался на '
                                                                                                     'уведомления.')
             print(answer_bot + end_text + '\n')
-        else:
+        else:  # Если подписчик пытается подписаться то получит ошибку
             end_text = 'Вы уже подписаны на уведомления.'
             bot.send_message(message.from_user.id, end_text)
             print(answer_bot + end_text + '\n')
-    else:
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
         print(answer_bot + end_text + '\n')
@@ -364,20 +377,21 @@ def set_subscribe(message):
 def set_subscribe(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':
-        SQLite.update_data_user(message)
-        if SQLite.check_for_notification(message.from_user.id) == 'True':
-            SQLite.update_sqlite_table('no', message.from_user.id, 'notification')
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+        if SQLite.check_for_notification(message.from_user.id) == 'True':  # Если пользователь подписчик
+            SQLite.update_sqlite_table('no', message.from_user.id, 'notification')  # Присвоить в БД статус <не
+            # подписан>
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
-            bot.send_message(message.from_user.id, end_text)
+            bot.send_message(message.from_user.id, end_text)  # Отправка текста выше
             #  Отсылка уведомлений о действии разработчику
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + 'отписался от '
                                                                                                     'уведомлений.')
             print(answer_bot + end_text + '\n')
-        else:
+        else:  # Если не подписчик пытается отписаться то получит ошибку
             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
             bot.send_message(message.from_user.id, end_text)
             print(answer_bot + end_text + '\n')
-    else:
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = 'Чтобы управлять подпиской нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
         print(answer_bot + end_text + '\n')
@@ -385,8 +399,21 @@ def set_subscribe(message):
 
 @bot.message_handler(commands=['change_sticker'])
 def change_sticker_1(message):
-    msg = bot.send_message(message.from_user.id, 'Отправь мне стикер который хочешь привязать в своей учётной записи!')
-    bot.register_next_step_handler(msg, change_sticker_2)
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+            msg = bot.send_message(message.from_user.id, 'Отправь мне стикер который хочешь привязать в своей учётной '
+                                                         'записи!')
+            bot.register_next_step_handler(msg, change_sticker_2)  # Регистрация следующего действия
+        else:  # Если пользователь не админ, бот сообщит об этом
+            text_message = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(message.from_user.id, text_message)
+            print(text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 def change_sticker_2(message):
