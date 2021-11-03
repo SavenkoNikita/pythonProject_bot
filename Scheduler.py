@@ -12,7 +12,6 @@ import Read_file
 
 # Уведомление подписчиков о том кто дежурный
 import SQLite
-from Telegram_bot import bot
 
 
 def sh_send_dej(sheet_name):
@@ -35,8 +34,8 @@ def sh_send_dej(sheet_name):
             end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
             if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, meaning)) is not None:
                 text_message = '► ДЕЖУРНЫЙ ◄' + '\n' + end_text
-                Notifications.notification_for(text_message, sheet_name, 'notification', 'yes')
-                print('► ДЕЖУРНЫЙ ◄' + '\n' + end_text)
+                Notifications.notification_for(text_message, 'notification', 'yes')
+                print(text_message)
                 Notifications.send_sticker_for(meaning, 'notification', 'yes')
         elif difference_date > 1:  # Если до даты события больше 1 дня
             print('Рано уведомлять' + '\n')
@@ -54,8 +53,6 @@ def sh_send_dej(sheet_name):
 
 # Уведомление в GateKeepers о том кто на инвентаризацию
 def sh_send_invent(sheet_name):
-    # list_name = Data.sheets_file['Инвертаризация']  # Получаем имя страницы по ключу
-    # some_date = Read_file.read_file(sheet_name)['Date 1']
     meaning2 = Read_file.read_file(sheet_name)['Text 2']
     read_type = Read_file.read_file(sheet_name)['Type']
     difference_date = Read_file.read_file(sheet_name)['Dif date']
@@ -76,15 +73,14 @@ def sh_send_invent(sheet_name):
                     dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
                 elif difference_date == 5:
                     dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дней.'
-                # elif difference_date > 5:
-                #     dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
 
                 return dd
 
             text_day = count_day()  # Кол-во дней до инвентаризации
             text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
             end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
-            Notifications.notification_for('⌚ ИНВЕНТАРИЗАЦИЯ ⌚' + '\n' + end_text, sheet_name, 'notification', 'yes')
+            text_message = '⌚ ИНВЕНТАРИЗАЦИЯ ⌚' + '\n' + end_text
+            Notifications.notification_for(text_message, 'status', 'admin')
             print(end_text)
     elif read_type == 'incorrect':
         end_text = str(Read_file.read_file(sheet_name)['Error'])
