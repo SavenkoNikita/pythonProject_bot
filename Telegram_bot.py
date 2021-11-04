@@ -46,7 +46,7 @@ def start_command(message):
                         'Фамилия: ' + str(message.from_user.last_name) + '\n' + \
                         'Username:  @' + str(message.from_user.username) + '\n'
         Data.bot.send_message(message.from_user.id, hello_message)
-        print(answer_bot)
+        print(answer_bot + hello_message + '\n')
     else:
         end_text = 'Привет еще раз, ' + message.from_user.first_name + '\n' + 'Мы уже знакомы!'  # Эта строка
         # появится если уже зарегистрированный пользователь попытается заново пройти регистрацию
@@ -59,12 +59,13 @@ def start_command(message):
 def register(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'False':  # Если пользователь отсутствует в БД
+        SQLite.welcome(message)
+        time.sleep(5)  # Подождать указанное кол-во секунд
         register_message = 'Добро пожаловать ' + message.from_user.first_name + '\n' + \
                            'Вы успешно зарегистрированы!' + '\n' + \
                            'Чтобы узнать что умеет бот жми /help.'
         Data.bot.send_message(message.from_user.id, register_message)  # Бот пришлёт уведомление об успешной регистрации
         print(answer_bot + register_message + '\n')
-        SQLite.welcome(message)
     else:  # Иначе бот уведомит о том что пользователь уже регистрировался
         end_text = 'Вы уже зарегистрированы!' + '\n' + \
                    'Чтобы узнать что умеет бот жми /help.'
@@ -77,12 +78,17 @@ def register(message):
 def log_out(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Если пользователь присутствует в БД
+        SQLite.log_out(message)  # Удаление данных из БД
+        time.sleep(5)  # Подождать указанное кол-во секунд
         log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
                           'Данные о вашем аккаунте успешно удалены!' + '\n' + \
                           'Чтобы снова воспользоваться функционалом бота жми /register.'
         Data.bot.send_message(message.from_user.id, log_out_message)  # Прощальное сообщение
         print(answer_bot + log_out_message + '\n')
-        SQLite.log_out(message)  # Удаление данных из БД
+    else:  # Иначе бот уведомит о том что пользователь ещё не регистрировался
+        end_text = 'Нельзя удалить данные которых нет :)\n' + 'Чтобы это сделать, нужно зарегистрироваться!'
+        Data.bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
 
 
 #  Список доступных команд

@@ -22,7 +22,7 @@ def sh_send_dej(sheet_name):
     difference_date = Read_file.read_file(sheet_name)['Dif date']  # Получаем разницу между датами
 
     if read_type == 'date':  # Если тип данных в sheet_name во 2й строке 1го столбца является датой
-        if difference_date < 0:  # Если событие в прошлом
+        if difference_date < 1:  # Если событие сегодня или в прошлом
             Clear_old_data.clear(sheet_name)  # Очистить старые данные
             time.sleep(5)  # Задержка в секундах
             sh_send_dej(sheet_name)  # Перезапустить функцию
@@ -172,7 +172,7 @@ def sh_queue():
         i += 1
 
 
-schedule.every().day.at('16:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
+schedule.every().day.at('18:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 
 schedule.every().day.at('07:00').do(sh_queue)
 
