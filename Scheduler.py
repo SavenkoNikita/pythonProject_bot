@@ -172,7 +172,7 @@ def sh_queue():
         i += 1
 
 
-schedule.every().day.at('18:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
+schedule.every().day.at('16:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 
 schedule.every().day.at('07:00').do(sh_queue)
 

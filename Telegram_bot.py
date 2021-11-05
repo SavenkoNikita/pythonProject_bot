@@ -125,6 +125,7 @@ def dej(message):
             start = time.time()  # Засекает время начала выполнения скрипта
             if difference_date < 0:  # Если событие в прошлом
                 Clear_old_data.clear(list_name)  # Очистить старые данные
+                bot.send_message(message.from_user.id, 'Актуализирую данные...')
                 dej(message)  # Перезапустить функцию
             elif difference_date >= 0:  # Если дата уведомления сегодня или в будущем
                 text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
@@ -423,13 +424,11 @@ def change_sticker_1(message):
 
 
 def change_sticker_2(message):
-    user_id = message.from_user.id
-    print(user_id)
-    answer = message.sticker.file_id
-    print(answer)
-    SQLite.update_sqlite_table(answer, user_id, 'sticker')
-    bot.send_message(message.from_user.id, 'Стикер обновлён')
-    print('Стикер обновлён')
+    print(full_name_user(message) + 'отправил стикер ' + message.sticker.file_id)
+    SQLite.update_sqlite_table(message.sticker.file_id, message.from_user.id, 'sticker')
+    end_text = 'Стикер обновлён'
+    bot.send_message(message.from_user.id, end_text)
+    print(answer_bot + end_text + '\n')
 
 
 @bot.message_handler(content_types=['text'])
