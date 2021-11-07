@@ -112,61 +112,32 @@ def help_command(message):
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
+    start = time.time()  # Засекает время начала выполнения скрипта
     list_name = 'Дежурный'
-    some_date = Read_file.read_file(list_name)['Date 1']
-    some_date2 = Read_file.read_file(list_name)['Date 2']
-    meaning = Read_file.read_file(list_name)['Text 3']
-    read_type = Read_file.read_file(list_name)['Type']
-    difference_date = Read_file.read_file(list_name)['Dif date']
 
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if read_type == 'date':
-            start = time.time()  # Засекает время начала выполнения скрипта
-            if difference_date < 0:  # Если событие в прошлом
-                Clear_old_data.clear(list_name)  # Очистить старые данные
-                bot.send_message(message.from_user.id, 'Актуализирую данные...')
-                dej(message)  # Перезапустить функцию
-            elif difference_date >= 0:  # Если дата уведомления сегодня или в будущем
-                text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
-                           str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-                text_who = 'будет дежурить ' + str(Other_function.get_data_user_SQL
-                                                   (Data.user_data, meaning)) + '.'  # Имя следующего дежурного
-                end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-                if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, meaning)) is not None:  # Если в БД
-                    # у пользователя содержится стикер
-                    bot.send_message(message.chat.id, end_text)  # Пришлёт сообщение о дежурном
-                    bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data,
-                                                                                                     meaning)))  #
-                    # Пришлёт стикер этого дежурного
-                    end = time.time()  # Засекает время окончания скрипта
-                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-                else:
-                    bot.send_message(message.chat.id, end_text)
-                    end = time.time()  # Засекает время окончания скрипта
-                    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-        elif read_type == 'incorrect':
-            start = time.time()  # Засекает время начала выполнения скрипта
-            end_text = some_date
-            end = time.time()  # Засекает время окончания скрипта
-            print(end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-        elif read_type == 'none':
-            start = time.time()  # Засекает время начала выполнения скрипта
-            end_text = some_date
-            bot.send_message(message.chat.id, text=end_text)
-            end = time.time()  # Засекает время окончания скрипта
-            print(end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+        event_data = Other_function.read_sheet(list_name, 1)
+        first_date = event_data[0]
+        last_date = event_data[1]
+        event = event_data[2]
+        text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + event + '.'
+        # Если в БД у пользователя содержится стикер
+        if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            # Пришлёт сообщение о дежурном
+            bot.send_message(message.chat.id, text_message)
+            # Пришлёт стикер этого дежурного
+            bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
         else:
-            start = time.time()  # Засекает время начала выполнения скрипта
-            end_text = 'Ошибка чтения данных Dej'
-            end = time.time()  # Засекает время окончания скрипта
-            print(end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+            # Пришлёт сообщение о дежурном
+            bot.send_message(message.chat.id, text_message)
     else:
         start = time.time()  # Засекает время начала выполнения скрипта
-        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
-        bot.send_message(message.from_user.id, end_text)
-        end = time.time()  # Засекает время окончания скрипта
-        print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+        text_message = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, text_message)
+
+    end = time.time()  # Засекает время окончания скрипта
+    print(answer_bot + text_message + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
 
 
 #  Узнать кто следующий идёт на инвентаризацию
