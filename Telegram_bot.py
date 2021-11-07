@@ -119,7 +119,9 @@ def dej(message):
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         event_data = Other_function.read_sheet(list_name, 1)
         first_date = event_data[0]
+        first_date = first_date.strftime("%d.%m.%Y")
         last_date = event_data[1]
+        last_date = last_date.strftime("%d.%m.%Y")
         event = event_data[2]
         text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + event + '.'
         # Если в БД у пользователя содержится стикер
@@ -145,59 +147,56 @@ def dej(message):
 def invent(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     start = time.time()  # Засекает время начала выполнения скрипта
+    list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
+
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        start = time.time()  # Засекает время начала выполнения скрипта
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
-            start = time.time()  # Засекает время начала выполнения скрипта
-            list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
-            some_date = Read_file.read_file(list_name)['Date 1']  # Дата во 2й строке 1го столбца
-            meaning2 = Read_file.read_file(list_name)['Text 2']  # Текст во 2й строке 2го столбца
-            read_type = Read_file.read_file(list_name)['Type']  # Тип данных во 2й строке 1го столбца
-            difference_date = Read_file.read_file(list_name)['Dif date']  # Разница между датами <сегодня> и в some_date
+            event_data = Other_function.read_sheet(list_name, 1)
+            first_date = event_data[0]
+            first_date_format = first_date.strftime("%d.%m.%Y")
+            event = event_data[1]
+            date_now = datetime.datetime.now()  # Получаем текущую дату
+            difference_date = first_date - date_now
+            difference_date = difference_date.days + 1
 
-            if read_type == 'date':
-                Clear_old_data.check_relevance(list_name)  # Актуализация данных в файле
+            # Склоняем "день"
+            def count_day():
+                dd = ''
+                if difference_date == 0:
+                    dd = 'Сегодня инвертаризация.'
+                elif difference_date == 1:
+                    dd = 'До предстоящей инвентаризации остался 1 день.'
+                elif 1 < difference_date <= 4:
+                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+                elif difference_date == 5:
+                    dd = 'До предстоящей инвентаризации осталось 5 дней.'
+                elif difference_date > 5:
+                    dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
 
-                # Склоняем "день"
-                def count_day():
-                    dd = ''
-                    if difference_date == 0:
-                        dd = 'Сегодня инвертаризация.'
-                    elif difference_date == 1:
-                        dd = 'До предстоящей инвентаризации остался 1 день.'
-                    elif 1 < int(difference_date) <= 4:
-                        dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-                    elif difference_date == 5:
-                        dd = 'До предстоящей инвентаризации осталось 5 дней.'
-                    elif difference_date > 5:
-                        dd = 'Следующая инвентаризация состоится ' + str(some_date.strftime("%d.%m.%Y")) + '.'
+                return dd
 
-                    return dd
-
-                text_day = count_day()  # Кол-во дней до инвентаризации
-                text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
-                end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
-            elif read_type == 'incorrect':  # Если дата указана не корректно
-                end_text = str(Read_file.read_file(list_name)['Error'])
-            elif read_type == 'none':  # Если данных нет
-                end_text = str(Read_file.read_file(list_name)['Error'])
-            else:  # Во всех остальных случаях
-                end_text = 'Ошибка чтения данных Invent'
-
-            bot.send_message(message.chat.id, end_text)
-            end = time.time()  # Засекает время окончания скрипта
-            print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+            text_day = count_day()  # Кол-во дней до инвентаризации
+            text_who = 'Судя по графику, выходит ' + event + '.'  # Имя следующего дежурного
+            end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
+            # Если в БД у пользователя содержится стикер
+            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+                # Пришлёт сообщение о дежурном
+                bot.send_message(message.chat.id, end_text)
+                # Пришлёт стикер этого дежурного
+                bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
+            else:
+                # Пришлёт сообщение о дежурном
+                bot.send_message(message.chat.id, end_text)
         else:  # Если юзер не админ, он получит следующее сообщение
             end_text = 'У вас нет прав для выполнения этой команды'
             bot.send_message(message.chat.id, end_text)
-            end = time.time()  # Засекает время окончания скрипта
-            print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
     else:  # Если пользователь не зарегистрирован, он получит следующее сообщение
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
-        end = time.time()  # Засекает время окончания скрипта
-        print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+
+    end = time.time()  # Засекает время окончания скрипта
+    print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
 
 
 #  Получить случайное имя из сисадминов
