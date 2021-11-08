@@ -15,40 +15,36 @@ import SQLite
 
 
 def sh_send_dej(sheet_name):
-    some_date = Read_file.read_file(sheet_name)['Date 1']  # Дата во 2й строке 1го столбца
-    some_date2 = Read_file.read_file(sheet_name)['Date 2']  # Дата во 2й строке 2го столбца
-    meaning = Read_file.read_file(sheet_name)['Text 3']  # Текст во 2й строке 3го столбца
-    read_type = Read_file.read_file(sheet_name)['Type']  # Тип данных во 2й строке 1го столбца
-    difference_date = Read_file.read_file(sheet_name)['Dif date']  # Получаем разницу между датами
+    list_name = 'Дежурный'
+    event_data = Other_function.read_sheet(list_name, 1)
 
-    if read_type == 'date':  # Если тип данных в sheet_name во 2й строке 1го столбца является датой
-        if difference_date < 1:  # Если событие сегодня или в прошлом
-            Clear_old_data.clear(sheet_name)  # Очистить старые данные
-            time.sleep(5)  # Задержка в секундах
-            sh_send_dej(sheet_name)  # Перезапустить функцию
-        elif difference_date == 1:  # Если дата события завтра
-            text_day = 'В период с ' + str(some_date.strftime("%d.%m.%Y")) + ' по ' + \
-                       str(some_date2.strftime("%d.%m.%Y")) + ' '  # Период дежурства
-            text_who = ' будет дежурить ' + str(Other_function.get_data_user_SQL(Data.user_data, meaning)) + \
-                       '.'  # Имя дежурного
-            end_text = str(text_day) + str(text_who)  # Объединяем строки выше в одну
-            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, meaning)) is not None:
-                text_message = '► ДЕЖУРНЫЙ ◄' + '\n' + end_text
-                Notifications.notification_for(text_message, 'notification', 'yes')
-                print(text_message)
-                Notifications.send_sticker_for(meaning, 'notification', 'yes')
-        elif difference_date > 1:  # Если до даты события больше 1 дня
-            print('Рано уведомлять' + '\n')
-    elif read_type == 'incorrect':
-        end_text = some_date
-        print(end_text + '\n')
-    elif read_type == 'none':
-        end_text = some_date
-        print(end_text + '\n')
-    else:
-        end_text = 'Ошибка чтения данных Dej'
-        print(end_text + '\n')
-    return
+    first_date = event_data[0]
+    first_date = first_date.strftime("%d.%m.%Y")
+
+    last_date = event_data[1]
+    last_date = last_date.strftime("%d.%m.%Y")
+
+    event = event_data[2]
+
+    date_now = datetime.datetime.now()  # Получаем текущую дату
+    difference_date = first_date - date_now
+    difference_date = difference_date.days + 1
+
+    name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+    if name_from_SQL is None:
+        name_from_SQL = event
+    text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + '.'
+
+    if difference_date == 1:
+        # Если в БД у пользователя содержится стикер
+        if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            # Пришлёт сообщение о дежурном
+            Notifications.notification_for(text_message, 'notification', 'yes')
+            # Пришлёт стикер этого дежурного
+            Notifications.send_sticker_for(event, 'notification', 'yes')
+        else:
+            # Пришлёт сообщение о дежурном
+            Notifications.notification_for(text_message, 'notification', 'yes')
 
 
 # Уведомление в GateKeepers о том кто на инвентаризацию

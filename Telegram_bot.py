@@ -123,7 +123,8 @@ def dej(message):
         last_date = event_data[1]
         last_date = last_date.strftime("%d.%m.%Y")
         event = event_data[2]
-        text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + event + '.'
+        name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+        text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + '.'
         # Если в БД у пользователя содержится стикер
         if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
             # Пришлёт сообщение о дежурном
@@ -156,9 +157,13 @@ def invent(message):
             first_date = event_data[0]
             first_date_format = first_date.strftime("%d.%m.%Y")
             event = event_data[1]
+            name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+            if name_from_SQL is None:
+                name_from_SQL = event
             date_now = datetime.datetime.now()  # Получаем текущую дату
             difference_date = first_date - date_now
             difference_date = difference_date.days + 1
+            print(name_from_SQL)
 
             # Склоняем "день"
             def count_day():
@@ -177,7 +182,7 @@ def invent(message):
                 return dd
 
             text_day = count_day()  # Кол-во дней до инвентаризации
-            text_who = 'Судя по графику, выходит ' + event + '.'  # Имя следующего дежурного
+            text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
             end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
             # Если в БД у пользователя содержится стикер
             if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
