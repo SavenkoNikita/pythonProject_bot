@@ -15,14 +15,13 @@ import SQLite
 
 
 def sh_send_dej(sheet_name):
-    list_name = 'Дежурный'
-    event_data = Other_function.read_sheet(list_name, 1)
+    event_data = Other_function.read_sheet(sheet_name, 1)
 
     first_date = event_data[0]
-    first_date = first_date.strftime("%d.%m.%Y")
+    first_date_format = first_date.strftime("%d.%m.%Y")
 
     last_date = event_data[1]
-    last_date = last_date.strftime("%d.%m.%Y")
+    last_date_format = last_date.strftime("%d.%m.%Y")
 
     event = event_data[2]
 
@@ -33,7 +32,8 @@ def sh_send_dej(sheet_name):
     name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
     if name_from_SQL is None:
         name_from_SQL = event
-    text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + '.'
+    text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' ' + 'будет дежурить ' + \
+                   name_from_SQL + '.'
 
     if difference_date == 1:
         # Если в БД у пользователя содержится стикер
@@ -49,44 +49,48 @@ def sh_send_dej(sheet_name):
 
 # Уведомление в GateKeepers о том кто на инвентаризацию
 def sh_send_invent(sheet_name):
-    meaning2 = Read_file.read_file(sheet_name)['Text 2']
-    read_type = Read_file.read_file(sheet_name)['Type']
-    difference_date = Read_file.read_file(sheet_name)['Dif date']
+    event_data = Other_function.read_sheet(sheet_name, 1)
+    first_date = event_data[0]
+    first_date_format = first_date.strftime("%d.%m.%Y")
+    event = event_data[1]
+    name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+    if name_from_SQL is None:
+        name_from_SQL = event
+    date_now = datetime.datetime.now()  # Получаем текущую дату
+    difference_date = first_date - date_now
+    difference_date = difference_date.days + 1
+    print(name_from_SQL)
 
-    if read_type == 'date':
-        if difference_date < 0:  # Если событие в прошлом
-            Clear_old_data.check_relevance(sheet_name)  # Очистить старые данные
-            sh_send_invent(sheet_name)  # Перезапустить функцию
-        elif 0 <= difference_date <= 5:
-            # Склоняем "день"
-            def count_day():
-                dd = ''
-                if difference_date == 0:
-                    dd = 'Сегодня инвертаризация.'
-                elif difference_date == 1:
-                    dd = 'До предстоящей инвентаризации остался 1 день.'
-                elif 1 < int(difference_date) <= 4:
-                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-                elif difference_date == 5:
-                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дней.'
+    # Склоняем "день"
+    def count_day():
+        dd = ''
+        if difference_date == 0:
+            dd = 'Сегодня инвертаризация.'
+        elif difference_date == 1:
+            dd = 'До предстоящей инвентаризации остался 1 день.'
+        elif 1 < difference_date <= 4:
+            dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+        elif difference_date == 5:
+            dd = 'До предстоящей инвентаризации осталось 5 дней.'
+        elif difference_date > 5:
+            dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
 
-                return dd
+        return dd
 
-            text_day = count_day()  # Кол-во дней до инвентаризации
-            text_who = 'Судя по графику, выходит ' + meaning2 + '.'  # Имя следующего дежурного
-            end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
-            text_message = '⌚ ИНВЕНТАРИЗАЦИЯ ⌚' + '\n' + end_text
+    text_day = count_day()  # Кол-во дней до инвентаризации
+    text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
+    text_message = text_day + '\n' + text_who  # Объединяем строки выше в одну
+    # Если
+    if 0 <= difference_date <= 5:
+        # Если в БД у пользователя содержится стикер
+        if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            # Пришлёт сообщение о дежурном
             Notifications.notification_for(text_message, 'status', 'admin')
-            print(end_text)
-    elif read_type == 'incorrect':
-        end_text = str(Read_file.read_file(sheet_name)['Error'])
-        print('Ошибка в листе' + sheet_name + ':' + '\n' + end_text)
-    elif read_type == 'none':
-        end_text = str(Read_file.read_file(sheet_name)['Error'])
-        print('Ошибка в листе' + sheet_name + ':' + '\n' + end_text)
-    else:
-        end_text = 'Ошибка чтения данных Invent'
-        print('Ошибка в листе' + sheet_name + ':' + '\n' + end_text)
+            # Пришлёт стикер этого дежурного
+            Notifications.send_sticker_for(text_message, 'status', 'admin')
+        else:
+            # Пришлёт сообщение о дежурном
+            Notifications.notification_for(text_message, 'status', 'admin')
 
 
 # Кто сегодня закрывает сигналы
