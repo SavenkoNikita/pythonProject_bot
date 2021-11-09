@@ -1,4 +1,5 @@
 import datetime
+import os
 import urllib
 
 from openpyxl import load_workbook
@@ -64,6 +65,16 @@ def read_sheet(sheet, event_number):
                             date_list.append([value_one, value_two, meaning])
                         else:
                             date_list.append([value_one, meaning])
+                    elif difference_date < -1:  # Если дата в прошлом
+                        sheet.delete_rows(value_one_row)  # Удаляем указанную в скобках строку
+                        wb.save('test.xlsx')  # Сохранить книгу
+                        file = open('test.xlsx', 'rb')
+                        file_name = opener.open(Data.route, data=file)
+                        file_name.close()
+                        os.remove('test.xlsx')
+                        del_data = '• Со страницы ' + str(sheet) + ' удалены данные'
+                        # comment = comment + del_data
+                        print(del_data)
             else:
                 print('Данные отсутствуют')
 
