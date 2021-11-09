@@ -80,19 +80,23 @@ def read_sheet(sheet, event_number):
 
     date_list.sort()
 
-    if len(date_list[event_number - 1]) == 2:
-        date = date_list[(event_number - 1)][0]
-        # date = date.strftime("%d.%m.%Y")
-        event = date_list[(event_number - 1)][1]
-        event_data = [date, event]
-    elif len(date_list[event_number - 1]) == 3:
-        first_date = date_list[(event_number - 1)][0]
-        # first_date = first_date.strftime("%d.%m.%Y")
-        last_date = date_list[(event_number - 1)][1]
-        # last_date = last_date.strftime("%d.%m.%Y")
-        event = date_list[(event_number - 1)][2]
-        event_data = [first_date, last_date, event]
+    if len(date_list) > 0:
+        if len(date_list[event_number - 1]) == 2:
+            date = date_list[(event_number - 1)][0]
+            # date = date.strftime("%d.%m.%Y")
+            event = date_list[(event_number - 1)][1]
+            event_data = [date, event]
+        elif len(date_list[event_number - 1]) == 3:
+            first_date = date_list[(event_number - 1)][0]
+            # first_date = first_date.strftime("%d.%m.%Y")
+            last_date = date_list[(event_number - 1)][1]
+            # last_date = last_date.strftime("%d.%m.%Y")
+            event = date_list[(event_number - 1)][2]
+            event_data = [first_date, last_date, event]
+        return event_data
+    else:
+        pass
 
     # print(event_data)
 
-    return event_data
+    return

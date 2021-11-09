@@ -103,27 +103,29 @@ def sh_random_name():
 
 def sh_notification(sheet_name):
     event_data = Other_function.read_sheet(sheet_name, 1)
-    first_date = event_data[0]
-    event = event_data[1]
-    date_now = datetime.datetime.now()  # Получаем текущую дату
-    difference_date = first_date - date_now
-    difference_date = difference_date.days + 1
 
-    if difference_date == 0:
-        if sheet_name in Data.sheets_file:
-            if sheet_name == 'Уведомления для всех':
-                Notifications.notification_all_reg(event)
-            elif sheet_name == 'Уведомления для подписчиков':
-                Notifications.notification_for(event, 'notification', 'yes')
-            elif sheet_name == 'Уведомления для админов':
-                Notifications.notification_for(event, 'status', 'admin')
-            elif sheet_name == 'Инвентаризация':
-                sh_send_invent(sheet_name)
-            else:
-                print('В файле нет страницы с названием ' + sheet_name)
-    elif difference_date > 0:  # Если дата не наступила
-        print('Отчёт sh_notification:')
-        print('В ' + sheet_name + ' рано уведомлять\n')
+    if event_data is not None:
+        first_date = event_data[0]
+        event = event_data[1]
+        date_now = datetime.datetime.now()  # Получаем текущую дату
+        difference_date = first_date - date_now
+        difference_date = difference_date.days + 1
+
+        if difference_date == 0:
+            if sheet_name in Data.sheets_file:
+                if sheet_name == 'Уведомления для всех':
+                    Notifications.notification_all_reg(event)
+                elif sheet_name == 'Уведомления для подписчиков':
+                    Notifications.notification_for(event, 'notification', 'yes')
+                elif sheet_name == 'Уведомления для админов':
+                    Notifications.notification_for(event, 'status', 'admin')
+                elif sheet_name == 'Инвентаризация':
+                    sh_send_invent(sheet_name)
+                else:
+                    print('В файле нет страницы с названием ' + sheet_name)
+        elif difference_date > 0:  # Если дата не наступила
+            print('Отчёт sh_notification:')
+            print('В ' + sheet_name + ' рано уведомлять\n')
 
 
 def sh_queue():
@@ -143,7 +145,7 @@ def sh_queue():
 
 schedule.every().day.at('16:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 
-schedule.every().day.at('07:00').do(sh_queue)
+schedule.every().day.at('08:26').do(sh_queue)
 
 # schedule.every().day.at('07:00').do(sh_send_invent)
 
