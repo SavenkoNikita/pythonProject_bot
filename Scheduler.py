@@ -3,11 +3,9 @@ import time
 import datetime
 
 import schedule
-import Clear_old_data
 import Data
 import Notifications
 import Other_function
-import Read_file
 
 
 # Уведомление подписчиков о том кто дежурный
@@ -47,7 +45,7 @@ def sh_send_dej(sheet_name):
             Notifications.notification_for(text_message, 'notification', 'yes')
 
 
-# Уведомление в GateKeepers о том кто на инвентаризацию
+# Уведомление в
 def sh_send_invent(sheet_name):
     event_data = Other_function.read_sheet(sheet_name, 1)
     first_date = event_data[0]
@@ -59,7 +57,7 @@ def sh_send_invent(sheet_name):
     date_now = datetime.datetime.now()  # Получаем текущую дату
     difference_date = first_date - date_now
     difference_date = difference_date.days + 1
-    print(name_from_SQL)
+    # print(name_from_SQL)
 
     # Склоняем "день"
     def count_day():
@@ -103,58 +101,29 @@ def sh_random_name():
         # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)  # Для тестов
 
 
-# Уведомления для всех
-# def sh_notification_all_reg():
-#     list_name = Data.sheets_file['Уведомления для всех']
-#     some_date = Read_file.read_file(list_name)['Date 1']
-#     read_type = Read_file.read_file(list_name)['Type']
-#     difference_date = Read_file.read_file(list_name)['Dif date']
-#
-#     if read_type == 'date':  # Если return в Read_file.py возвращает дату то
-#         if difference_date < 0:  # Если событие в прошлом
-#             Clear_old_data.clear(list_name)  # Очистить старые данные
-#             sh_notification_all_reg()  # Перезапустить функцию
-#         elif difference_date == 0:  # Если дата уведомления сегодня
-#             Notifications.notification_all_reg(Notifications.notifications())  # Уведомление для всех
-#             print(Notifications.notifications())
-#         elif difference_date > 0:  # Если дата не наступила
-#             print('Рано уведомлять')
-#     else:  # Если return в Read_file.py возвращает НЕ дату то
-#         # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
-#         #                       text=Notifications.notifications())  # Отправить сообщение
-#         print(some_date)
-#     return
-
-
 def sh_notification(sheet_name):
-    some_date = Read_file.read_file(sheet_name)['Date 1']  # Дата во 2й строке 1го столбца
-    read_type = Read_file.read_file(sheet_name)['Type']  # Тип данных в ячейке some_date
-    difference_date = Read_file.read_file(sheet_name)['Dif date']  # Разница между текущей датой и указанной в some_date
+    event_data = Other_function.read_sheet(sheet_name, 1)
+    first_date = event_data[0]
+    event = event_data[1]
+    date_now = datetime.datetime.now()  # Получаем текущую дату
+    difference_date = first_date - date_now
+    difference_date = difference_date.days + 1
 
-    if read_type == 'date':  # Если return в Read_file.py возвращает дату то
-        if difference_date < 0:  # Если событие в прошлом
-            Clear_old_data.clear(sheet_name)  # Очистить старые данные
-            sh_notification(sheet_name)  # Перезапустить функцию
-        elif difference_date == 0:  # Если дата уведомления сегодня
-            if sheet_name in Data.sheets_file:
-                if sheet_name == 'Уведомления для всех':
-                    Notifications.notification_all_reg(Notifications.notifications(sheet_name), sheet_name)
-                elif sheet_name == 'Уведомления для подписчиков':
-                    Notifications.notification_for(Notifications.notifications(sheet_name), sheet_name, 'notification',
-                                                   'yes')
-                elif sheet_name == 'Уведомления для админов':
-                    Notifications.notification_for(Notifications.notifications(sheet_name), sheet_name, 'status',
-                                                   'admin')
-                elif sheet_name == 'Инвентаризация':
-                    sh_send_invent(sheet_name)
-                else:
-                    print('В файле нет страницы с названием ' + sheet_name)
-        elif difference_date > 0:  # Если дата не наступила
-            print('Отчёт sh_notification:\n')
-            print('В ' + sheet_name + ' рано уведомлять')
-    else:  # Если return в Read_file.py возвращает НЕ дату то
-        print(some_date)
-    return
+    if difference_date == 0:
+        if sheet_name in Data.sheets_file:
+            if sheet_name == 'Уведомления для всех':
+                Notifications.notification_all_reg(event)
+            elif sheet_name == 'Уведомления для подписчиков':
+                Notifications.notification_for(event, 'notification', 'yes')
+            elif sheet_name == 'Уведомления для админов':
+                Notifications.notification_for(event, 'status', 'admin')
+            elif sheet_name == 'Инвентаризация':
+                sh_send_invent(sheet_name)
+            else:
+                print('В файле нет страницы с названием ' + sheet_name)
+    elif difference_date > 0:  # Если дата не наступила
+        print('Отчёт sh_notification:')
+        print('В ' + sheet_name + ' рано уведомлять\n')
 
 
 def sh_queue():

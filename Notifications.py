@@ -8,25 +8,25 @@ import Read_file
 import SQLite
 
 
-def notifications(sheet_name):
-    some_date = Read_file.read_file(sheet_name)['Date 1']
-    meaning2 = Read_file.read_file(sheet_name)['Text 2']
-    read_type = Read_file.read_file(sheet_name)['Type']
-
-    if read_type == 'date':
-        end_text = meaning2
-        print('Бот ответил:\n' + end_text)
-    elif read_type == 'incorrect':
-        end_text = some_date
-        print('Бот ответил:\n' + end_text)
-    elif read_type == 'none':
-        end_text = some_date
-        print('Бот ответил:\n' + end_text)
-    else:
-        end_text = 'Ошибка чтения данных Notifications'
-        print('Бот ответил:\n' + end_text)
-
-    return end_text
+# def notifications(sheet_name):
+#     some_date = Read_file.read_file(sheet_name)['Date 1']
+#     meaning2 = Read_file.read_file(sheet_name)['Text 2']
+#     read_type = Read_file.read_file(sheet_name)['Type']
+#
+#     if read_type == 'date':
+#         end_text = meaning2
+#         print('Бот ответил:\n' + end_text)
+#     elif read_type == 'incorrect':
+#         end_text = some_date
+#         print('Бот ответил:\n' + end_text)
+#     elif read_type == 'none':
+#         end_text = some_date
+#         print('Бот ответил:\n' + end_text)
+#     else:
+#         end_text = 'Ошибка чтения данных Notifications'
+#         print('Бот ответил:\n' + end_text)
+#
+#     return end_text
 
 
 # Функция для уведомления всех пользователей находящихся в БД

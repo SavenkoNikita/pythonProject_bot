@@ -140,7 +140,7 @@ def update_sqlite_table(status, user_id, column_name):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
-        print("Подключен к SQLite")
+        # print("Подключен к SQLite")
 
         perem = "Update users set " + column_name + " = ? where user_id = ?"
 
@@ -156,14 +156,14 @@ def update_sqlite_table(status, user_id, column_name):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            print("Соединение с SQLite закрыто")
+            # print("Соединение с SQLite закрыто")
 
 
 def log_out(message):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
-        print("Подключен к SQLite")
+        # print("Подключен к SQLite")
 
         sql_delete_query = 'DELETE from users where user_id = ' + str(message.from_user.id)
         cursor.execute(sql_delete_query)
@@ -176,7 +176,7 @@ def log_out(message):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            print("Соединение с SQLite закрыто")
+            # print("Соединение с SQLite закрыто")
 
 
 def update_data_user(message):
@@ -188,7 +188,7 @@ def update_data_user(message):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
-        print("Подключен к SQLite")
+        # print("Подключен к SQLite")
 
         sql_select_query = 'SELECT * FROM users WHERE user_id=?'
         cursor.execute(sql_select_query, (user_id,))
@@ -212,14 +212,14 @@ def update_data_user(message):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            print("Соединение с SQLite закрыто")
+            # print("Соединение с SQLite закрыто")
 
 
 def get_user_info(user_id):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
-        print("Подключен к SQLite")
+        # print("Подключен к SQLite")
 
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))
@@ -238,14 +238,14 @@ def get_user_info(user_id):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            print("Соединение с SQLite закрыто")
+            # print("Соединение с SQLite закрыто")
 
 
 def get_user_sticker(user_id):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
-        print("Подключен к SQLite")
+        # print("Подключен к SQLite")
 
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))
@@ -265,7 +265,7 @@ def get_user_sticker(user_id):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            print("Соединение с SQLite закрыто")
+            # print("Соединение с SQLite закрыто")
 
 
 # get_user_sticker(1827221970)
