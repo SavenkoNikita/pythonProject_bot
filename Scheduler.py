@@ -13,7 +13,8 @@ import SQLite
 
 
 def sh_send_dej(sheet_name):
-    event_data = Other_function.read_sheet(sheet_name, 1)
+    date_list_today = Other_function.read_sheet(sheet_name)
+    event_data = date_list_today[0]
 
     first_date = event_data[0]
     first_date_format = first_date.strftime("%d.%m.%Y")
@@ -47,7 +48,8 @@ def sh_send_dej(sheet_name):
 
 # Уведомление в
 def sh_send_invent(sheet_name):
-    event_data = Other_function.read_sheet(sheet_name, 1)
+    date_list_today = Other_function.read_sheet(sheet_name)
+    event_data = date_list_today[0]
     first_date = event_data[0]
     first_date_format = first_date.strftime("%d.%m.%Y")
     event = event_data[1]
@@ -102,30 +104,42 @@ def sh_random_name():
 
 
 def sh_notification(sheet_name):
-    event_data = Other_function.read_sheet(sheet_name, 1)
+    date_list_today = Other_function.read_sheet(sheet_name)
+    if date_list_today is not None:
+        for i in range(len(date_list_today)):
+            event_data = date_list_today[i]
+        # if event_data is not None:
+            first_date = event_data[0]
+            event = event_data[1]
+            date_now = datetime.datetime.now()  # Получаем текущую дату
+            difference_date = first_date - date_now
+            difference_date = difference_date.days + 1
 
-    if event_data is not None:
-        first_date = event_data[0]
-        event = event_data[1]
-        date_now = datetime.datetime.now()  # Получаем текущую дату
-        difference_date = first_date - date_now
-        difference_date = difference_date.days + 1
-
-        if difference_date == 0:
-            if sheet_name in Data.sheets_file:
-                if sheet_name == 'Уведомления для всех':
-                    Notifications.notification_all_reg(event)
-                elif sheet_name == 'Уведомления для подписчиков':
-                    Notifications.notification_for(event, 'notification', 'yes')
-                elif sheet_name == 'Уведомления для админов':
-                    Notifications.notification_for(event, 'status', 'admin')
-                elif sheet_name == 'Инвентаризация':
-                    sh_send_invent(sheet_name)
+            if difference_date == 0:
+                if sheet_name in Data.sheets_file:
+                    if sheet_name == 'Уведомления для всех':
+                        text_message = '•Уведомление для зарегистрированных пользователей•\n\n' + event
+                        Notifications.notification_all_reg(text_message)
+                        # Data.bot.send_message(1827221970, event)
+                    elif sheet_name == 'Уведомления для подписчиков':
+                        text_message = '•Уведомление для подписчиков•\n\n' + event
+                        Notifications.notification_for(text_message, 'notification', 'yes')
+                        # Data.bot.send_message(1827221970, event)
+                    elif sheet_name == 'Уведомления для админов':
+                        text_message = '•Уведомление для администраторов•\n\n' + event
+                        Notifications.notification_for(text_message, 'status', 'admin')
+                        # Data.bot.send_message(1827221970, event)
+                    elif sheet_name == 'Инвентаризация':
+                        sh_send_invent(sheet_name)
+                        # Data.bot.send_message(1827221970, event)
                 else:
                     print('В файле нет страницы с названием ' + sheet_name)
-        elif difference_date > 0:  # Если дата не наступила
-            print('Отчёт sh_notification:')
-            print('В ' + sheet_name + ' рано уведомлять\n')
+            elif difference_date > 0:  # Если дата не наступила
+                print('Отчёт sh_notification:')
+                print('В ' + sheet_name + ' рано уведомлять\n')
+            time.sleep(5)
+    else:
+        print('На странице ' + sheet_name + ' нет данных для оповещения')
 
 
 def sh_queue():
@@ -144,12 +158,7 @@ def sh_queue():
 
 
 schedule.every().day.at('16:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
-
-schedule.every().day.at('08:26').do(sh_queue)
-
-# schedule.every().day.at('07:00').do(sh_send_invent)
-
-# schedule.every().day.at('07:01').do(sh_random_name)
+schedule.every().day.at('07:00').do(sh_queue)
 
 while True:
     schedule.run_pending()

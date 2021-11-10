@@ -117,7 +117,8 @@ def dej(message):
 
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        event_data = Other_function.read_sheet(list_name, 1)
+        date_list_today = Other_function.read_sheet(list_name)
+        event_data = date_list_today[0]
         first_date = event_data[0]
         first_date = first_date.strftime("%d.%m.%Y")
         last_date = event_data[1]
@@ -153,7 +154,8 @@ def invent(message):
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
-            event_data = Other_function.read_sheet(list_name, 1)
+            date_list_today = Other_function.read_sheet(list_name)
+            event_data = date_list_today[0]
             first_date = event_data[0]
             first_date_format = first_date.strftime("%d.%m.%Y")
             event = event_data[1]
