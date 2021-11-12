@@ -100,7 +100,8 @@ def read_sheet(sheet_name):
                     event_data = [first_date, last_date, event]  # Создаём список из этих 3х значений
                     date_list_today.append(event_data)
                 # print(date_list_today)
-                return date_list_today  # Возвращаем список
+                # print(date_list)
+                return date_list, date_list_today  # Возвращаем списки
     else:  # Если нет ни одной записи
         pass  # Ничего не делать
 

@@ -13,7 +13,7 @@ import SQLite
 
 
 def sh_send_dej(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)
+    date_list_today = Other_function.read_sheet(sheet_name)[0]
     event_data = date_list_today[0]
 
     first_date = event_data[0]
@@ -48,7 +48,7 @@ def sh_send_dej(sheet_name):
 
 # Уведомление в
 def sh_send_invent(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)
+    date_list_today = Other_function.read_sheet(sheet_name)[0]
     event_data = date_list_today[0]
     first_date = event_data[0]
     first_date_format = first_date.strftime("%d.%m.%Y")
@@ -104,7 +104,7 @@ def sh_random_name():
 
 
 def sh_notification(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)
+    date_list_today = Other_function.read_sheet(sheet_name)[0]
     if date_list_today is not None:
         for i in range(len(date_list_today)):
             event_data = date_list_today[i]

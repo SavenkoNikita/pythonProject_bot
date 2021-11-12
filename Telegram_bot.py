@@ -109,39 +109,39 @@ def help_command(message):
 
 
 #  Узнать кто следующий дежурный
-@bot.message_handler(commands=['dezhurnyj'])
-def dej(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
-    start = time.time()  # Засекает время начала выполнения скрипта
-    list_name = 'Дежурный'
-
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
-        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        date_list_today = Other_function.read_sheet(list_name)
-        event_data = date_list_today[0]
-        first_date = event_data[0]
-        first_date = first_date.strftime("%d.%m.%Y")
-        last_date = event_data[1]
-        last_date = last_date.strftime("%d.%m.%Y")
-        event = event_data[2]
-        name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
-        text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + '.'
-        # Если в БД у пользователя содержится стикер
-        if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
-            # Пришлёт сообщение о дежурном
-            bot.send_message(message.chat.id, text_message)
-            # Пришлёт стикер этого дежурного
-            bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
-        else:
-            # Пришлёт сообщение о дежурном
-            bot.send_message(message.chat.id, text_message)
-    else:
-        start = time.time()  # Засекает время начала выполнения скрипта
-        text_message = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
-        bot.send_message(message.from_user.id, text_message)
-
-    end = time.time()  # Засекает время окончания скрипта
-    print(answer_bot + text_message + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+# @bot.message_handler(commands=['dezhurnyj'])
+# def dej(message):
+#     print(full_name_user(message) + 'отправил команду ' + message.text)
+#     start = time.time()  # Засекает время начала выполнения скрипта
+#     list_name = 'Дежурный'
+#
+#     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+#         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+#         date_list_today = Other_function.read_sheet(list_name)[1]
+#         event_data = date_list_today[0]
+#         first_date = event_data[0]
+#         first_date = first_date.strftime("%d.%m.%Y")
+#         last_date = event_data[1]
+#         last_date = last_date.strftime("%d.%m.%Y")
+#         event = event_data[2]
+#         name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+#         text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + '.'
+#         # Если в БД у пользователя содержится стикер
+#         if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+#             # Пришлёт сообщение о дежурном
+#             bot.send_message(message.chat.id, text_message)
+#             # Пришлёт стикер этого дежурного
+#             bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
+#         else:
+#             # Пришлёт сообщение о дежурном
+#             bot.send_message(message.chat.id, text_message)
+#     else:
+#         start = time.time()  # Засекает время начала выполнения скрипта
+#         text_message = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+#         bot.send_message(message.from_user.id, text_message)
+#
+#     end = time.time()  # Засекает время окончания скрипта
+#     print(answer_bot + text_message + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
 
 
 #  Узнать кто следующий идёт на инвентаризацию
@@ -154,7 +154,7 @@ def invent(message):
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
-            date_list_today = Other_function.read_sheet(list_name)
+            date_list_today = Other_function.read_sheet(list_name)[1]
             event_data = date_list_today[0]
             first_date = event_data[0]
             first_date_format = first_date.strftime("%d.%m.%Y")
@@ -191,7 +191,8 @@ def invent(message):
                 # Пришлёт сообщение о дежурном
                 bot.send_message(message.chat.id, end_text)
                 # Пришлёт стикер этого дежурного
-                bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
+                bot.send_sticker(message.chat.id,
+                                 SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
             else:
                 # Пришлёт сообщение о дежурном
                 bot.send_message(message.chat.id, end_text)
@@ -406,6 +407,96 @@ def change_sticker_2(message):
     end_text = 'Стикер обновлён'
     bot.send_message(message.from_user.id, end_text)
     print(answer_bot + end_text + '\n')
+
+
+@bot.message_handler(commands=['dezhurnyj'])
+def dej(message):
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+        text_message = 'Что вы хотите получить?\n'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Имя следующего дежурного', 'Список дежурных']
+        keyboard.add(*buttons)
+        bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
+        bot.register_next_step_handler(message, dej_step_2)  # Регистрация следующего действия
+        print(answer_bot + text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
+
+
+def dej_step_2(message):
+    print(full_name_user(message) + 'написал ' + message.text)
+    date_list = Other_function.read_sheet('Дежурный')[0]
+    count_date_list = len(date_list)
+    try:
+        if message.text == 'Имя следующего дежурного':
+            date_list_today = Other_function.read_sheet('Дежурный')[1]
+            event_data = date_list_today[0]
+            first_date = event_data[0]
+            first_date = first_date.strftime("%d.%m.%Y")
+            last_date = event_data[1]
+            last_date = last_date.strftime("%d.%m.%Y")
+            event = event_data[2]
+            name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+            text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + \
+                           '.'
+            # Если в БД у пользователя содержится стикер
+            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+                # Пришлёт сообщение о дежурном
+                bot.send_message(message.chat.id, text_message)
+                # Пришлёт стикер этого дежурного
+                bot.send_sticker(message.chat.id,
+                                 SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
+            else:
+                # Пришлёт сообщение о дежурном
+                bot.send_message(message.chat.id, text_message)
+        elif message.text == 'Список дежурных':
+            text_message = 'На данный момент доступно ' + str(
+                count_date_list) + ' записей\n' + 'Сколько событий показать?'
+            bot.send_message(message.from_user.id, text_message)
+            bot.register_next_step_handler(message, dej_step_3)  # Регистрация следующего действия
+            print(answer_bot + text_message + '\n')
+    except Exception as e:  # В любом другом случае бот сообщит об ошибке
+        text_message = 'Что-то пошло не так. Чтобы попробовать снова, жми /test'
+        bot.reply_to(message, text_message)
+        print(answer_bot + text_message + '\n')
+        print(str(e))
+
+
+def dej_step_3(message):
+    print(full_name_user(message) + 'написал ' + message.text)
+    try:
+        count = int(message.text)
+        date_list = Other_function.read_sheet('Дежурный')[0]
+
+        if date_list is not None:
+            if count <= len(date_list):
+                print(answer_bot)
+                for i in range(0, count):
+                    event_data = date_list[i]
+                    first_date = event_data[0]
+                    first_date_format = first_date.strftime("%d.%m.%Y")
+                    last_date = event_data[1]
+                    last_date_format = last_date.strftime("%d.%m.%Y")
+                    event = event_data[2]
+                    text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' будет дежурить ' + event
+                    bot.send_message(message.from_user.id, text_message)
+                    print(text_message)
+            else:
+                text_message = 'Вы запрашиваете ' + str(count) + ' записей, а есть только ' + str(
+                    len(date_list)) + '\n' + 'Попробуйте снова'
+                bot.send_message(message.from_user.id, text_message)
+                print(answer_bot + text_message + '\n')
+    except Exception as e:  # В любом другом случае бот сообщит об ошибке
+        text_message = 'Я не распознал число, попробуйте снова, жми /test'
+        bot.reply_to(message, text_message)
+        print(answer_bot + text_message + '\n')
+        print(str(e))
+
+    # return
 
 
 @bot.message_handler(content_types=['text'])
