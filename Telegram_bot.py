@@ -1,21 +1,14 @@
 import datetime
 import random
 import time
-
 import telebot
-
-import Clear_old_data
 import Data
 import Other_function
-import Read_file
 import SQLite
 import What_i_can_do
 
+tconv = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Data.bot
-
-now_date = datetime.datetime.now()
-now_date = now_date.strftime("%d.%m.%Y %H:%M:%S")
-
 answer_bot = 'Бот ответил:\n'
 
 
@@ -27,7 +20,7 @@ def full_name_user(message):
     else:
         status_user = 'Пользователь '
     name_user = message.from_user.first_name + ' (ID: ' + str(message.from_user.id) + ') '  # Получаем имя и id
-    pattern = now_date + '\n' + status_user + name_user  # Итог дата, /n, статус и данные пользователя
+    pattern = str(tconv(message.date)) + '\n' + status_user + name_user  # Итог дата, /n, статус и данные пользователя
     return pattern
 
 
