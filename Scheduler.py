@@ -12,86 +12,99 @@ import SQLite
 # Уведомление подписчиков о том кто дежурный
 def sh_send_dej(sheet_name):
     date_list_today = Other_function.read_sheet(sheet_name)[1]
-    event_data = date_list_today[0]
+    if date_list_today is not None:
+        event_data = date_list_today[0]
 
-    first_date = event_data[0]
-    first_date_format = first_date.strftime("%d.%m.%Y")
+        first_date = event_data[0]
+        first_date_format = first_date.strftime("%d.%m.%Y")
 
-    last_date = event_data[1]
-    last_date_format = last_date.strftime("%d.%m.%Y")
+        last_date = event_data[1]
+        last_date_format = last_date.strftime("%d.%m.%Y")
 
-    event = event_data[2]
+        event = event_data[2]
 
-    date_now = datetime.datetime.now()  # Получаем текущую дату
-    difference_date = first_date - date_now
-    difference_date = difference_date.days + 1
+        date_now = datetime.datetime.now()  # Получаем текущую дату
+        difference_date = first_date - date_now
+        difference_date = difference_date.days + 1
 
-    name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
-    if name_from_SQL is None:
-        name_from_SQL = event
-    text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' ' + 'будет дежурить ' + \
-                   name_from_SQL + '.'
+        name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+        if name_from_SQL is None:
+            name_from_SQL = event
+        text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' ' + 'будет дежурить ' + \
+                       name_from_SQL + '.'
 
-    if difference_date == 1:
-        # Если в БД у пользователя содержится стикер
-        if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
-            # Пришлёт сообщение о дежурном
-            Notifications.notification_for(text_message, 'notification', 'yes')
-            # Пришлёт стикер этого дежурного
-            Notifications.send_sticker_for(event, 'notification', 'yes')
+        if difference_date == 1:
+            # Если в БД у пользователя содержится стикер
+            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+                # Пришлёт сообщение о дежурном
+                Notifications.notification_for(text_message, 'notification', 'yes')
+                # Пришлёт стикер этого дежурного
+                Notifications.send_sticker_for(event, 'notification', 'yes')
+                # Data.bot.send_message(1827221970, text_message)
+            else:
+                # Пришлёт сообщение о дежурном
+                Notifications.notification_for(text_message, 'notification', 'yes')
+                # Data.bot.send_message(1827221970, text_message)
+            print('Отчет sh_send_dej:\n' + text_message + '\n')
         else:
-            # Пришлёт сообщение о дежурном
-            Notifications.notification_for(text_message, 'notification', 'yes')
+            print('Отчет sh_send_dej:\n Завтра дежурных нет!\n')
+    else:
+        print('Отчет sh_send_dej:\n На странице ' + sheet_name + ' отсутствуют данные!\n')
 
 
 # Уведомление в
 def sh_send_invent(sheet_name):
     date_list_today = Other_function.read_sheet(sheet_name)[1]
-    event_data = date_list_today[0]
+    if date_list_today is not None:
+        event_data = date_list_today[0]
 
-    first_date = event_data[0]
-    first_date_format = first_date.strftime("%d.%m.%Y")
+        first_date = event_data[0]
+        # first_date_format = first_date.strftime("%d.%m.%Y")
 
-    event = event_data[1]
+        event = event_data[1]
 
-    name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
-    if name_from_SQL is None:
-        name_from_SQL = event
-    date_now = datetime.datetime.now()  # Получаем текущую дату
-    difference_date = first_date - date_now
-    difference_date = difference_date.days + 1
-    # print(name_from_SQL)
+        name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+        if name_from_SQL is None:
+            name_from_SQL = event
+        date_now = datetime.datetime.now()  # Получаем текущую дату
+        difference_date = first_date - date_now
+        difference_date = difference_date.days + 1
+        # print(name_from_SQL)
 
-    # Склоняем "день"
-    def count_day():
-        dd = ''
-        if difference_date == 0:
-            dd = 'Сегодня инвертаризация.'
-        elif difference_date == 1:
-            dd = 'До предстоящей инвентаризации остался 1 день.'
-        elif 1 < difference_date <= 4:
-            dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-        elif difference_date == 5:
-            dd = 'До предстоящей инвентаризации осталось 5 дней.'
-        elif difference_date > 5:
-            dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
+        # Склоняем "день"
+        def count_day():
+            dd = ''
+            if difference_date == 0:
+                dd = 'Сегодня инвертаризация.'
+            elif difference_date == 1:
+                dd = 'До предстоящей инвентаризации остался 1 день.'
+            elif 1 < difference_date <= 4:
+                dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+            elif difference_date == 5:
+                dd = 'До предстоящей инвентаризации осталось 5 дней.'
+            # elif difference_date > 5:
+            #     dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
+            return dd
 
-        return dd
-
-    text_day = count_day()  # Кол-во дней до инвентаризации
-    text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
-    text_message = text_day + '\n' + text_who  # Объединяем строки выше в одну
-    # Если
-    if 0 <= difference_date <= 5:
-        # Если в БД у пользователя содержится стикер
-        if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
-            # Пришлёт сообщение о дежурном
-            Notifications.notification_for(text_message, 'status', 'admin')
-            # Пришлёт стикер этого дежурного
-            Notifications.send_sticker_for(text_message, 'status', 'admin')
+        text_day = count_day()  # Кол-во дней до инвентаризации
+        text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
+        text_message = text_day + '\n' + text_who  # Объединяем строки выше в одну
+        # Если
+        if 0 <= difference_date <= 5:
+            # Если в БД у пользователя содержится стикер
+            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+                # Пришлёт сообщение о дежурном
+                Notifications.notification_for(text_message, 'status', 'admin')
+                # Пришлёт стикер этого дежурного
+                Notifications.send_sticker_for(text_message, 'status', 'admin')
+            else:
+                # Пришлёт сообщение о дежурном
+                Notifications.notification_for(text_message, 'status', 'admin')
+            print('Отчет sh_send_invent:\n' + text_message + '\n')
         else:
-            # Пришлёт сообщение о дежурном
-            Notifications.notification_for(text_message, 'status', 'admin')
+            print('Отчет sh_send_invent:\n В ближайшее время на инвент никто не идёт!\n')
+    else:
+        print('Отчет sh_send_invent:\n На странице ' + sheet_name + ' отсутствуют данные!\n')
 
 
 # Кто сегодня закрывает сигналы
@@ -159,6 +172,7 @@ def sh_queue():
 
 
 schedule.every().day.at('18:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
+# schedule.every().day.at('00:07').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at('07:00').do(sh_queue)
 # schedule.every().day.at('23:35').do(sh_queue)
 
