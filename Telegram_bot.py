@@ -414,7 +414,7 @@ def dej(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        text_message = 'Что вы хотите получить?\n'
+        text_message = 'Что вы хотите получить?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Имя следующего дежурного', 'Список дежурных']
         keyboard.add(*buttons)
@@ -453,6 +453,7 @@ def dej_step_2(message):
             else:
                 # Пришлёт сообщение о дежурном
                 bot.send_message(message.chat.id, text_message)
+            print(answer_bot + text_message + '\n')
         elif message.text == 'Список дежурных':
             text_message = 'На данный момент доступно ' + str(
                 count_date_list) + ' записей\n' + 'Сколько событий показать?'
@@ -487,11 +488,11 @@ def dej_step_3(message):
                     print(text_message)
             else:
                 text_message = 'Вы запрашиваете ' + str(count) + ' записей, а есть только ' + str(
-                    len(date_list)) + '\n' + 'Попробуйте снова'
+                    len(date_list)) + '.\n' + 'Попробуйте снова - /dezhurnyj'
                 bot.send_message(message.from_user.id, text_message)
                 print(answer_bot + text_message + '\n')
     except Exception as e:  # В любом другом случае бот сообщит об ошибке
-        text_message = 'Я не распознал число, попробуйте снова, жми /test'
+        text_message = 'Я не распознал число, попробуйте снова - /dezhurnyj'
         bot.reply_to(message, text_message)
         print(answer_bot + text_message + '\n')
         print(str(e))
