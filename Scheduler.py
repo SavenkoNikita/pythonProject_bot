@@ -11,8 +11,8 @@ import SQLite
 
 # Уведомление подписчиков о том кто дежурный
 def sh_send_dej(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)[1]
-    if date_list_today is not None:
+    if Other_function.read_sheet(sheet_name) is not None:
+        date_list_today = Other_function.read_sheet(sheet_name)[1]
         event_data = date_list_today[0]
 
         first_date = event_data[0]
@@ -49,13 +49,13 @@ def sh_send_dej(sheet_name):
         else:
             print('Отчет sh_send_dej:\n Завтра дежурных нет!\n')
     else:
-        print('Отчет sh_send_dej:\n На странице ' + sheet_name + ' отсутствуют данные!\n')
+        print('Отчет sh_send_dej:\n На странице <' + sheet_name + '> отсутствуют данные!\n')
 
 
 # Уведомление в
 def sh_send_invent(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)[1]
-    if date_list_today is not None:
+    if Other_function.read_sheet(sheet_name) is not None:
+        date_list_today = Other_function.read_sheet(sheet_name)[1]
         event_data = date_list_today[0]
 
         first_date = event_data[0]
@@ -104,7 +104,7 @@ def sh_send_invent(sheet_name):
         else:
             print('Отчет sh_send_invent:\n В ближайшее время на инвент никто не идёт!\n')
     else:
-        print('Отчет sh_send_invent:\n На странице ' + sheet_name + ' отсутствуют данные!\n')
+        print('Отчет sh_send_invent:\n На странице <' + sheet_name + '> отсутствуют данные!\n')
 
 
 # Кто сегодня закрывает сигналы
@@ -118,11 +118,10 @@ def sh_random_name():
 
 
 def sh_notification(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)[0]
-    if date_list_today is not None:
-        for i in range(len(date_list_today)):
-            event_data = date_list_today[i]
-        # if event_data is not None:
+    if Other_function.read_sheet(sheet_name) is not None:
+        date_list = Other_function.read_sheet(sheet_name)[0]
+        for i in range(len(date_list)):
+            event_data = date_list[i]
             first_date = event_data[0]
             event = event_data[1]
             date_now = datetime.datetime.now()  # Получаем текущую дату
@@ -131,29 +130,37 @@ def sh_notification(sheet_name):
 
             if difference_date == 0:
                 if sheet_name in Data.sheets_file:
-                    if sheet_name == 'Уведомления для всех':
-                        text_message = '•Уведомление для зарегистрированных пользователей•\n\n' + event
-                        Notifications.notification_all_reg(text_message)
-                        # Data.bot.send_message(1827221970, text_message)
-                    elif sheet_name == 'Уведомления для подписчиков':
-                        text_message = '•Уведомление для подписчиков•\n\n' + event
-                        Notifications.notification_for(text_message, 'notification', 'yes')
-                        # Data.bot.send_message(1827221970, text_message)
-                    elif sheet_name == 'Уведомления для админов':
-                        text_message = '•Уведомление для администраторов•\n\n' + event
-                        Notifications.notification_for(text_message, 'status', 'admin')
-                        # Data.bot.send_message(1827221970, text_message)
-                    elif sheet_name == 'Инвентаризация':
-                        sh_send_invent(sheet_name)
-                        # Data.bot.send_message(1827221970, text_message)
+                    if event is not None:
+                        if sheet_name == 'Уведомления для всех':
+                            text_message = '• Уведомление для зарегистрированных пользователей •\n\n' + event
+                            Notifications.notification_all_reg(text_message)
+                            # Data.bot.send_message(1827221970, text_message)
+                        elif sheet_name == 'Уведомления для подписчиков':
+                            text_message = '• Уведомление для подписчиков •\n\n' + event
+                            Notifications.notification_for(text_message, 'notification', 'yes')
+                            # Data.bot.send_message(1827221970, text_message)
+                        elif sheet_name == 'Уведомления для админов':
+                            text_message = '• Уведомление для администраторов •\n\n' + event
+                            Notifications.notification_for(text_message, 'status', 'admin')
+                            # Data.bot.send_message(1827221970, text_message)
+                        elif sheet_name == 'Инвентаризация':
+                            sh_send_invent(sheet_name)
+                            # Data.bot.send_message(1827221970, text_message)
+                            # print('invent')
+                        time.sleep(5)
                 else:
-                    print('В файле нет страницы с названием ' + sheet_name)
+                    print('Отчёт sh_notification:')
+                    print('В файле нет страницы с названием <' + sheet_name + '>\n')
+
             elif difference_date > 0:  # Если дата не наступила
                 print('Отчёт sh_notification:')
-                print('В ' + sheet_name + ' рано уведомлять\n')
-            time.sleep(5)
+                print('В <' + sheet_name + '> рано уведомлять\n')
+                pass
+
     else:
-        print('На странице ' + sheet_name + ' нет данных для оповещения')
+        text_message = 'На странице <' + sheet_name + '> нет данных для оповещения\n'
+        Data.bot.send_message(1827221970, text_message)
+        print('Отчёт sh_notification:\n' + text_message)
 
 
 def sh_queue():
@@ -172,9 +179,8 @@ def sh_queue():
 
 
 schedule.every().day.at('18:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
-# schedule.every().day.at('00:07').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at('10:00').do(sh_queue)
-# schedule.every().day.at('09:13').do(sh_queue)
+# sh_queue()
 
 while True:
     schedule.run_pending()
