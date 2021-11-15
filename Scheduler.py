@@ -118,7 +118,7 @@ def sh_random_name():
 
 
 def sh_notification(sheet_name):
-    date_list_today = Other_function.read_sheet(sheet_name)[1]
+    date_list_today = Other_function.read_sheet(sheet_name)[0]
     if date_list_today is not None:
         for i in range(len(date_list_today)):
             event_data = date_list_today[i]
@@ -173,8 +173,8 @@ def sh_queue():
 
 schedule.every().day.at('18:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 # schedule.every().day.at('00:07').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
-schedule.every().day.at('07:00').do(sh_queue)
-# schedule.every().day.at('23:35').do(sh_queue)
+schedule.every().day.at('10:00').do(sh_queue)
+# schedule.every().day.at('09:13').do(sh_queue)
 
 while True:
     schedule.run_pending()

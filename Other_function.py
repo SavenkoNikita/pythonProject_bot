@@ -110,4 +110,4 @@ def read_sheet(sheet_name):
 
 
 # read_sheet('Дежурный')
-# read_sheet('Уведомления для подписчиков')
+read_sheet('Уведомления для подписчиков')
