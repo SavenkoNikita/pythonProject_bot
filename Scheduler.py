@@ -113,8 +113,9 @@ def sh_random_name():
         list_name = ['Паша', 'Дима', 'Никита']
         r_name = random.choice(list_name)
         end_text = 'Случайным образом определено, что сигналы сегодня закрывает ' + r_name
-        Data.bot.send_message(chat_id=Data.list_groups.get('GateKeepers'), text=end_text)
-        # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)  # Для тестов
+        Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
+        Data.bot.send_message(chat_id=Data.list_admins.get('Дима'), text=end_text)
+        Data.bot.send_message(chat_id=Data.list_admins.get('Паша'), text=end_text)
 
 
 def sh_notification(sheet_name):
@@ -178,8 +179,13 @@ def sh_queue():
         i += 1
 
 
-schedule.every().day.at('18:00').do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
-schedule.every().day.at('10:00').do(sh_queue)
+time_dej = '18:00'
+time_other = '08:00'
+
+schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
+schedule.every().day.at(time_other).do(sh_queue)
+schedule.every().day.at(time_other).do(sh_random_name)
+
 # sh_queue()
 
 while True:

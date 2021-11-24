@@ -71,7 +71,7 @@ def register(message):
 def log_out(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Если пользователь присутствует в БД
-        SQLite.log_out(message)  # Удаление данных из БД
+        SQLite.log_out(message.from_user.id)  # Удаление данных из БД
         time.sleep(5)  # Подождать указанное кол-во секунд
         log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
                           'Данные о вашем аккаунте успешно удалены!' + '\n' + \
@@ -101,43 +101,6 @@ def help_command(message):
         print(answer_bot + end_text + '\n')
 
 
-#  Узнать кто следующий дежурный
-# @bot.message_handler(commands=['dezhurnyj'])
-# def dej(message):
-#     print(full_name_user(message) + 'отправил команду ' + message.text)
-#     start = time.time()  # Засекает время начала выполнения скрипта
-#     list_name = 'Дежурный'
-#
-#     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
-#         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-#         date_list_today = Other_function.read_sheet(list_name)[1]
-#         event_data = date_list_today[0]
-#         first_date = event_data[0]
-#         first_date = first_date.strftime("%d.%m.%Y")
-#         last_date = event_data[1]
-#         last_date = last_date.strftime("%d.%m.%Y")
-#         event = event_data[2]
-#         name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
-#         text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + '.'
-#         # Если в БД у пользователя содержится стикер
-#         if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
-#             # Пришлёт сообщение о дежурном
-#             bot.send_message(message.chat.id, text_message)
-#             # Пришлёт стикер этого дежурного
-#             bot.send_sticker(message.chat.id, SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)))
-#         else:
-#             # Пришлёт сообщение о дежурном
-#             bot.send_message(message.chat.id, text_message)
-#     else:
-#         start = time.time()  # Засекает время начала выполнения скрипта
-#         text_message = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
-#         bot.send_message(message.from_user.id, text_message)
-#
-#     end = time.time()  # Засекает время окончания скрипта
-#     print(answer_bot + text_message + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
-
-
-#  Узнать кто следующий идёт на инвентаризацию
 @bot.message_handler(commands=['invent'])
 def invent(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)

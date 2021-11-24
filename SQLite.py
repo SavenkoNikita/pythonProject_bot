@@ -112,30 +112,7 @@ def welcome(message):
     db_table_val(user_id=us_id, user_first_name=us_first_name, user_last_name=us_last_name, username=us_username)
 
 
-# # Обновление статуса пользователя в SQL
-# def update_sqlite_table(status, user_id):
-#     try:
-#         sqlite_connection = sqlite3.connect(Data.way_sql)
-#         cursor = sqlite_connection.cursor()
-#         print("Подключен к SQLite")
-#
-#         sql_update_query = """Update users set status = ? where user_id = ?"""
-#         data = (status, user_id)
-#         cursor.execute(sql_update_query, data)
-#         sqlite_connection.commit()
-#         print("Запись успешно обновлена")
-#         cursor.close()
-#
-#     except sqlite3.Error as error:
-#         print("Ошибка при работе с SQLite", error)
-#     finally:
-#         if sqlite_connection:
-#             sqlite_connection.close()
-#             print("Соединение с SQLite закрыто")
-
-
 # Обновление статуса пользователя в SQL
-
 def update_sqlite_table(status, user_id, column_name):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
@@ -159,16 +136,16 @@ def update_sqlite_table(status, user_id, column_name):
             # print("Соединение с SQLite закрыто")
 
 
-def log_out(message):
+def log_out(user_id):
     try:
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print("Подключен к SQLite")
 
-        sql_delete_query = 'DELETE from users where user_id = ' + str(message.from_user.id)
+        print('Все данные о пользователе <' + get_user_info(user_id) + '> успешно удалены из БД!')
+        sql_delete_query = 'DELETE from users where user_id = ' + str(user_id)
         cursor.execute(sql_delete_query)
         sqlite_connection.commit()
-        print("Запись успешно удалена")
         cursor.close()
 
     except sqlite3.Error as error:

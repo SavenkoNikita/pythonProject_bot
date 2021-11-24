@@ -2,31 +2,7 @@ import sqlite3
 import time
 import Data
 import Other_function
-import Read_file
-
-# Проверяет тип данных в 1м столбце 2й строки в указанном листе
 import SQLite
-
-
-# def notifications(sheet_name):
-#     some_date = Read_file.read_file(sheet_name)['Date 1']
-#     meaning2 = Read_file.read_file(sheet_name)['Text 2']
-#     read_type = Read_file.read_file(sheet_name)['Type']
-#
-#     if read_type == 'date':
-#         end_text = meaning2
-#         print('Бот ответил:\n' + end_text)
-#     elif read_type == 'incorrect':
-#         end_text = some_date
-#         print('Бот ответил:\n' + end_text)
-#     elif read_type == 'none':
-#         end_text = some_date
-#         print('Бот ответил:\n' + end_text)
-#     else:
-#         end_text = 'Ошибка чтения данных Notifications'
-#         print('Бот ответил:\n' + end_text)
-#
-#     return end_text
 
 
 # Функция для уведомления всех пользователей находящихся в БД
@@ -79,8 +55,13 @@ def notification_for(text_message, column, column_meaning):
         i = 0
         print('Уведомления отправлены следующим пользователям:\n')
         while i < len(all_id_sql):
-            print(all_id_sql[i])
-            Data.bot.send_message(chat_id=all_id_sql[i], text=text_message)
+            username = SQLite.get_user_info(all_id_sql[i])
+            try:
+                print(username)
+                Data.bot.send_message(chat_id=all_id_sql[i], text=text_message)
+            except Data.telebot.apihelper.ApiTelegramException:
+                print('Пользователь <' + username + '> заблокировал бота!')
+                SQLite.log_out(all_id_sql[i])
             i += 1
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
