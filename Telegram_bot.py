@@ -6,6 +6,11 @@ import Data
 import Other_function
 import SQLite
 import What_i_can_do
+import urllib
+
+from openpyxl import load_workbook
+from smb.SMBHandler import SMBHandler
+import urllib.request
 
 tconv = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Data.bot
@@ -455,6 +460,110 @@ def dej_step_3(message):
 
     # return
 
+
+# @bot.message_handler(commands=['create_record'])
+# def create_record(message):
+#     print(full_name_user(message) + 'отправил команду ' + message.text)
+#     start = time.time()  # Засекает время начала выполнения скрипта
+#     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+#         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+#         if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+#             text_message = 'В какой лист добавить запись?'
+#             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#             buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов']
+#             keyboard.add(*buttons)
+#             bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
+#             bot.register_next_step_handler(message, create_record_step_2)  # Регистрация следующего действия
+#             print(answer_bot + text_message + '\n')
+#         else:  # Если юзер не админ, он получит следующее сообщение
+#             end_text = 'У вас нет прав для выполнения этой команды'
+#             bot.send_message(message.chat.id, end_text)
+#     else:  # Если пользователь не зарегистрирован, он получит следующее сообщение
+#         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+#         bot.send_message(message.from_user.id, end_text)
+#
+#     end = time.time()  # Засекает время окончания скрипта
+#     print(answer_bot + end_text + '\n' + 'Время работы запроса(сек): ' + str(int(end - start)) + '\n')
+#
+#
+# def create_record_step_2(message):
+#     print(full_name_user(message) + 'написал "' + message.text + '"')
+#     sheet_name = message.text
+#     opener = urllib.request.build_opener(SMBHandler)
+#     file_name = opener.open(Data.route)
+#     wb = load_workbook(file_name)  # Открываем нужную книгу
+#     sheet = wb[sheet_name]  # Получить лист по ключу
+
+
+# @bot.message_handler(commands=['games'])
+# def games(message):
+#     print(full_name_user(message) + 'отправил команду ' + message.text)
+#     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+#         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
+#         text_message = 'На данный момент доступна одна игра'
+#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#         buttons = ['Играть в "Угадаю число"', 'Отмена']
+#         keyboard.add(*buttons)
+#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
+#         bot.register_next_step_handler(message, games_step_2)  # Регистрация следующего действия
+#         print(answer_bot + text_message + '\n')
+#     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+#         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+#         bot.send_message(message.from_user.id, end_text)
+#         print(answer_bot + end_text + '\n')
+#
+#
+# def games_step_2(message):
+#     if message.text == 'Играть в "Угадаю число"':
+#         text_message = 'Хорошо, начнём. Правила просты - загадай число от 1 до 100 а я попробую его угадать. ' \
+#                        'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
+#                        'жми "больше", а если угадал - "в точку".'
+#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#         buttons = ['Начнём']
+#         keyboard.add(*buttons)
+#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+#         # bot.send_message(message.from_user.id, text_message)
+#         bot.register_next_step_handler(message, games_step_3)
+#         # return int(number)
+#     elif message.text == 'Отмена':
+#         text_message = 'Хорошо, сыграем в следующий раз.'
+#         bot.send_message(message.from_user.id, text_message)
+#     # else:
+#     # return int(number)
+#
+#
+# def games_step_3(message):
+#     # print(message.text, number, lower, high, count)
+#     if message.text == 'Начнём':
+#         number = random.randint(0, 100)
+#         text_message = 'Возможно это ' + str(number) + ' ?'
+#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#         buttons = ['Больше', 'Меньше', 'В точку']
+#         keyboard.add(*buttons)
+#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+#         bot.register_next_step_handler(message, games_step_4)
+#
+#
+# def games_step_4(message, number=random.randint(1, 100), lower=1, high=100, count=1):
+#     if message.text == 'Больше' or 'Меньше':
+#         if message.text == 'Больше':
+#             print(message.text)
+#             lower = number + 1
+#         elif message.text == 'Меньше':
+#             print(message.text)
+#             high = number - 1
+#         middle = (high + lower) // 2
+#         text_message = 'Я думаю твоё число ' + str(middle)
+#         count += 1
+#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#         buttons = ['Больше', 'Меньше', 'В точку']
+#         keyboard.add(*buttons)
+#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+#         bot.register_next_step_handler(games_step_4(message, middle, lower, high, count))
+#     elif message.text == 'В точку':
+#         bot.send_message(message.from_user.id, 'Я угадал твоё число за ' + str(count) + ' ходов')
+#     else:
+#         print(message.text)
 
 @bot.message_handler(content_types=['text'])
 def other_functions(message):

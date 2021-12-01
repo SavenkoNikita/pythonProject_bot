@@ -69,7 +69,7 @@ def sh_send_invent(sheet_name):
         date_now = datetime.datetime.now()  # Получаем текущую дату
         difference_date = first_date - date_now
         difference_date = difference_date.days + 1
-        # print(name_from_SQL)
+        print(name_from_SQL)
 
         # Склоняем "день"
         def count_day():
@@ -96,7 +96,7 @@ def sh_send_invent(sheet_name):
                 # Пришлёт сообщение о дежурном
                 Notifications.notification_for(text_message, 'status', 'admin')
                 # Пришлёт стикер этого дежурного
-                Notifications.send_sticker_for(text_message, 'status', 'admin')
+                Notifications.send_sticker_for(event, 'status', 'admin')
             else:
                 # Пришлёт сообщение о дежурном
                 Notifications.notification_for(text_message, 'status', 'admin')
@@ -180,7 +180,7 @@ def sh_queue():
 
 
 time_dej = '18:00'
-time_other = '08:00'
+time_other = '07:00'
 
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)

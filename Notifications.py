@@ -58,7 +58,8 @@ def notification_for(text_message, column, column_meaning):
             username = SQLite.get_user_info(all_id_sql[i])
             try:
                 print(username)
-                Data.bot.send_message(chat_id=all_id_sql[i], text=text_message)
+                Data.bot.send_message(all_id_sql[i], text=text_message)
+                # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
             except Data.telebot.apihelper.ApiTelegramException:
                 print('Пользователь <' + username + '> заблокировал бота!')
                 SQLite.log_out(all_id_sql[i])
@@ -74,7 +75,7 @@ def notification_for(text_message, column, column_meaning):
 # Уведомления для юзеров с указанными параметрами
 def send_sticker_for(user_first_name, column, column_meaning):
     try:
-        sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
+        user_sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
         sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print('Подключен к SQLite')
@@ -91,8 +92,19 @@ def send_sticker_for(user_first_name, column, column_meaning):
         i = 0
         print('Стикер отправлен следующим пользователям:\n')
         while i < len(all_id_sql):
-            print(all_id_sql[i])
-            Data.bot.send_sticker(all_id_sql[i], sticker)
+            username = SQLite.get_user_info(all_id_sql[i])
+            try:
+                print(username)
+                user_sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
+                Data.bot.send_sticker(all_id_sql[i], user_sticker)
+                # Data.bot.send_sticker(Data.list_admins.get('Никита'), user_sticker)
+            except Data.telebot.apihelper.ApiTelegramException:
+                print('Пользователь <' + username + '> заблокировал бота!')
+                SQLite.log_out(username)
+            except Exception as e:
+                time.sleep(3)
+                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Бот выдал ошибку: ' + str(e))
+                print(str(e))
             i += 1
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)

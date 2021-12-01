@@ -1,6 +1,5 @@
 import datetime
 import os
-import time
 import urllib
 
 from openpyxl import load_workbook
@@ -108,6 +107,5 @@ def read_sheet(sheet_name):
 
     return
 
-
 # read_sheet('Дежурный')
-read_sheet('Уведомления для подписчиков')
+# read_sheet('Уведомления для подписчиков')

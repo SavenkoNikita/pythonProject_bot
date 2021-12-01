@@ -1,12 +1,17 @@
-import requests
+import Data
+import Other_function
+import SQLite
 
-user_id = 18078856
-url = 'http://www.kinopoisk.ru/user/%d/votes/list/ord/date/page/2/#list' % user_id  # url для второй страницы
-r = requests.get(url)
-with open('test.html', 'w') as output_file:
-    output_file.write(r.text.encode('cp1251'))
+date_list_today = Other_function.read_sheet('Инвентаризация')[1]
+event_data = date_list_today[0]
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:45.0) Gecko/20100101 Firefox/45.0'
-}
-r = requests.get(url, headers=headers)
+first_date = event_data[0]
+
+event = event_data[1]
+
+a = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event))
+print(a)
+print(event)
+
+Data.bot.send_sticker(1827221970, a)
+# Data.bot.
