@@ -246,3 +246,9 @@ def get_user_sticker(user_id):
 
 
 # get_user_sticker(1827221970)
+
+
+class SQL(object):
+    def __init__(self, user_id, user_first_name, user_last_name, username, status, notification):
+        self.user_id = user_id
+        self.first_name = first_name
