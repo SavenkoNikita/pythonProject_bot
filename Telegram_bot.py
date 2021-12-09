@@ -6,11 +6,6 @@ import Data
 import Other_function
 import SQLite
 import What_i_can_do
-import urllib
-
-from openpyxl import load_workbook
-from smb.SMBHandler import SMBHandler
-import urllib.request
 
 tconv = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Data.bot
@@ -20,7 +15,7 @@ answer_bot = 'Бот ответил:\n'
 # Получаем имя пользователя: Администратор/Пользователь + Имя + ID
 def full_name_user(message):
     check_admin = SQLite.check_for_admin(message.from_user.id)  # Проверяем является ли пользователь админом
-    if check_admin == 'True':
+    if check_admin is True:
         status_user = 'Администратор '
     else:
         status_user = 'Пользователь '
@@ -33,7 +28,7 @@ def full_name_user(message):
 @bot.message_handler(commands=['start'])
 def start_command(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'False':  # Если пользователь отсутствует в БД
+    if SQLite.check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         # Приветственное сообщение
         hello_message = 'Добро пожаловать ' + message.from_user.first_name + '\n' + \
                         'Для того чтобы пользоваться функциями бота, необходимо пройти регистрацию нажав /register. ' \
@@ -56,8 +51,8 @@ def start_command(message):
 @bot.message_handler(commands=['register'])
 def register(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'False':  # Если пользователь отсутствует в БД
-        SQLite.welcome(message)
+    if SQLite.check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
+        SQLite.db_table_val(message)
         time.sleep(5)  # Подождать указанное кол-во секунд
         register_message = 'Добро пожаловать ' + message.from_user.first_name + '\n' + \
                            'Вы успешно зарегистрированы!' + '\n' + \
@@ -75,7 +70,7 @@ def register(message):
 @bot.message_handler(commands=['log_out'])
 def log_out(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Если пользователь присутствует в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Если пользователь присутствует в БД
         SQLite.log_out(message.from_user.id)  # Удаление данных из БД
         time.sleep(5)  # Подождать указанное кол-во секунд
         log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
@@ -93,7 +88,7 @@ def log_out(message):
 @bot.message_handler(commands=['help'])
 def help_command(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
         keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
@@ -112,9 +107,9 @@ def invent(message):
     start = time.time()  # Засекает время начала выполнения скрипта
     list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
 
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Проверка админ ли юзер
+        if SQLite.check_for_admin(message.from_user.id) is True:  # Проверка админ ли юзер
             date_list_today = Other_function.read_sheet(list_name)[1]
             event_data = date_list_today[0]
             first_date = event_data[0]
@@ -173,9 +168,9 @@ def invent(message):
 def random_name(message):
     user_id = message.from_user.id
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(user_id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(user_id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_admin(user_id) == 'True':  # Проверка админ ли юзер
+        if SQLite.check_for_admin(user_id) is True:  # Проверка админ ли юзер
             list_name = ['Паша', 'Дима', 'Никита']  # Список имён для рандома
             r_name = random.choice(list_name)  # Получение рандомного значения из списка
             bot.send_message(user_id, text=r_name)  # Отправка сообщения с рандомным именем
@@ -193,9 +188,9 @@ def random_name(message):
 @bot.message_handler(commands=['set_admin'])
 def set_to_admin(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+        if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
             text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека\n'
             bot.send_message(message.from_user.id, text=text_message)  # Бот пришлёт выше указанный текст
             print(text_message + '\n')
@@ -212,7 +207,6 @@ def set_to_admin(message):
 
 def receive_id(message):
     try:
-        chat_id = message.chat.id  # Получаем id чата
         id_future_admin = message.forward_from.id  # Получаем id человека полученного из пересылаемого сообщения
         first_name_future_admin = str(message.forward_from.first_name)  # Получаем имя будущего админа
         last_name_future_admin = str(message.forward_from.last_name)  # Получаем фамилию будущего админа
@@ -221,8 +215,8 @@ def receive_id(message):
               ' содержащее текст:\n' + message.text)
         answer_text = 'Пользователь <' + full_name_future_admin + '> добавлен в список администраторов'
         # msg = bot.send_message(chat_id, answer_text)
-        if SQLite.check_for_existence(id_future_admin) == 'True':  # Проверка на наличие человека в БД
-            if SQLite.check_for_admin(id_future_admin) == 'False':  # Проверка админ ли юзер
+        if SQLite.check_for_existence(id_future_admin) is True:  # Проверка на наличие человека в БД
+            if SQLite.check_for_admin(id_future_admin) is False:  # Проверка админ ли юзер
                 SQLite.update_sqlite_table('admin', id_future_admin, 'status')  # Обновляем статус нового админа в БД
                 bot.send_message(message.from_user.id, answer_text)  # Бот уведомляет об этом того кто выполнил запрос
                 print(answer_text + '\n')
@@ -234,7 +228,7 @@ def receive_id(message):
                 bot.send_message(message.from_user.id, end_text)
         else:  # Если того кому пытаются дать права нет в БД, бот сообщит об ошибке
             end_text = 'Вы пытаетесь дать админские права пользователю который отсутствует в базе данных!'
-            bot.send_message(chat_id, end_text)
+            bot.send_message(message.chat_id, end_text)
             print(end_text + '\n')
     except Exception as e:  # В любом другом случае бот сообщит об ошибке
         bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_admin')
@@ -246,9 +240,9 @@ def receive_id(message):
 @bot.message_handler(commands=['set_user'])
 def set_to_user(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+        if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
             text_message = 'Чтобы пользователю присвоить статус <user>, перешли мне сообщение от этого человека\n'
             bot.send_message(message.from_user.id, text=text_message)  # Бот пришлёт выше указанный текст
             print(answer_bot + text_message + '\n')
@@ -273,8 +267,8 @@ def receive_id_user(message):
         print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_user +
               ' содержащее текст:\n' + message.text)
         answer_text = 'Пользователю <' + full_name_future_user + '> присвоен статус <user>'
-        if SQLite.check_for_existence(id_future_user) == 'True':  # Проверка на наличие человека в БД
-            if SQLite.check_for_admin(id_future_user) == 'True':  # Проверка админ ли юзер
+        if SQLite.check_for_existence(id_future_user) is True:  # Проверка на наличие человека в БД
+            if SQLite.check_for_admin(id_future_user) is True:  # Проверка админ ли юзер
                 SQLite.update_sqlite_table('user', id_future_user, 'status')  # Обновляем статус нового юзера в БД
                 bot.send_message(message.from_user.id, answer_text)  # Бот уведомляет об этом того кто выполнил запрос
                 print(answer_text + '\n')
@@ -298,9 +292,9 @@ def receive_id_user(message):
 @bot.message_handler(commands=['subscribe'])
 def set_subscribe(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_notification(message.from_user.id) == 'False':  # Если пользователь не подписчик
+        if SQLite.check_for_notification(message.from_user.id) is False:  # Если пользователь не подписчик
             SQLite.update_sqlite_table('yes', message.from_user.id, 'notification')  # Присвоить статус <подписан>
             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
                        'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
@@ -309,7 +303,7 @@ def set_subscribe(message):
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + 'подписался на '
                                                                                                     'уведомления.')
             print(answer_bot + end_text + '\n')
-        else:  # Если подписчик пытается подписаться то получит ошибку
+        else:  # Если подписчик пытается подписаться, то получит ошибку
             end_text = 'Вы уже подписаны на уведомления.'
             bot.send_message(message.from_user.id, end_text)
             print(answer_bot + end_text + '\n')
@@ -322,9 +316,9 @@ def set_subscribe(message):
 @bot.message_handler(commands=['unsubscribe'])
 def set_subscribe(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':
+    if SQLite.check_for_existence(message.from_user.id) is True:
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_notification(message.from_user.id) == 'True':  # Если пользователь подписчик
+        if SQLite.check_for_notification(message.from_user.id) is True:  # Если пользователь подписчик
             SQLite.update_sqlite_table('no', message.from_user.id, 'notification')  # Присвоить в БД статус <не
             # подписан>
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
@@ -333,7 +327,7 @@ def set_subscribe(message):
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + 'отписался от '
                                                                                                     'уведомлений.')
             print(answer_bot + end_text + '\n')
-        else:  # Если не подписчик пытается отписаться то получит ошибку
+        else:  # Если не подписчик пытается отписаться, то получит ошибку
             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
             bot.send_message(message.from_user.id, end_text)
             print(answer_bot + end_text + '\n')
@@ -346,9 +340,9 @@ def set_subscribe(message):
 @bot.message_handler(commands=['change_sticker'])
 def change_sticker_1(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
-        if SQLite.check_for_admin(message.from_user.id) == 'True':  # Если пользователь админ
+        if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
             msg = bot.send_message(message.from_user.id, 'Отправь мне стикер который хочешь привязать в своей учётной '
                                                          'записи!')
             bot.register_next_step_handler(msg, change_sticker_2)  # Регистрация следующего действия
@@ -373,7 +367,7 @@ def change_sticker_2(message):
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
     print(full_name_user(message) + 'отправил команду ' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         text_message = 'Что вы хотите получить?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -444,7 +438,8 @@ def dej_step_3(message):
                     last_date = event_data[1]
                     last_date_format = last_date.strftime("%d.%m.%Y")
                     event = event_data[2]
-                    text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' будет дежурить ' + event
+                    text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' будет дежурить ' \
+                                   + event
                     bot.send_message(message.from_user.id, text_message)
                     print(text_message)
             else:
@@ -457,8 +452,6 @@ def dej_step_3(message):
         bot.reply_to(message, text_message)
         print(answer_bot + text_message + '\n')
         print(str(e))
-
-    # return
 
 
 # @bot.message_handler(commands=['create_record'])

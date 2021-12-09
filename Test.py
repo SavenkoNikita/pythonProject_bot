@@ -1,17 +1,22 @@
+import time
+
 import Data
-import Other_function
 import SQLite
+from Data import bot
 
-date_list_today = Other_function.read_sheet('Инвентаризация')[1]
-event_data = date_list_today[0]
 
-first_date = event_data[0]
+@bot.message_handler(content_types=['text'])
+def other_functions(message):
+    bot.send_message(message.chat.id, message.text)
+    bot.send_message(message.from_user.id, SQLite.Message.user_data(message).id)
+    SQLite.Message.db_table_val(message)
 
-event = event_data[1]
 
-a = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event))
-print(a)
-print(event)
-
-Data.bot.send_sticker(1827221970, a)
-# Data.bot.
+if __name__ == '__main__':
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception as e:
+            time.sleep(3)
+            bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Бот выдал ошибку: ' + str(e))
+            print(str(e))

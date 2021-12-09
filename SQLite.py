@@ -3,66 +3,60 @@ import time
 
 import Data
 
-conn = sqlite3.connect(Data.way_sql, check_same_thread=False)
-cursor = conn.cursor()
+sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
+cursor = sqlite_connection.cursor()
 
 
 # Проверка на существование пользователя в БД
 def check_for_existence(user_id):
     info = cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
     if info.fetchone() is None:  # Если человека нет в бд
-        user_status = 'False'
-        # print(user_status + ' Человека нет в бд')
+        return False
     else:  # Если есть человек в бд
-        user_status = 'True'
-        # print(user_status + ' Человек есть в бд')
-    return user_status
+        return True
 
 
 # Проверка на то, является ли пользователь админом
 def check_for_admin(user_id):
     info = cursor.execute('SELECT * FROM users WHERE status=? and user_id=?', ('admin', user_id))
     if info.fetchone() is None:  # Если пользователь не админ
-        user_status = 'False'
+        return False
     else:  # Если человек админ
-        user_status = 'True'
-    return user_status
+        return True
 
 
 # Проверка на то, подписался ли пользователь на рассылку уведомлений
 def check_for_notification(user_id):
     info = cursor.execute('SELECT * FROM users WHERE notification=? and user_id=?', ('yes', user_id))
     if info.fetchone() is None:  # Если пользователь НЕ подписан на рассылку
-        user_status = 'False'
-        # print(user_status + ' Пользователь НЕ подписан на рассылку')
+        return False
     else:  # Если пользователь подписан на рассылку
-        user_status = 'True'
-        # print(user_status + ' Пользователь подписан на рассылку')
-    return user_status
+        return True
 
 
 #  Проверка на уникальность и добавление данных о пользователе в SQL
-def db_table_val(user_id: int, user_first_name: str, user_last_name: str, username: str):
+def db_table_val(message):
     # Словарь вносимых в базу данных значений
     list_user = {
-        'ID: ': user_id,
-        'Имя: ': str(user_first_name),
-        'Фамилия: ': str(user_last_name),
-        'Username:  @': str(username)
+        'ID: ': message.from_user.id,
+        'Имя: ': message.from_user.first_name,
+        'Фамилия: ': message.from_user.last_name,
+        'Username:  @': message.from_user.username
     }
 
     def data_user():  # Заполняем отсутствующие о пользователе данные (имя, ник и тп) фразой <нет данных>
-        end_data = ''
         for a, b in list_user.items():
-            if b == 'None':
+            if b is None:
                 b1 = '<нет данных>'
-                end_data = end_data + str(a) + str(b1)
+                # end_data = end_data + str(a) + str(b1)
+                return str(a) + str(b1) + '\n'
             else:
-                end_data = end_data + str(a) + str(b)
-            end_data = end_data + '\n'
-        return end_data
+                # end_data = end_data + str(a) + str(b)
+                return str(a) + str(b) + '\n'
+            # end_data = end_data + '\n'
+        # return end_data
 
-    if check_for_existence(user_id) == 'False':
+    if check_for_existence(message.from_user.id) is False:
         sqlite_select_query = 'SELECT * from users where user_id'
         cursor.execute(sqlite_select_query)
         records = cursor.fetchall()
@@ -70,7 +64,6 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
         all_user_sql = []
         for row in records:
             all_user_sql.append(row[1])
-        # cursor.close()
         text_message = 'Присоединился новый пользователь. Нас уже ' + str(len(all_user_sql) + 1) + '!'
 
         i = 0
@@ -80,18 +73,21 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
             time.sleep(1)
             i += 1
         cursor.execute('INSERT INTO users (user_id, user_first_name, user_last_name, username) VALUES (?, ?, ?, ?)',
-                       (user_id, user_first_name, user_last_name, username))
-        conn.commit()
+                       (message.from_user.id, message.from_user.first_name, message.from_user.last_name,
+                        message.from_user.username))
+        sqlite_connection.commit()
+        cursor.close()
         end_text = 'К боту подключился новый пользователь!\n' + data_user() + '\n'
         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
         print(end_text)
-    elif check_for_existence(user_id) == 'True':
+    elif check_for_existence(message.from_user.id) is True:
         # обновление изменений данных о пользователе:
-        sqlite_update_query = 'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? WHERE user_id ='\
-                              + str(user_id)
-        column_values = (user_first_name, user_last_name, username)
+        sqlite_update_query = 'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? WHERE user_id =' \
+                              + str(message.from_user.id)
+        column_values = (message.from_user.first_name, message.from_user.last_name, message.from_user.username)
         cursor.execute(sqlite_update_query, column_values)
-        conn.commit()
+        sqlite_connection.commit()
+        cursor.close()
         end_text = 'Обновлены данные пользователя\n' + data_user() + '\n'
         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
         print(end_text)
@@ -103,25 +99,27 @@ def db_table_val(user_id: int, user_first_name: str, user_last_name: str, userna
     return end_text
 
 
-def welcome(message):
-    us_id = message.from_user.id
-    us_first_name = message.from_user.first_name
-    us_last_name = message.from_user.last_name
-    us_username = message.from_user.username
+# def welcome(message):
+    # us_id = message.from_user.id
+    # us_first_name = message.from_user.first_name
+    # us_last_name = message.from_user.last_name
+    # us_username = message.from_user.username
+    #
+    # db_table_val(user_id=us_id, user_first_name=us_first_name, user_last_name=us_last_name, username=us_username)
 
-    db_table_val(user_id=us_id, user_first_name=us_first_name, user_last_name=us_last_name, username=us_username)
+    # us_id = message.from_user.id
+    # us_first_name = message.from_user.first_name
+    # us_last_name = message.from_user.last_name
+    # us_username = message.from_user.username
+
+    # db_table_val(user_id=message.from_user.id, user_first_name=message.from_user.first_name,
+    #              user_last_name=message.from_user.last_name, username=message.from_user.username)
 
 
 # Обновление статуса пользователя в SQL
 def update_sqlite_table(status, user_id, column_name):
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
-        cursor = sqlite_connection.cursor()
-        # print("Подключен к SQLite")
-
-        perem = "Update users set " + column_name + " = ? where user_id = ?"
-
-        sql_update_query = perem
+        sql_update_query = "Update users set " + column_name + " = ? where user_id = ?"
         data = (status, user_id)
         cursor.execute(sql_update_query, data)
         sqlite_connection.commit()
@@ -138,37 +136,22 @@ def update_sqlite_table(status, user_id, column_name):
 
 def log_out(user_id):
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
-        cursor = sqlite_connection.cursor()
-        # print("Подключен к SQLite")
-
         print('Все данные о пользователе <' + get_user_info(user_id) + '> успешно удалены из БД!')
         sql_delete_query = 'DELETE from users where user_id = ' + str(user_id)
         cursor.execute(sql_delete_query)
         sqlite_connection.commit()
         cursor.close()
-
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            # print("Соединение с SQLite закрыто")
 
 
 def update_data_user(message):
-    user_id = message.from_user.id
-    user_first_name = message.from_user.first_name
-    user_last_name = message.from_user.last_name
-    username = message.from_user.username
-
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
-        cursor = sqlite_connection.cursor()
-        # print("Подключен к SQLite")
-
         sql_select_query = 'SELECT * FROM users WHERE user_id=?'
-        cursor.execute(sql_select_query, (user_id,))
+        cursor.execute(sql_select_query, (message.from_user.id,))
         records = cursor.fetchall()
         for row in records:
             user_id_SQL = row[1]
@@ -176,28 +159,21 @@ def update_data_user(message):
             user_last_name_SQL = row[3]
             username_SQL = row[4]
 
-        if user_id == user_id_SQL or \
-                user_first_name != user_first_name_SQL or \
-                user_last_name != user_last_name_SQL or \
-                username != username_SQL:
-            db_table_val(user_id, user_first_name, user_last_name, username)
-
+            if message.from_user.id == user_id_SQL or \
+                    message.from_user.first_name != user_first_name_SQL or \
+                    message.from_user.last_name != user_last_name_SQL or \
+                    message.from_user.username != username_SQL:
+                db_table_val(message)
         cursor.close()
-
     except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite", error)
+        print("Ошибка при работе с SQLite: ", error)
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            # print("Соединение с SQLite закрыто")
 
 
 def get_user_info(user_id):
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
-        cursor = sqlite_connection.cursor()
-        # print("Подключен к SQLite")
-
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))
         records = cursor.fetchall()
@@ -207,48 +183,27 @@ def get_user_info(user_id):
             else:
                 name_and_username = row[2]  # Получаем имя
             return name_and_username
-
         cursor.close()
-
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            # print("Соединение с SQLite закрыто")
 
 
 def get_user_sticker(user_id):
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
-        cursor = sqlite_connection.cursor()
-        # print("Подключен к SQLite")
-
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))
         records = cursor.fetchall()
         for row in records:
             if row[7] is not None:  # Если в SQL есть запись о
-                name_and_username = row[7]  # Получаем
-                # print(row[7])
+                return row[7]  # Получаем
             else:
-                name_and_username = None  # Получаем
-            return name_and_username
-
+                return None  # Получаем
         cursor.close()
-
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            # print("Соединение с SQLite закрыто")
-
-
-# get_user_sticker(1827221970)
-
-
-class SQL(object):
-    def __init__(self, user_id, user_first_name, user_last_name, username, status, notification):
-        self.user_id = user_id
-        self.first_name = first_name
