@@ -38,7 +38,7 @@ def can_do_it(x):  # Перечисляет строка за строкой в�
 def can_help(user_id):
     end_text = 'Вот что я умею:' + '\n'
     check_admin = SQLite.check_for_admin(user_id.from_user.id)
-    if check_admin == 'True':  # Если пользователь админ
+    if check_admin is True:  # Если пользователь админ
         end_text = end_text + can_do_it(list_command_admin)  # Передать полный список доступных команд
     else:  # Если пользователь НЕ админ
         end_text = end_text + can_do_it(list_command_user)  # Передать список команд доступных юзеру
