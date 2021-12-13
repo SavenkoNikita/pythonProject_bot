@@ -27,7 +27,7 @@ def full_name_user(message):
 # Приветственное сообщение
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         # Приветственное сообщение
         hello_message = 'Добро пожаловать ' + message.from_user.first_name + '\n' + \
@@ -50,7 +50,7 @@ def start_command(message):
 #  Регистрация данных о пользователе в БД
 @bot.message_handler(commands=['register'])
 def register(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         SQLite.db_table_val(message)
         time.sleep(5)  # Подождать указанное кол-во секунд
@@ -69,7 +69,7 @@ def register(message):
 #  Удаление данных о пользователе из БД
 @bot.message_handler(commands=['log_out'])
 def log_out(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Если пользователь присутствует в БД
         SQLite.log_out(message.from_user.id)  # Удаление данных из БД
         time.sleep(5)  # Подождать указанное кол-во секунд
@@ -87,7 +87,7 @@ def log_out(message):
 #  Список доступных команд
 @bot.message_handler(commands=['help'])
 def help_command(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
         keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
@@ -103,7 +103,7 @@ def help_command(message):
 
 @bot.message_handler(commands=['invent'])
 def invent(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     start = time.time()  # Засекает время начала выполнения скрипта
     list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
 
@@ -167,7 +167,7 @@ def invent(message):
 @bot.message_handler(commands=['random'])
 def random_name(message):
     user_id = message.from_user.id
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(user_id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(user_id) is True:  # Проверка админ ли юзер
@@ -187,7 +187,7 @@ def random_name(message):
 
 @bot.message_handler(commands=['set_admin'])
 def set_to_admin(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
@@ -239,7 +239,7 @@ def receive_id(message):
 
 @bot.message_handler(commands=['set_user'])
 def set_to_user(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
@@ -291,7 +291,7 @@ def receive_id_user(message):
 
 @bot.message_handler(commands=['subscribe'])
 def set_subscribe(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_notification(message.from_user.id) is False:  # Если пользователь не подписчик
@@ -315,7 +315,7 @@ def set_subscribe(message):
 
 @bot.message_handler(commands=['unsubscribe'])
 def set_subscribe(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_notification(message.from_user.id) is True:  # Если пользователь подписчик
@@ -339,7 +339,7 @@ def set_subscribe(message):
 
 @bot.message_handler(commands=['change_sticker'])
 def change_sticker_1(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
@@ -366,7 +366,7 @@ def change_sticker_2(message):
 
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
-    print(full_name_user(message) + 'отправил команду ' + message.text)
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Акуализация данных о пользователе в БД
         text_message = 'Что вы хотите получить?'
@@ -383,7 +383,7 @@ def dej(message):
 
 
 def dej_step_2(message):
-    print(full_name_user(message) + 'написал ' + message.text)
+    print(full_name_user(message) + 'написал:\n' + message.text)
     date_list = Other_function.read_sheet('Дежурный')[0]
     count_date_list = len(date_list)
     try:
@@ -423,7 +423,7 @@ def dej_step_2(message):
 
 
 def dej_step_3(message):
-    print(full_name_user(message) + 'написал ' + message.text)
+    print(full_name_user(message) + 'написал:\n' + message.text)
     try:
         count = int(message.text)
         date_list = Other_function.read_sheet('Дежурный')[0]
@@ -561,7 +561,7 @@ def dej_step_3(message):
 @bot.message_handler(content_types=['text'])
 def other_functions(message):
     SQLite.update_data_user(message)
-    print(full_name_user(message) + 'написал: ' + '"' + message.text + '"')
+    print(full_name_user(message) + 'написал:\n' + message.text)
     i_can = "Чтобы узнать что я умею напиши /help."
     bot.send_message(message.chat.id, i_can)
     print(answer_bot + i_can + '\n')

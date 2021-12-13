@@ -40,11 +40,11 @@ def sh_send_dej(sheet_name):
                 Notifications.notification_for(text_message, 'notification', 'yes')
                 # Пришлёт стикер этого дежурного
                 Notifications.send_sticker_for(event, 'notification', 'yes')
-                # Data.bot.send_message(1827221970, text_message)
+                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
             else:
                 # Пришлёт сообщение о дежурном
                 Notifications.notification_for(text_message, 'notification', 'yes')
-                # Data.bot.send_message(1827221970, text_message)
+                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
             print('Отчет sh_send_dej:\n' + text_message + '\n')
         else:
             print('Отчет sh_send_dej:\n Завтра дежурных нет!\n')
@@ -59,7 +59,6 @@ def sh_send_invent(sheet_name):
         event_data = date_list_today[0]
 
         first_date = event_data[0]
-        # first_date_format = first_date.strftime("%d.%m.%Y")
 
         event = event_data[1]
 
@@ -113,9 +112,11 @@ def sh_random_name():
         list_name = ['Паша', 'Дима', 'Никита']
         r_name = random.choice(list_name)
         end_text = 'Случайным образом определено, что сигналы сегодня закрывает ' + r_name
-        Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
-        Data.bot.send_message(chat_id=Data.list_admins.get('Дима'), text=end_text)
-        Data.bot.send_message(chat_id=Data.list_admins.get('Паша'), text=end_text)
+        # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
+        # Data.bot.send_message(chat_id=Data.list_admins.get('Дима'), text=end_text)
+        # Data.bot.send_message(chat_id=Data.list_admins.get('Паша'), text=end_text)
+        for i in list_name:
+            Data.bot.send_message(chat_id=Data.list_admins.get(i), text=end_text)
 
 
 def sh_notification(sheet_name):
@@ -160,7 +161,7 @@ def sh_notification(sheet_name):
 
     else:
         text_message = 'На странице <' + sheet_name + '> нет данных для оповещения\n'
-        Data.bot.send_message(1827221970, text_message)
+        # Data.bot.send_message(1827221970, text_message)
         print('Отчёт sh_notification:\n' + text_message)
 
 
@@ -179,7 +180,7 @@ def sh_queue():
         i += 1
 
 
-time_dej = '18:00'
+time_dej = '15:00'
 time_other = '07:00'
 
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном

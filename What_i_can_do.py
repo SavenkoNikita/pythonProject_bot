@@ -1,16 +1,5 @@
 import SQLite
 
-# command_user = [
-#     '/dezhurnyj'
-# ]
-#
-# command_admin = [
-#     *command_user,
-#     '/invent',
-#     '/random',
-#     # '/to_appoint_admin'
-# ]
-
 # Команды доступные всем
 list_command_user = [
     "• Узнать кто дежурит в ближайшие выходные /dezhurnyj",
