@@ -4,11 +4,13 @@ import Data
 import Other_function
 import SQLite
 
+sqlite_connection = sqlite3.connect(Data.way_sql)
+
 
 # Функция для уведомления всех пользователей находящихся в БД
 def notification_all_reg(text_message):
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
+        # sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print('Подключен к SQLite')
 
@@ -20,6 +22,12 @@ def notification_all_reg(text_message):
         for row in records:
             all_user_sql.append(row[1])
         cursor.close()
+        i = 0
+        while i < len(all_user_sql):
+            print(all_user_sql[i])
+            Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
+            time.sleep(1)
+            i += 1
 
     except sqlite3.Error as error:
         print('Ошибка при работе с SQLite', error)
@@ -28,18 +36,11 @@ def notification_all_reg(text_message):
             sqlite_connection.close()
             print('Соединение с SQLite закрыто')
 
-    i = 0
-    while i < len(all_user_sql):
-        print(all_user_sql[i])
-        Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
-        time.sleep(1)
-        i += 1
-
 
 # Уведомления для юзеров с указанными параметрами
 def notification_for(text_message, column, column_meaning):
     try:
-        sqlite_connection = sqlite3.connect(Data.way_sql)
+        # sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print('Подключен к SQLite')
 
@@ -75,8 +76,8 @@ def notification_for(text_message, column, column_meaning):
 # Уведомления для юзеров с указанными параметрами
 def send_sticker_for(user_first_name, column, column_meaning):
     try:
-        user_sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
-        sqlite_connection = sqlite3.connect(Data.way_sql)
+        # user_sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
+        # sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print('Подключен к SQLite')
 

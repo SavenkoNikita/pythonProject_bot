@@ -74,7 +74,7 @@ def sh_send_invent(sheet_name):
         def count_day():
             dd = ''
             if difference_date == 0:
-                dd = 'Сегодня инвертаризация.'
+                dd = 'Сегодня инвентаризация.'
             elif difference_date == 1:
                 dd = 'До предстоящей инвентаризации остался 1 день.'
             elif 1 < difference_date <= 4:
@@ -101,7 +101,7 @@ def sh_send_invent(sheet_name):
                 Notifications.notification_for(text_message, 'status', 'admin')
             print('Отчет sh_send_invent:\n' + text_message + '\n')
         else:
-            print('Отчет sh_send_invent:\n В ближайшее время на инвент никто не идёт!\n')
+            print('Отчет sh_send_invent:\n В ближайшее время на инвентаризацию никто не идёт!\n')
     else:
         print('Отчет sh_send_invent:\n На странице <' + sheet_name + '> отсутствуют данные!\n')
 

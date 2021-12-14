@@ -27,9 +27,9 @@ def get_data_user_SQL(d, value):
     print(id_telegram)
     if id_telegram is not None:  # Если id есть то
         if SQLite.check_for_existence(id_telegram) == 'True':  # Если в SQL есть такой id
-            end_text = SQLite.get_user_info(id_telegram)  # Получаем склейку <имя + @юзернейм>
+            end_text = SQLite.get_user_info(id_telegram)  # Получаем склейку <имя + @username>
             print(end_text)
-    return end_text
+            return end_text
 
 
 # get_data_user_SQL(Data.user_data, 'Никита')
@@ -51,23 +51,23 @@ def read_sheet(sheet_name):
             if i is not None:  # Если значение не пустое
                 if isinstance(column_a[i].value, datetime.datetime):  # Если значение == дата
                     value_one = column_a[i].value  # Получаем первое значение
-                    value_one_column = column_a[i].column  # Колонка значения 1й даты
-                    value_one_row = column_a[i].row  # Строка значения 1й даты
+                    value_one_column = column_a[i].column  # Колонка значения 1‑й даты
+                    value_one_row = column_a[i].row  # Строка значения 1‑й даты
                     value_two = sheet.cell(row=value_one_row, column=(value_one_column + 1)).value  # Второе значение
-                    difference_date = value_one - now_date  # Разница между 1й датой и сегодня
+                    difference_date = value_one - now_date  # Разница между 1‑й датой и сегодня
                     difference_date = difference_date.days + 1  # Форматируем в кол-во дней +1
-                    if isinstance(value_two, datetime.datetime):  # Если 2е значение дата
-                        meaning = sheet.cell(row=value_one_row, column=(value_one_column + 2)).value  # Значит 3е
+                    if isinstance(value_two, datetime.datetime):  # Если 2‑е значение дата
+                        meaning = sheet.cell(row=value_one_row, column=(value_one_column + 2)).value  # Значит 3‑е
                         # значение по координатам находится рядом со вторым
                     else:
                         meaning = value_two  # Иначе <событие> находится во второй колонке
 
                     if difference_date >= 0:  # Если событие сегодня или в будущем
                         count = count + 1
-                        if isinstance(value_two, datetime.datetime):  # Если 2е значение является датой
-                            date_list.append([value_one, value_two, meaning])  # Заполняем список списками из 3х данных
+                        if isinstance(value_two, datetime.datetime):  # Если 2‑е значение является датой
+                            date_list.append([value_one, value_two, meaning])  # Заполняем список списками из 3‑х данных
                         else:
-                            date_list.append([value_one, meaning])  # Заполняем список списками из 2х данных
+                            date_list.append([value_one, meaning])  # Заполняем список списками из 2‑х данных
                     elif difference_date < -1:  # Если дата в прошлом
                         sheet.delete_rows(value_one_row)  # Удаляем указанную в скобках строку
                         wb.save('test.xlsx')  # Сохранить книгу
@@ -84,19 +84,19 @@ def read_sheet(sheet_name):
     date_list.sort()  # Сортируем лист по дате
     date_list_today = []
 
-    if len(date_list) > 0:  # Если список содержит хотябы 1 запись
+    if len(date_list) > 0:  # Если список содержит хотя бы 1 запись
         if count >= 1:
             for i in range(count):  # Повторить для каждого значения
-                if len(date_list[i]) == 2:  # Если 1й список в списке date_list содержит 2 значения
-                    date = date_list[i][0]  # 1е значение записываем как дата
-                    event = date_list[i][1]  # 2е значение <событие>
-                    event_data = [date, event]  # Создаём список из этих 2х значений
+                if len(date_list[i]) == 2:  # Если 1‑й список в списке date_list содержит 2 значения
+                    date = date_list[i][0]  # 1‑е значение записываем как дата
+                    event = date_list[i][1]  # 2‑е значение <событие>
+                    event_data = [date, event]  # Создаём список из этих 2‑х значений
                     date_list_today.append(event_data)
-                elif len(date_list[i]) == 3:  # Если 1й список в списке date_list содержит 3 значения
-                    first_date = date_list[i][0]  # 1е значение записываем как дата
-                    last_date = date_list[i][1]  # 2е значение записываем как дата
-                    event = date_list[i][2]  # 3е значение <событие>
-                    event_data = [first_date, last_date, event]  # Создаём список из этих 3х значений
+                elif len(date_list[i]) == 3:  # Если 1‑й список в списке date_list содержит 3 значения
+                    first_date = date_list[i][0]  # 1‑е значение записываем как дата
+                    last_date = date_list[i][1]  # 2‑е значение записываем как дата
+                    event = date_list[i][2]  # 3‑е значение <событие>
+                    event_data = [first_date, last_date, event]  # Создаём список из этих 3‑х значений
                     date_list_today.append(event_data)
                 # print(event_data)
                 # print(date_list)
