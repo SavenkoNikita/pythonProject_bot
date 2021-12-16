@@ -19,9 +19,6 @@ def get_key(d, value):  # Проверяет среди словаря есть 
     return key
 
 
-# print(get_key(Data.user_data, 'впо'))
-
-
 def get_data_user_SQL(d, value):
     id_telegram = get_key(d, value)  # Присваиваем id из get_key
     print(id_telegram)
@@ -32,16 +29,12 @@ def get_data_user_SQL(d, value):
             return end_text
 
 
-# get_data_user_SQL(Data.user_data, 'Никита')
-
 def read_sheet(sheet_name):
     opener = urllib.request.build_opener(SMBHandler)
     file_name = opener.open(Data.route)
     wb = load_workbook(file_name)  # Открываем нужную книгу
     sheet = wb[sheet_name]  # Получить лист по ключу
     column_a = sheet['A']  # Колонка A
-    # column_b = sheet['B']  # Колонка B
-    # column_c = sheet['C']  # Колонка C
 
     now_date = datetime.datetime.now()  # Получаем текущую дату
     date_list = []  # Объявляем пустой список
@@ -61,7 +54,6 @@ def read_sheet(sheet_name):
                         # значение по координатам находится рядом со вторым
                     else:
                         meaning = value_two  # Иначе <событие> находится во второй колонке
-
                     if difference_date >= 0:  # Если событие сегодня или в будущем
                         count = count + 1
                         if isinstance(value_two, datetime.datetime):  # Если 2‑е значение является датой
@@ -98,14 +90,8 @@ def read_sheet(sheet_name):
                     event = date_list[i][2]  # 3‑е значение <событие>
                     event_data = [first_date, last_date, event]  # Создаём список из этих 3‑х значений
                     date_list_today.append(event_data)
-                # print(event_data)
-                # print(date_list)
-                # print(date_list_today)
                 return date_list, date_list_today  # Возвращаем списки
     else:  # Если нет ни одной записи
         pass  # Ничего не делать
 
     return
-
-# read_sheet('Дежурный')
-# read_sheet('Уведомления для подписчиков')

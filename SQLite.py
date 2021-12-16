@@ -4,19 +4,9 @@ import time
 import Data
 
 
-sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
-# cursor = sqlite_connection.cursor()
-
-# def connect_to_SQLite():
-#     sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
-#     cursor = sqlite_connection.cursor()
-#     global sqlite_connection
-#     global cursor
-
-
 # Проверка на существование пользователя в БД
 def check_for_existence(user_id):
-    # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     cursor = sqlite_connection.cursor()
     info = cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
     if info.fetchone() is None:  # Если человека нет в бд
@@ -27,7 +17,7 @@ def check_for_existence(user_id):
 
 # Проверка на то, является ли пользователь админом
 def check_for_admin(user_id):
-    # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     cursor = sqlite_connection.cursor()
     info = cursor.execute('SELECT * FROM users WHERE status=? and user_id=?', ('admin', user_id))
     if info.fetchone() is None:  # Если пользователь не админ
@@ -38,6 +28,7 @@ def check_for_admin(user_id):
 
 # Проверка на то, подписался ли пользователь на рассылку уведомлений
 def check_for_notification(user_id):
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     cursor = sqlite_connection.cursor()
     info = cursor.execute('SELECT * FROM users WHERE notification=? and user_id=?', ('yes', user_id))
     if info.fetchone() is None:  # Если пользователь НЕ подписан на рассылку
@@ -134,8 +125,8 @@ def db_table_val(message):
 
 # Обновление статуса пользователя в SQL
 def update_sqlite_table(status, user_id, column_name):
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     try:
-        # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         cursor = sqlite_connection.cursor()
         sql_update_query = "Update users set " + column_name + " = ? where user_id = ?"
         data = (status, user_id)
@@ -149,13 +140,12 @@ def update_sqlite_table(status, user_id, column_name):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
-            # print("Соединение с SQLite закрыто")
 
 
 def log_out(user_id):
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     try:
         print('Все данные о пользователе <' + get_user_info(user_id) + '> успешно удалены из БД!')
-        # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         cursor = sqlite_connection.cursor()
         sql_delete_query = 'DELETE from users where user_id = ' + str(user_id)
         cursor.execute(sql_delete_query)
@@ -169,8 +159,8 @@ def log_out(user_id):
 
 
 def update_data_user(message):
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     try:
-        # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         cursor = sqlite_connection.cursor()
         sql_select_query = 'SELECT * FROM users WHERE user_id=?'
         cursor.execute(sql_select_query, (message.from_user.id,))
@@ -195,8 +185,8 @@ def update_data_user(message):
 
 
 def get_user_info(user_id):
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     try:
-        # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         cursor = sqlite_connection.cursor()
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))
@@ -216,8 +206,8 @@ def get_user_info(user_id):
 
 
 def get_user_sticker(user_id):
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     try:
-        # sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         cursor = sqlite_connection.cursor()
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))

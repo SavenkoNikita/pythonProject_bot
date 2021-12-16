@@ -4,13 +4,11 @@ import Data
 import Other_function
 import SQLite
 
-sqlite_connection = sqlite3.connect(Data.way_sql)
-
 
 # Функция для уведомления всех пользователей находящихся в БД
 def notification_all_reg(text_message):
+    sqlite_connection = sqlite3.connect(Data.way_sql)
     try:
-        # sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print('Подключен к SQLite')
 
@@ -39,8 +37,8 @@ def notification_all_reg(text_message):
 
 # Уведомления для юзеров с указанными параметрами
 def notification_for(text_message, column, column_meaning):
+    sqlite_connection = sqlite3.connect(Data.way_sql)
     try:
-        # sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
         # print('Подключен к SQLite')
 
@@ -75,11 +73,9 @@ def notification_for(text_message, column, column_meaning):
 
 # Уведомления для юзеров с указанными параметрами
 def send_sticker_for(user_first_name, column, column_meaning):
+    sqlite_connection = sqlite3.connect(Data.way_sql)
     try:
-        # user_sticker = SQLite.get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
-        # sqlite_connection = sqlite3.connect(Data.way_sql)
         cursor = sqlite_connection.cursor()
-        # print('Подключен к SQLite')
 
         sqlite_select_query = 'SELECT * FROM users WHERE ' + column + ' = ?'
         cursor.execute(sqlite_select_query, [column_meaning])
