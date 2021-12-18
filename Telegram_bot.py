@@ -463,81 +463,119 @@ def dej_step_3(message):
         print(str(error))
 
 
-@bot.message_handler(commands=['create_record'])
-def create_record(message):
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
-    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
-        SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
-        if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
-            text_message = 'В какой лист добавить запись?'
-            keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-            buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов']
-            keyboard.add(*buttons)
-            bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
-            bot.register_next_step_handler(message, create_record_step_2)  # Регистрация следующего действия
-            print(answer_bot + text_message + '\n')
-        else:  # Если юзер не админ, он получит следующее сообщение
-            text_message = 'У вас нет прав для выполнения этой команды'
-            bot.send_message(message.chat.id, text_message)
-    else:  # Если пользователь не зарегистрирован, он получит следующее сообщение
-        text_message = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
-        bot.send_message(message.from_user.id, text_message)
-
-
-list_of_answers = []
-
-
-def create_record_step_2(message):
-    print(full_name_user(message) + 'написал:\n' + message.text)
-    list_of_answers.append(message.text)
-    hide_keyboard = telebot.types.ReplyKeyboardRemove()
-    text_message = 'Введи текст уведомления'
-    bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
-    bot.register_next_step_handler(message, create_record_step_3)  # Регистрация следующего действия
-
-
-def create_record_step_3(message):
-    print(full_name_user(message) + 'написал:\n' + message.text)
-    list_of_answers.append(message.text)
-    text_message = 'Введи дату когда уведомить о событии в формате <ДД.ММ.ГГГГ>. \n*Примечание: если дату указать ' \
-                   'некорректно, уведомление не сработает!'
-    bot.send_message(message.from_user.id, text_message)
-    bot.register_next_step_handler(message, create_record_step_4)  # Регистрация следующего действия
-
-
-def create_record_step_4(message):
-    print(full_name_user(message) + 'написал:\n' + message.text)
-    list_of_answers.append(message.text)
-    print(list_of_answers)
-    sheet_name = list_of_answers[0]
-    text_notification = list_of_answers[1]
-    date_notification = list_of_answers[2]
-    opener = urllib.request.build_opener(SMBHandler)
-    file_name = opener.open(Data.route)
-    wb = load_workbook(file_name)  # Открываем нужную книгу
-    sheet = wb[sheet_name]  # Получить лист по ключу
-    column_a = sheet['A']  # Колонка A
-
-    for i in range(len(column_a)):
-        if column_a[i].value is None:  # Если в колонке А пусто
-            empty_string = column_a[i].row
-        else:
-            empty_string = len(column_a) + 1
-
-        sheet.cell(row=empty_string, column=1).value = date_notification  #
-        sheet.cell(row=empty_string, column=2).value = text_notification  #
-        wb.save('test.xlsx')  # Сохранить книгу
-        file = open('test.xlsx', 'rb')
-        file_name = opener.open(Data.route, data=file)
-        file_name.close()
-        os.remove('test.xlsx')
-
-    text_message = '• Запись добавлена в лист: "' + str(list_of_answers[0]) + '"\n' + \
-                   '• Текст: "' + str(text_notification) + '"\n' + \
-                   '• Дата уведомления: "' + str(date_notification) + '"\n'
-    Notifications.notification_for(message.from_user.first_name + ' создал новое событие\n\n' + text_message, 'status',
-                                   'admin')
-    list_of_answers.clear()
+# @bot.message_handler(commands=['create_record'])
+# def create_record(message):
+#     print(full_name_user(message) + 'отправил команду:\n' + message.text)
+#     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
+#         SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
+#         if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
+#             text_message = 'В какой лист добавить запись?'
+#             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#             buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов']
+#             keyboard.add(*buttons)
+#             bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
+#             bot.register_next_step_handler(message, create_record_step_2)  # Регистрация следующего действия
+#             print(answer_bot + text_message + '\n')
+#         else:  # Если юзер не админ, он получит следующее сообщение
+#             text_message = 'У вас нет прав для выполнения этой команды'
+#             bot.send_message(message.chat.id, text_message)
+#     else:  # Если пользователь не зарегистрирован, он получит следующее сообщение
+#         text_message = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+#         bot.send_message(message.from_user.id, text_message)
+#
+#
+# list_of_answers = []
+#
+#
+# def create_record_step_2(message):
+#     print(full_name_user(message) + 'написал:\n' + message.text)
+#     list_of_answers.append(message.text)
+#     hide_keyboard = telebot.types.ReplyKeyboardRemove()
+#     text_message = 'Введи текст уведомления'
+#     bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
+#     bot.register_next_step_handler(message, create_record_step_3)  # Регистрация следующего действия
+#
+#
+# def create_record_step_3(message):
+#     print(full_name_user(message) + 'написал:\n' + message.text)
+#     list_of_answers.append(message.text)
+#     text_message = 'Введи дату когда уведомить о событии в формате <ДД.ММ.ГГГГ>. \n*Примечание: если дату указать ' \
+#                    'некорректно, уведомление не сработает!'
+#     bot.send_message(message.from_user.id, text_message)
+#     bot.register_next_step_handler(message, create_record_step_4)  # Регистрация следующего действия
+#
+#
+# def create_record_step_4(message):
+#     print(full_name_user(message) + 'написал:\n' + message.text)
+#     list_of_answers.append(message.text)
+#     print(list_of_answers)
+#     sheet_name = list_of_answers[0]
+#     text_notification = list_of_answers[1]
+#     date_notification = list_of_answers[2]
+#     opener = urllib.request.build_opener(SMBHandler)
+#     file_name = opener.open(Data.route)
+#     wb = load_workbook(file_name)  # Открываем нужную книгу
+#     sheet = wb[sheet_name]  # Получить лист по ключу
+#     column_a = sheet['A']  # Колонка A
+#
+#     # for i in range(len(column_a)):
+#     #     if column_a[i].value is None:  # Если в колонке А пусто
+#     #         print(column_a[i].value)
+#     #         empty_string = column_a[i].row
+#     #         pass
+#     #     else:
+#     #         empty_string = len(column_a) + 1
+#     #         print(empty_string)
+#     print(len(column_a))
+#     i = 0
+#     while column_a[i].value is not None:  # Если в колонке А пусто
+#         print(str(column_a[i].row) + '-' + str(column_a[i].value))
+#         # print(column_a[i].row + 1)
+#
+#         if column_a[i].value is None:
+#             # empty_string = column_a[i].row
+#             # sheet.cell(row=empty_string, column=1).value = date_notification  #
+#             # sheet.cell(row=empty_string, column=2).value = text_notification  #
+#             # wb.save('test.xlsx')  # Сохранить книгу
+#             # file = open('test.xlsx', 'rb')
+#             # file_name = opener.open(Data.route, data=file)
+#             # file_name.close()
+#             # os.remove('test.xlsx')
+#             print('if')
+#         elif column_a[i].row == len(column_a):
+#             empty_string = str(column_a[i].row + 1)
+#             print('Cтрока ' + str(column_a[i].row + 1))
+#             print(empty_string)
+#             # empty_string = column_a[i].row + 1
+#             # sheet.cell(row=empty_string, column=1).value = date_notification  #
+#             # sheet.cell(row=empty_string, column=2).value = text_notification  #
+#             # wb.save('test.xlsx')  # Сохранить книгу
+#             # file = open('test.xlsx', 'rb')
+#             # file_name = opener.open(Data.route, data=file)
+#             # file_name.close()
+#             # os.remove('test.xlsx')
+#             print('else')
+#
+#         if i < len(column_a):
+#             i += 1
+#
+#
+#             # empty_string = len(column_a) + 1
+#
+#         # sheet.cell(row=empty_string, column=1).value = date_notification  #
+#         # sheet.cell(row=empty_string, column=2).value = text_notification  #
+#         # wb.save('test.xlsx')  # Сохранить книгу
+#         # file = open('test.xlsx', 'rb')
+#         # file_name = opener.open(Data.route, data=file)
+#         # file_name.close()
+#         # os.remove('test.xlsx')
+#
+#     text_message = '• Запись добавлена в лист: "' + str(list_of_answers[0]) + '"\n' + \
+#                    '• Текст: "' + str(text_notification) + '"\n' + \
+#                    '• Дата уведомления: "' + str(date_notification) + '"\n'
+#     # Notifications.notification_for(message.from_user.first_name + ' создал новое событие\n\n' + text_message, 'status',
+#     #                                'admin')
+#     list_of_answers.clear()
 
 
 # @bot.message_handler(commands=['games'])
