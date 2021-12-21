@@ -71,21 +71,42 @@ def sh_send_invent(sheet_name):
         print(name_from_SQL)
 
         # Склоняем "день"
-        def count_day():
-            dd = ''
-            if difference_date == 0:
-                dd = 'Сегодня инвентаризация.'
-            elif difference_date == 1:
-                dd = 'До предстоящей инвентаризации остался 1 день.'
-            elif 1 < difference_date <= 4:
-                dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-            elif difference_date == 5:
-                dd = 'До предстоящей инвентаризации осталось 5 дней.'
-            # elif difference_date > 5:
-            #     dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
-            return dd
+        # def count_day():
+        #     dd = ''
+        #     if difference_date == 0:
+        #         dd = 'Сегодня инвентаризация.'
+        #     elif difference_date == 1:
+        #         dd = 'До предстоящей инвентаризации остался 1 день.'
+        #     elif 1 < difference_date <= 4:
+        #         dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+        #     elif difference_date == 5:
+        #         dd = 'До предстоящей инвентаризации осталось 5 дней.'
+        #     # elif difference_date > 5:
+        #     #     dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
+        #     return dd
 
-        text_day = count_day()  # Кол-во дней до инвентаризации
+        def count_day(n):
+            stayed = ['остался', 'осталось']
+            days = ['день', 'дня', 'дней']
+
+            if n == 0:
+                end_text = 'Сегодня инвентаризация.'
+            elif n % 10 == 1 and n % 100 != 11:
+                s = 0
+                d = 0
+                end_text = 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
+            elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
+                s = 1
+                d = 1
+                end_text = 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
+            else:
+                s = 1
+                d = 2
+                end_text = 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
+
+            return end_text
+
+        text_day = count_day(difference_date)  # Кол-во дней до инвентаризации
         text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
         text_message = text_day + '\n' + text_who  # Объединяем строки выше в одну
         # Если
