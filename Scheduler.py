@@ -110,11 +110,8 @@ def sh_send_invent(sheet_name):
 def sh_random_name():
     if datetime.datetime.today().isoweekday() <= 5:
         list_name = ['Паша', 'Дима', 'Никита']
-        r_name = random.choice(list_name)
-        end_text = 'Случайным образом определено, что сигналы сегодня закрывает ' + r_name
-        # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
-        # Data.bot.send_message(chat_id=Data.list_admins.get('Дима'), text=end_text)
-        # Data.bot.send_message(chat_id=Data.list_admins.get('Паша'), text=end_text)
+        random_name = random.choice(list_name)
+        end_text = 'Случайным образом определено, что сигналы сегодня закрывает ' + random_name
         for i in list_name:
             Data.bot.send_message(chat_id=Data.list_admins.get(i), text=end_text)
 
@@ -136,18 +133,18 @@ def sh_notification(sheet_name):
                         if sheet_name == 'Уведомления для всех':
                             text_message = '• Уведомление для зарегистрированных пользователей •\n\n' + event
                             Notifications.notification_all_reg(text_message)
-                            # Data.bot.send_message(1827221970, text_message)
+                            # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Уведомления для подписчиков':
                             text_message = '• Уведомление для подписчиков •\n\n' + event
                             Notifications.notification_for(text_message, 'notification', 'yes')
-                            # Data.bot.send_message(1827221970, text_message)
+                            # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Уведомления для админов':
                             text_message = '• Уведомление для администраторов •\n\n' + event
                             Notifications.notification_for(text_message, 'status', 'admin')
-                            # Data.bot.send_message(1827221970, text_message)
+                            # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Инвентаризация':
                             sh_send_invent(sheet_name)
-                            # Data.bot.send_message(1827221970, text_message)
+                            # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                             # print('invent')
                         time.sleep(5)
                 else:
@@ -161,7 +158,7 @@ def sh_notification(sheet_name):
 
     else:
         text_message = 'На странице <' + sheet_name + '> нет данных для оповещения\n'
-        # Data.bot.send_message(1827221970, text_message)
+        # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
         print('Отчёт sh_notification:\n' + text_message)
 
 
@@ -183,9 +180,10 @@ def sh_queue():
 # def cancel_job():
 #     start_date = '22.12.2021'
 #     start_date = datetime.date(start_date)
-#     start_date = datetime.strftime()
+#     start_date = datetime.strftime('dd.mm.yyyy')
 #     finish_date = '10.12.2022'
 #     finish_date = datetime.date(finish_date)
+#     finish_date = datetime.strftime('dd.mm.yyyy')
 #
 #     stop_func = [
 #
@@ -199,7 +197,7 @@ time_other = '07:00'
 
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)
-schedule.every().day.at(time_other).do(sh_random_name)
+# schedule.every().day.at(time_other).do(sh_random_name)
 
 # sh_queue()
 
