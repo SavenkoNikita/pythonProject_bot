@@ -180,6 +180,20 @@ def sh_queue():
         i += 1
 
 
+# def cancel_job():
+#     start_date = '22.12.2021'
+#     start_date = datetime.date(start_date)
+#     start_date = datetime.strftime()
+#     finish_date = '10.12.2022'
+#     finish_date = datetime.date(finish_date)
+#
+#     stop_func = [
+#
+#     ]
+#
+#     if start_date <= datetime.datetime.now() >= finish_date:
+
+
 time_dej = '15:00'
 time_other = '07:00'
 

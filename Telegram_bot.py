@@ -83,9 +83,9 @@ def log_out(message):
     if SQLite.check_for_existence(message.from_user.id) is True:  # Если пользователь присутствует в БД
         SQLite.log_out(message.from_user.id)  # Удаление данных из БД
         time.sleep(5)  # Подождать указанное кол-во секунд
-        log_out_message = 'До новых встреч ' + message.from_user.first_name + '\n' + \
+        log_out_message = 'До новых встреч ' + message.from_user.first_name + '!\n' + \
                           'Данные о вашем аккаунте успешно удалены!' + '\n' + \
-                          'Чтобы снова воспользоваться функционалом бота жми /register.'
+                          'Чтобы снова пользоваться функционалом бота, жми /register.'
         Data.bot.send_message(message.from_user.id, log_out_message)  # Прощальное сообщение
         print(answer_bot + log_out_message + '\n')
     else:  # Иначе бот уведомит о том что пользователь ещё не регистрировался
