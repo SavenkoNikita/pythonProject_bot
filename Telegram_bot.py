@@ -37,7 +37,9 @@ def start_command(message):
     print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if SQLite.check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         # Приветственное сообщение
-        hello_message = 'Добро пожаловать ' + message.from_user.first_name + '\n' + \
+        hello_message = 'Добро пожаловать ' + message.from_user.first_name + '!\n' + \
+                        'Это информационный бот IT отдела. Тут можно узнать кто из системных администраторов ' \
+                        'дежурный в ближайшие дни, кто и когда отсутствует и прочая информация.\n' + \
                         'Для того чтобы пользоваться функциями бота, необходимо пройти регистрацию нажав /register. ' \
                         'Тем самым вы даёте согласие на хранение и обработку данных о вашем аккаунте. В базу данных ' \
                         'будут занесены следующие сведения:\n ' + \
@@ -61,9 +63,10 @@ def register(message):
     if SQLite.check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         SQLite.db_table_val(message)
         time.sleep(5)  # Подождать указанное кол-во секунд
-        register_message = 'Добро пожаловать ' + message.from_user.first_name + '\n' + \
-                           'Вы успешно зарегистрированы!' + '\n' + \
-                           'Чтобы узнать что умеет бот жми /help.'
+        register_message = 'Добро пожаловать ' + message.from_user.first_name + '!\n' + \
+                           'Регистрация успешно завершена!' + '\n' + \
+                           'Чтобы узнать, что умеет бот, жми /help.\n' \
+                           'Не забудь подписаться на рассылку, чтобы быть в курсе последних событий, жми /subscribe'
         Data.bot.send_message(message.from_user.id, register_message)  # Бот пришлёт уведомление об успешной регистрации
         print(answer_bot + register_message + '\n')
     else:  # Иначе бот уведомит о том что пользователь уже регистрировался
