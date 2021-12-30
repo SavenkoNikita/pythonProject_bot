@@ -90,21 +90,15 @@ def sh_send_invent(sheet_name):
             days = ['день', 'дня', 'дней']
 
             if n == 0:
-                end_text = 'Сегодня инвентаризация.'
+                return 'Сегодня инвентаризация.'
             elif n % 10 == 1 and n % 100 != 11:
                 s = 0
                 d = 0
-                end_text = 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
+                return 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
             elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
                 s = 1
                 d = 1
-                end_text = 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
-            else:
-                s = 1
-                d = 2
-                end_text = 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
-
-            return end_text
+                return 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
 
         text_day = count_day(difference_date)  # Кол-во дней до инвентаризации
         text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
@@ -173,8 +167,11 @@ def sh_notification(sheet_name):
                     print('В файле нет страницы с названием <' + sheet_name + '>\n')
 
             elif difference_date > 0:  # Если дата не наступила
-                print('Отчёт sh_notification:')
-                print('В <' + sheet_name + '> рано уведомлять\n')
+                print('Отчёт sh_notification:\n' +
+                      'Событие не наступило\n' +
+                      'Лист: ' + sheet_name + '\n' +
+                      'Текст уведомления: ' + event + '\n' +
+                      'Дата: ' + first_date + '\n')
                 pass
 
     else:

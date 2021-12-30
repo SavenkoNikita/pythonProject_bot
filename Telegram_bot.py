@@ -1,18 +1,11 @@
 import datetime
-import os
 import random
 import time
 import telebot
 import Data
-import Notifications
 import Other_function
 import SQLite
 import What_i_can_do
-import urllib
-
-from openpyxl import load_workbook
-from smb.SMBHandler import SMBHandler
-import urllib.request
 
 tconv = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Data.bot
@@ -135,19 +128,16 @@ def invent(message):
 
             # Склоняем "день"
             def count_day():
-                dd = ''
                 if difference_date == 0:
-                    dd = 'Сегодня инвентаризация.'
+                    return 'Сегодня инвентаризация.'
                 elif difference_date == 1:
-                    dd = 'До предстоящей инвентаризации остался 1 день.'
+                    return 'До предстоящей инвентаризации остался 1 день.'
                 elif 1 < difference_date <= 4:
-                    dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+                    return 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
                 elif difference_date == 5:
-                    dd = 'До предстоящей инвентаризации осталось 5 дней.'
+                    return 'До предстоящей инвентаризации осталось 5 дней.'
                 elif difference_date > 5:
-                    dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
-
-                return dd
+                    return 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
 
             text_day = count_day()  # Кол-во дней до инвентаризации
             text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
