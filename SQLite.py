@@ -2,6 +2,7 @@ import sqlite3
 import time
 
 import Data
+import Other_function
 
 
 # Проверка на существование пользователя в БД
@@ -70,6 +71,7 @@ def db_table_val(message):
         for row in records:
             all_user_sql.append(row[1])
         text_message = 'Присоединился новый пользователь. Нас уже ' + str(len(all_user_sql) + 1) + '!'
+        Other_function.logging_event('info', str(text_message))
 
         i = 0
         while i < len(all_user_sql):
@@ -137,6 +139,7 @@ def update_sqlite_table(status, user_id, column_name):
 
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', str(error))
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -145,7 +148,9 @@ def update_sqlite_table(status, user_id, column_name):
 def log_out(user_id):
     sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
     try:
-        print('Все данные о пользователе <' + get_user_info(user_id) + '> успешно удалены из БД!')
+        try_message = 'Все данные о пользователе <' + get_user_info(user_id) + '> успешно удалены из БД!'
+        print(try_message)
+        Other_function.logging_event('info', try_message)
         cursor = sqlite_connection.cursor()
         sql_delete_query = 'DELETE from users where user_id = ' + str(user_id)
         cursor.execute(sql_delete_query)
@@ -153,6 +158,7 @@ def log_out(user_id):
         cursor.close()
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', str(error))
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -179,6 +185,7 @@ def update_data_user(message):
         cursor.close()
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite: ", error)
+        Other_function.logging_event('error', str(error))
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -200,6 +207,7 @@ def get_user_info(user_id):
         cursor.close()
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', str(error))
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -220,6 +228,7 @@ def get_user_sticker(user_id):
         cursor.close()
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', str(error))
     finally:
         if sqlite_connection:
             sqlite_connection.close()
