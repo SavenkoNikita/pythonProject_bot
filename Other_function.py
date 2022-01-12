@@ -8,6 +8,7 @@ import urllib.request
 
 import Data
 import SQLite
+import logging
 
 
 def get_key(d, value):  # Проверяет среди словаря есть ли в нём такое имя и возвращает соответствующий id telegram
@@ -95,3 +96,21 @@ def read_sheet(sheet_name):
         pass  # Ничего не делать
 
     return
+
+
+def logging_event(condition, text):
+    if text is not None:
+        logging.basicConfig(filename=Data.way_to_log_file, level=logging.INFO,
+                            format="%(asctime)s - [%(levelname)s] - %(message)s")
+        if condition == 'debug':
+            logging.debug(text)
+        elif condition == 'info':
+            logging.info(text)
+        elif condition == 'warning':
+            logging.warning(text)
+        elif condition == 'error':
+            logging.error(text)
+        elif condition == 'critical':
+            logging.critical(text)
+
+# logging_event('info', 'test987')
