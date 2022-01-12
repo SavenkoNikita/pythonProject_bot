@@ -8,7 +8,6 @@ import Notifications
 import Other_function
 import SQLite
 
-
 # Уведомление подписчиков о том кто дежурный
 import Tracking_sensors
 
@@ -213,6 +212,32 @@ def sh_queue():
 #     if start_date <= datetime.datetime.now() >= finish_date:
 
 
+def checking_the_number_of_records():
+    date_list = Other_function.read_sheet('Дежурный')[0]
+    count_date_list = len(date_list)
+    print(count_date_list)
+    if count_date_list < 5:
+        def count_records(n):
+            stayed = ['осталась', 'осталось']
+            records = ['запись', 'записи']
+
+            if n == 0:
+                return 'В листе <Дежурный> нет записей. Необходимо заполнить файл!'
+            elif n % 10 == 1 and n % 100 != 11:
+                s = 0
+                d = 0
+                return 'В листе <Дежурный> ' + stayed[s] + ' ' + str(n) + ' ' + records[d] + \
+                       '. Необходимо заполнить файл!'
+            elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
+                s = 1
+                d = 1
+                return 'В листе <Дежурный> ' + stayed[s] + ' ' + str(n) + ' ' + records[d] + \
+                       '. Необходимо заполнить файл!'
+
+        text_message = count_records(count_date_list)
+        Notifications.notification_for(text_message, 'status', 'admin')
+
+
 time_dej = '15:00'
 time_other = '08:00'
 
@@ -220,6 +245,7 @@ schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Про�
 schedule.every().day.at(time_other).do(sh_queue)
 # schedule.every().day.at(time_other).do(sh_random_name)
 schedule.every().hour.do(Tracking_sensors.check_errors_sensor)
+schedule.every().day.at(time_other).do(checking_the_number_of_records)
 
 # sh_queue()
 
