@@ -413,8 +413,24 @@ def dej_step_2(message):
                 bot.send_message(message.chat.id, text_message, reply_markup=hide_keyboard)
             print(answer_bot + text_message + '\n')
         elif message.text == 'Список дежурных':
-            text_message = 'На данный момент доступно ' + str(count_date_list) + ' записей\n' + \
-                           'Сколько событий показать?'
+            def count_records(n):
+                records = ['запись', 'записи', 'записей']
+
+                if n == 0:
+                    return 'К сожалению, нет данных о предстоящих дежурствах.'
+                elif n % 10 == 1 and n % 100 != 11:  # <1, 21 запись>
+                    r = 0
+                    return 'На данный момент есть ' + str(n) + ' ' + records[r] + '. Сколько событий показать?'
+                elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):  # <3, 22 записи>
+                    r = 1
+                    return 'На данный момент есть ' + str(n) + ' ' + records[r] + '. Сколько событий показать?'
+                else:  # <5, 47 записей>
+                    r = 2
+                    return 'На данный момент есть ' + str(n) + ' ' + records[r] + '. Сколько событий показать?'
+
+            text_message = count_records(count_date_list)
+            # text_message = 'На данный момент доступно ' + str(count_date_list) + ' записей\n' + \
+            #                'Сколько событий показать?'
             bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
             bot.register_next_step_handler(message, dej_step_3)  # Регистрация следующего действия
             print(answer_bot + text_message + '\n')
