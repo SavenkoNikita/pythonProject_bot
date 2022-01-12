@@ -2,6 +2,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 import Data
+import Other_function
 
 
 def get_data(url):
@@ -48,6 +49,7 @@ def get_data(url):
             text_message = name_dev + text
             print(text_message)
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
+            Other_function.logging_event('warning', text_message)
         count += 1
 
 
