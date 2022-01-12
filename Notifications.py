@@ -29,6 +29,7 @@ def notification_all_reg(text_message):
 
     except sqlite3.Error as error:
         print('Ошибка при работе с SQLite', error)
+        Other_function.logging_event('error', error)
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -60,11 +61,14 @@ def notification_for(text_message, column, column_meaning):
                 Data.bot.send_message(all_id_sql[i], text=text_message)
                 # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
             except Data.telebot.apihelper.ApiTelegramException:
-                print('Пользователь <' + username + '> заблокировал бота!')
+                text_error = 'Пользователь <' + username + '> заблокировал бота!'
+                print(text_error)
+                Other_function.logging_event('error', str(text_error))
                 SQLite.log_out(all_id_sql[i])
             i += 1
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', error)
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -102,9 +106,11 @@ def send_sticker_for(user_first_name, column, column_meaning):
                 time.sleep(3)
                 Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Бот выдал ошибку: ' + str(e))
                 print(str(e))
+                Other_function.logging_event('error', str(e))
             i += 1
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', str(error))
     finally:
         if sqlite_connection:
             sqlite_connection.close()
