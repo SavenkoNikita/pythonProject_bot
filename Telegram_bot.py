@@ -233,6 +233,7 @@ def receive_id(message):
     except Exception as error:  # В любом другом случае бот сообщит об ошибке
         bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_admin')
         print(str(error))
+        Other_function.logging_event('error', str(error))
 
     return
 
@@ -286,6 +287,7 @@ def receive_id_user(message):
     except Exception as error:  # В любом другом случае бот сообщит об ошибке
         bot.reply_to(message, 'Что-то пошло не так. Чтобы попробовать снова, жми /set_user')
         print(str(error))
+        Other_function.logging_event('error', str(error))
     return
 
 
@@ -421,6 +423,7 @@ def dej_step_2(message):
         bot.reply_to(message, text_message)
         print(answer_bot + text_message + '\n')
         print(str(error))
+        Other_function.logging_event('error', str(error))
 
 
 def dej_step_3(message):
@@ -454,6 +457,7 @@ def dej_step_3(message):
         bot.reply_to(message, text_message)
         print(answer_bot + text_message + '\n')
         print(str(error))
+        Other_function.logging_event('error', str(error))
 
 
 # @bot.message_handler(commands=['create_record'])
@@ -566,8 +570,8 @@ def dej_step_3(message):
 #     text_message = '• Запись добавлена в лист: "' + str(list_of_answers[0]) + '"\n' + \
 #                    '• Текст: "' + str(text_notification) + '"\n' + \
 #                    '• Дата уведомления: "' + str(date_notification) + '"\n'
-#     # Notifications.notification_for(message.from_user.first_name + ' создал новое событие\n\n' + text_message, 'status',
-#     #                                'admin')
+#     Notifications.notification_for(message.from_user.first_name + ' создал новое событие\n\n' + text_message,
+#                                    'status', 'admin')
 #     list_of_answers.clear()
 
 
@@ -658,4 +662,5 @@ if __name__ == '__main__':
             time.sleep(3)
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Бот выдал ошибку: ' + str(e))
             print(str(e))
+            Other_function.logging_event('error', str(e))
             # os.kill(os.getpid(), 9)
