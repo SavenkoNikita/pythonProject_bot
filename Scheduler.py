@@ -10,6 +10,9 @@ import SQLite
 
 
 # Уведомление подписчиков о том кто дежурный
+import Tracking_sensors
+
+
 def sh_send_dej(sheet_name):
     if Other_function.read_sheet(sheet_name) is not None:
         date_list_today = Other_function.read_sheet(sheet_name)[1]
@@ -169,9 +172,9 @@ def sh_notification(sheet_name):
             elif difference_date > 0:  # Если дата не наступила
                 print('Отчёт sh_notification:\n' +
                       'Событие не наступило\n' +
-                      'Лист: ' + sheet_name + '\n' +
-                      'Текст уведомления: ' + event + '\n' +
-                      'Дата: ' + first_date + '\n')
+                      'Лист: ' + str(sheet_name) + '\n' +
+                      'Текст уведомления: ' + str(event) + '\n' +
+                      'Дата: ' + str(first_date) + '\n')
                 pass
 
     else:
@@ -211,11 +214,12 @@ def sh_queue():
 
 
 time_dej = '15:00'
-time_other = '07:00'
+time_other = '08:00'
 
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)
 # schedule.every().day.at(time_other).do(sh_random_name)
+schedule.every().hour.do(Tracking_sensors.check_errors_sensor)
 
 # sh_queue()
 
