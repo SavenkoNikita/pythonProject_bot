@@ -45,8 +45,8 @@ def get_data(url):
                '\nID: ' + list_sensor_id[count] + \
                '\nValue: ' + list_sensor_value[count] + '\n'
         print(text)
-        if list_sensor_value[count] == str(-999):
-            text_message = name_dev + text
+        if list_sensor_value[count] == str(-999.9):
+            text_message = 'Опрос датчиков:\n' + name_dev + text
             print(text_message)
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             Other_function.logging_event('warning', text_message)
@@ -67,4 +67,11 @@ list_controllers = [
 
 def check_errors_sensor():
     for i in list_controllers:
-        get_data('http://' + i + '/values.xml')
+        try:
+            get_data('http://' + i + '/values.xml')
+        except OSError:
+            text_error = 'Опрос датчиков:\n' + 'Нет соединения с ' + i
+            print(text_error)
+            Data.bot.send_message(Data.list_admins.get('Никита'), text_error)
+            Other_function.logging_event('warning', text_error)
+            continue
