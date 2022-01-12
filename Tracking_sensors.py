@@ -20,7 +20,7 @@ def get_data(url):
 
     for tag in root_node.findall(device_name):
         name_dev = 'Name device: ' + str(tag.text) + '\n'
-        print(name_dev)
+        # print(name_dev)
 
     for tag in root_node.findall(sensor_id):
         list_sensor_id.append(tag.text)
@@ -44,7 +44,7 @@ def get_data(url):
         text = 'Sensor_name: ' + list_sensor_name[count] + \
                '\nID: ' + list_sensor_id[count] + \
                '\nValue: ' + list_sensor_value[count] + '\n'
-        print(text)
+        # print(text)
         if list_sensor_value[count] == str(-999.9):
             text_message = 'Опрос датчиков:\n' + name_dev + text
             print(text_message)
