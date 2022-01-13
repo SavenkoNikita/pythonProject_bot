@@ -232,3 +232,28 @@ def get_user_sticker(user_id):
     finally:
         if sqlite_connection:
             sqlite_connection.close()
+
+
+def get_list_users():
+    sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
+    try:
+        cursor = sqlite_connection.cursor()
+        sql_select_query = """select * from users"""
+        cursor.execute(sql_select_query)
+        records = cursor.fetchall()
+        count_records = 'Общее количество пользователей: ' + str(len(records)) + '\n\n'
+        list_data = [count_records]
+        print(count_records)
+        for row in records:
+            user_data = 'Имя: ' + str(row[2]) + \
+                        '\nФамилия: ' + str(row[3]) + \
+                        '\nСтатус: ' + str(row[5]) + \
+                        '\nПодписка: ' + str(row[6]) + '\n\n'
+            list_data.append(user_data)
+        return list_data
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+        Other_function.logging_event('error', str(error))
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()

@@ -476,6 +476,25 @@ def dej_step_3(message):
         Other_function.logging_event('error', str(error))
 
 
+@bot.message_handler(commands=['get_list'])
+def get_list(message):
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
+        if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
+            text_message = ''.join(SQLite.get_list_users())
+            bot.send_message(message.from_user.id, text_message)
+        else:  # Если пользователь не админ, бот сообщит об этом
+            text_message = 'У вас нет прав для выполнения этой команды'
+            bot.send_message(message.from_user.id, text_message)
+            print(text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
+
+
+
 # @bot.message_handler(commands=['create_record'])
 # def create_record(message):
 #     print(full_name_user(message) + 'отправил команду:\n' + message.text)
