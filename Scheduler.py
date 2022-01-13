@@ -216,7 +216,7 @@ def checking_the_number_of_records():
     date_list = Other_function.read_sheet('Дежурный')[0]
     count_date_list = len(date_list)
     print(count_date_list)
-    if count_date_list < 5:
+    if count_date_list <= 1:
         def count_records(n):
             stayed = ['осталась', 'осталось']
             records = ['запись', 'записи']
