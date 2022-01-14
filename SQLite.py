@@ -243,14 +243,15 @@ def get_list_users():
         records = cursor.fetchall()
         count_records = 'Общее количество пользователей: ' + str(len(records)) + '\n\n'
         list_data = [count_records]
-        print(count_records)
         for row in records:
             user_data = 'Имя: ' + str(row[2]) + \
                         '\nФамилия: ' + str(row[3]) + \
                         '\nСтатус: ' + str(row[5]) + \
                         '\nПодписка: ' + str(row[6]) + '\n\n'
             list_data.append(user_data)
-        return list_data
+        full_list = ''.join(list_data)
+        print(full_list)
+        return full_list
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
         Other_function.logging_event('error', str(error))
