@@ -482,8 +482,7 @@ def get_list(message):
     if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
         SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
         if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
-            text_message = ''.join(SQLite.get_list_users())
-            bot.send_message(message.from_user.id, text_message)
+            bot.send_message(message.from_user.id, SQLite.get_list_users())
         else:  # Если пользователь не админ, бот сообщит об этом
             text_message = 'У вас нет прав для выполнения этой команды'
             bot.send_message(message.from_user.id, text_message)
@@ -492,6 +491,49 @@ def get_list(message):
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
         bot.send_message(message.from_user.id, end_text)
         print(answer_bot + end_text + '\n')
+
+
+@bot.message_handler(commands=['feed_back'])
+def feed_back(message):
+    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
+        text_message = 'Выберите тип обращения'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Что-то не работает', 'Есть идея новой функции', 'Другое']
+        keyboard.add(*buttons)
+        bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
+        bot.register_next_step_handler(message, feed_back_step_2)  # Регистрация следующего действия
+        print(answer_bot + text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
+
+
+def feed_back_step_2(message):
+    answer = 'Опишите суть обращения. Чем подробнее тем лучше.\n'
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = ['Отмена']
+    keyboard.add(*buttons)
+    bot.send_message(message.from_user.id, answer, reply_markup=keyboard)  #
+    contacting_technical_support = message.text + '\n'
+    bot.register_next_step_handler(message, feed_back_step_3, contacting_technical_support)  # Регистрация следующего действия
+    print(answer_bot + answer + '\n')
+
+
+def feed_back_step_3(message, text_problem):
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Отмена':
+        bot.send_message(message.from_user.id, 'Обращение отменено.')
+    else:
+        problem = 'FEED_BACK\n' + text_problem + message.text
+        Other_function.logging_event('info', problem)
+        text_message = 'Ваше обращение создано!\n' + 'Тип: ' + text_problem + 'Текст сообщения: ' + message.text
+        bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
+        bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Поступило новое обращение от пользователя:\n' +
+                                                                      'Тип: ' + text_problem + 'Текст сообщения: ' +
+                                                                      message.text)
 
 
 
@@ -610,75 +652,79 @@ def get_list(message):
 #     list_of_answers.clear()
 
 
-# @bot.message_handler(commands=['games'])
-# def games(message):
-#     print(full_name_user(message) + 'отправил команду ' + message.text)
-#     if SQLite.check_for_existence(message.from_user.id) == 'True':  # Проверка на наличие юзера в БД
-#         SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
-#         text_message = 'На данный момент доступна одна игра'
-#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-#         buttons = ['Играть в "Угадаю число"', 'Отмена']
-#         keyboard.add(*buttons)
-#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
-#         bot.register_next_step_handler(message, games_step_2)  # Регистрация следующего действия
-#         print(answer_bot + text_message + '\n')
-#     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
-#         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
-#         bot.send_message(message.from_user.id, end_text)
-#         print(answer_bot + end_text + '\n')
-#
-#
-# def games_step_2(message):
-#     if message.text == 'Играть в "Угадаю число"':
-#         text_message = 'Хорошо, начнём. Правила просты - загадай число от 1 до 100 а я попробую его угадать. ' \
-#                        'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
-#                        'жми "больше", а если угадал - "в точку".'
-#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-#         buttons = ['Начнём']
-#         keyboard.add(*buttons)
-#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
-#         # bot.send_message(message.from_user.id, text_message)
-#         bot.register_next_step_handler(message, games_step_3)
-#         # return int(number)
-#     elif message.text == 'Отмена':
-#         text_message = 'Хорошо, сыграем в следующий раз.'
-#         bot.send_message(message.from_user.id, text_message)
-#     # else:
-#     # return int(number)
-#
-#
-# def games_step_3(message):
-#     # print(message.text, number, lower, high, count)
-#     if message.text == 'Начнём':
-#         number = random.randint(0, 100)
-#         text_message = 'Возможно это ' + str(number) + ' ?'
-#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-#         buttons = ['Больше', 'Меньше', 'В точку']
-#         keyboard.add(*buttons)
-#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
-#         bot.register_next_step_handler(message, games_step_4)
-#
-#
-# def games_step_4(message, number=random.randint(1, 100), lower=1, high=100, count=1):
-#     if message.text == 'Больше' or 'Меньше':
-#         if message.text == 'Больше':
-#             print(message.text)
-#             lower = number + 1
-#         elif message.text == 'Меньше':
-#             print(message.text)
-#             high = number - 1
-#         middle = (high + lower) // 2
-#         text_message = 'Я думаю твоё число ' + str(middle)
-#         count += 1
-#         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-#         buttons = ['Больше', 'Меньше', 'В точку']
-#         keyboard.add(*buttons)
-#         bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
-#         bot.register_next_step_handler(games_step_4(message, middle, lower, high, count))
-#     elif message.text == 'В точку':
-#         bot.send_message(message.from_user.id, 'Я угадал твоё число за ' + str(count) + ' ходов')
-#     else:
-#         print(message.text)
+@bot.message_handler(commands=['games'])
+def games(message):
+    print(full_name_user(message) + 'отправил команду ' + message.text)
+    if SQLite.check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
+        SQLite.update_data_user(message)  # Актуализация данных о пользователе в БД
+        text_message = 'На данный момент доступна одна игра'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Играть в "Угадаю число"', 'Отмена']
+        keyboard.add(*buttons)
+        bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
+        bot.register_next_step_handler(message, games_step_2)  # Регистрация следующего действия
+        print(answer_bot + text_message + '\n')
+    else:  # Если пользователь не зарегистрирован, бот предложит это сделать
+        end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться, жми /start'
+        bot.send_message(message.from_user.id, end_text)
+        print(answer_bot + end_text + '\n')
+
+
+def games_step_2(message):
+    if message.text == 'Играть в "Угадаю число"':
+        text_message = 'Хорошо, начнём. Правила просты - загадай число от 1 до 100 а я попробую его угадать. ' \
+                       'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
+                       'жми "больше", а если угадал - "в точку".'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Начнём']
+        keyboard.add(*buttons)
+        bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+        # bot.send_message(message.from_user.id, text_message)
+        bot.register_next_step_handler(message, games_step_3)
+        # return int(number)
+    elif message.text == 'Отмена':
+        text_message = 'Хорошо, сыграем в следующий раз.'
+        bot.send_message(message.from_user.id, text_message)
+    # else:
+    # return int(number)
+
+
+def games_step_3(message):
+    if message.text == 'Начнём':
+        number = random.randint(0, 100)
+        text_message = 'Возможно это ' + str(number) + ' ?'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Больше', 'Меньше', 'В точку']
+        keyboard.add(*buttons)
+        bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, games_step_4, number, lower=1, high=100, count=1)
+
+
+def games_step_4(message, number, lower, high, count):
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Больше':
+        print(message.text)
+        lower = number + 1
+    elif message.text == 'Меньше':
+        print(message.text)
+        high = number - 1
+    elif message.text == 'В точку':
+        text_message = 'Я угадал твоё число за ' + str(count) + ' ходов'
+        bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
+        exit()
+    else:
+        print(message.text)
+    middle = (high + lower) // 2
+    text_message = 'Я думаю твоё число ' + str(middle)
+    print(text_message)
+    count += 1
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = ['Больше', 'Меньше', 'В точку']
+    keyboard.add(*buttons)
+    bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+    bot.register_next_step_handler(message, games_step_4, middle, lower, high, count)
+    print('среднее: ' + str(middle) + '\nнижний предел: ' + str(lower) + '\nверхний предел: ' + str(high) + '\nпопытка: ' + str(count) + '\n')
+
 
 @bot.message_handler(content_types=['text'])
 def other_functions(message):
