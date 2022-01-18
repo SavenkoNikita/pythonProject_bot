@@ -553,10 +553,10 @@ def create_record(message):
         if SQLite.check_for_admin(message.from_user.id) is True:  # Если пользователь админ
             text_message = 'В какой лист добавить запись?'
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-            buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов']
+            buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов', 'Отмена']
             keyboard.add(*buttons)
             bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)  #
-            bot.register_next_step_handler(message, create_record_step_2)  # Регистрация следующего действия
+            bot.register_next_step_handler(message, create_record_step_2, buttons)  # Регистрация следующего действия
             print(answer_bot + text_message + '\n')
         else:  # Если юзер не админ, он получит следующее сообщение
             text_message = 'У вас нет прав для выполнения этой команды'
@@ -566,13 +566,24 @@ def create_record(message):
         bot.send_message(message.from_user.id, text_message)
 
 
-def create_record_step_2(message):
+def create_record_step_2(message, list_sheet):
     print(full_name_user(message) + 'написал:\n' + message.text)
-    list_of_answers = [message.text]
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
-    text_message = 'Введи текст уведомления'
-    bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
-    bot.register_next_step_handler(message, create_record_step_3, list_of_answers)  # Регистрация следующего действия
+    if message.text == 'Отмена':
+        text_message = 'Операция прервана.'
+        bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
+    elif message.text not in list_sheet:
+        text_message = 'Нет листа с именем <' + str(message.text) + '>! Необходимо выбрать из списка.'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Ок']
+        keyboard.add(*buttons)
+        bot.send_message(message.from_user.id, text_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, create_record)  # Регистрация следующего действия
+    else:
+        list_of_answers = [message.text]
+        text_message = 'Введи текст уведомления'
+        bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
+        bot.register_next_step_handler(message, create_record_step_3, list_of_answers)  # Регистрация следующего действия
 
 
 def create_record_step_3(message, list_of_answers):
@@ -659,8 +670,6 @@ def games_step_2(message):
     elif message.text == 'Отмена':
         text_message = 'Хорошо, сыграем в следующий раз.'
         bot.send_message(message.from_user.id, text_message)
-    # else:
-    # return int(number)
 
 
 def games_step_3(message):
