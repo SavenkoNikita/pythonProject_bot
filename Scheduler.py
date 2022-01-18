@@ -149,14 +149,17 @@ def sh_notification(sheet_name):
                     if event is not None:
                         if sheet_name == 'Уведомления для всех':
                             text_message = '• Уведомление для зарегистрированных пользователей •\n\n' + event
+                            print(text_message)
                             Notifications.notification_all_reg(text_message)
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Уведомления для подписчиков':
                             text_message = '• Уведомление для подписчиков •\n\n' + event
+                            print(text_message)
                             Notifications.notification_for(text_message, 'notification', 'yes')
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Уведомления для админов':
                             text_message = '• Уведомление для администраторов •\n\n' + event
+                            print(text_message)
                             Notifications.notification_for(text_message, 'status', 'admin')
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Инвентаризация':

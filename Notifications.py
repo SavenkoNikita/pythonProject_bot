@@ -19,7 +19,7 @@ def notification_all_reg(text_message):
             all_user_sql.append(row[1])
         cursor.close()
         i = 0
-        print('Уведомления отправлены следующим пользователям:\n')
+        print('Уведомление отправлено следующим пользователям:\n')
         while i < len(all_user_sql):
             username = SQLite.get_user_info(all_user_sql[i])
             try:
@@ -58,7 +58,7 @@ def notification_for(text_message, column, column_meaning):
         cursor.close()
         # print(all_id_sql)
         i = 0
-        print('Уведомления отправлены следующим пользователям:\n')
+        print('Уведомление отправлено следующим пользователям:\n')
         while i < len(all_id_sql):
             username = SQLite.get_user_info(all_id_sql[i])
             try:
