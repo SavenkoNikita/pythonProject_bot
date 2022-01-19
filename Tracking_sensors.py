@@ -65,7 +65,3 @@ def check_errors_sensor():
             Data.bot.send_message(Data.list_admins.get('Никита'), text_error)
             Other_function.logging_event('warning', text_error)
             continue
-
-
-# get_data('http://' + Data.controller_1 + '/values.xml')
-check_errors_sensor()
