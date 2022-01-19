@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 
 import Data
 import Other_function
+import Telegram_bot
 
 
 def get_data(url):
@@ -10,32 +11,33 @@ def get_data(url):
     root_node = ET.parse(web_file).getroot()
 
     device_name = 'Agent/DeviceName'
-    sensor_id = 'SenSet/Entry/ID'
     sensor_name = 'SenSet/Entry/Name'
+    sensor_id = 'SenSet/Entry/ID'
     sensor_value = 'SenSet/Entry/Value'
 
-    list_sensor_id = []
-    list_sensor_name = []
-    list_sensor_value = []
+    name_dev = root_node.find(device_name).text
 
-    for tag in root_node.findall(device_name):
-        name_dev = 'Name device: ' + str(tag.text) + '\n'
-        # print(name_dev)
-
-    for tag in root_node.findall(sensor_id):
-        list_sensor_id.append(tag.text)
-
-    for tag in root_node.findall(sensor_name):
-        list_sensor_name.append(tag.text)
-
-    for tag in root_node.findall(sensor_value):
-        list_sensor_value.append(tag.text)
-
-    list_data_sensor = [
-        list_sensor_id,
-        list_sensor_name,
-        list_sensor_value
+    data_sheets = [
+        sensor_name,
+        sensor_id,
+        sensor_value
     ]
+
+    list_data_sensor = []
+    for i in data_sheets:
+        for tag in root_node.findall(i):
+            data_list = tag.text
+            list_data_sensor.append(data_list)
+
+    def chunk_using_generators(lst, n):
+        for element in range(0, len(lst), n):
+            yield lst[element:element + n]
+
+    list_data_sensor = list(chunk_using_generators(list_data_sensor, int(len(list_data_sensor) / 3)))
+
+    list_sensor_name = list_data_sensor[0]
+    list_sensor_id = list_data_sensor[1]
+    list_sensor_value = list_data_sensor[2]
 
     count = 0
     number_of_entries = len(list_data_sensor[0])
@@ -44,29 +46,17 @@ def get_data(url):
         text = 'Sensor_name: ' + list_sensor_name[count] + \
                '\nID: ' + list_sensor_id[count] + \
                '\nValue: ' + list_sensor_value[count] + '\n'
-        # print(text)
+        print(text)
         if list_sensor_value[count] == str(-999.9):
-            text_message = 'Опрос датчиков:\n' + name_dev + text
+            text_message = Telegram_bot.tconv + '\n' + 'Недоступен датчик:\n' + name_dev + text
             print(text_message)
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             Other_function.logging_event('warning', text_message)
         count += 1
 
 
-list_controllers = [
-    Data.controller_1,
-    Data.controller_2,
-    Data.controller_3,
-    Data.controller_4,
-    Data.controller_5,
-    Data.controller_6,
-    Data.controller_7,
-    Data.controller_8
-]
-
-
 def check_errors_sensor():
-    for i in list_controllers:
+    for i in Data.list_controllers:
         try:
             get_data('http://' + i + '/values.xml')
         except OSError:
@@ -75,3 +65,7 @@ def check_errors_sensor():
             Data.bot.send_message(Data.list_admins.get('Никита'), text_error)
             Other_function.logging_event('warning', text_error)
             continue
+
+
+# get_data('http://' + Data.controller_1 + '/values.xml')
+check_errors_sensor()
