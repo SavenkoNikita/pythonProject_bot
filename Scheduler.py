@@ -247,7 +247,9 @@ time_other = '08:00'
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)
 # schedule.every().day.at(time_other).do(sh_random_name)
-schedule.every().hour.do(Tracking_sensors.check_errors_sensor)
+# schedule.every(10).minutes.do(Tracking_sensors.check_errors_sensor)
+schedule.every(10).minutes.do(Tracking_sensors.TrackingSensor)
+# schedule.every(10).seconds.do(Tracking_sensors.check_errors_sensor)
 schedule.every().day.at(time_other).do(checking_the_number_of_records)
 
 # sh_queue()
