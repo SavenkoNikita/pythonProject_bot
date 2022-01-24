@@ -1,3 +1,4 @@
+import Classes
 import SQLite
 
 # Команды доступные всем
@@ -30,7 +31,7 @@ def can_do_it(x):  # Перечисляет строка за строкой в�
 
 def can_help(user_id):
     end_text = 'Вот что я умею:' + '\n'
-    check_admin = SQLite.check_for_admin(user_id.from_user.id)
+    check_admin = Classes.SQL().check_for_admin(user_id)
     if check_admin is True:  # Если пользователь админ
         end_text = end_text + can_do_it(list_command_admin)  # Передать полный список доступных команд
     else:  # Если пользователь НЕ админ

@@ -3,16 +3,14 @@ import time
 import datetime
 
 import schedule
-import Data
-import Notifications
-import Other_function
-import SQLite
 
-# Уведомление подписчиков о том кто дежурный
-import Tracking_sensors
+import Classes
+import Data
+import Other_function
 
 
 def sh_send_dej(sheet_name):
+    """Уведомление подписчиков о том кто дежурный"""
     if Other_function.read_sheet(sheet_name) is not None:
         date_list_today = Other_function.read_sheet(sheet_name)[1]
         event_data = date_list_today[0]
@@ -29,7 +27,7 @@ def sh_send_dej(sheet_name):
         difference_date = first_date - date_now
         difference_date = difference_date.days + 1
 
-        name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(Data.user_data, event))
         if name_from_SQL is None:
             name_from_SQL = event
         text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' ' + 'будет дежурить ' + \
@@ -37,15 +35,15 @@ def sh_send_dej(sheet_name):
 
         if difference_date == 1:
             # Если в БД у пользователя содержится стикер
-            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            if Classes.SQL().get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
                 # Пришлёт сообщение о дежурном
-                Notifications.notification_for(text_message, 'notification', 'yes')
+                Classes.Notification().notification_for(text_message, 'notification', 'yes')
                 # Пришлёт стикер этого дежурного
-                Notifications.send_sticker_for(event, 'notification', 'yes')
+                Classes.Notification().send_sticker_for(event, 'notification', 'yes')
                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
             else:
                 # Пришлёт сообщение о дежурном
-                Notifications.notification_for(text_message, 'notification', 'yes')
+                Classes.Notification().notification_for(text_message, 'notification', 'yes')
                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
             print('Отчет sh_send_dej:\n' + text_message + '\n')
         else:
@@ -59,33 +57,15 @@ def sh_send_invent(sheet_name):
     if Other_function.read_sheet(sheet_name) is not None:
         date_list_today = Other_function.read_sheet(sheet_name)[1]
         event_data = date_list_today[0]
-
         first_date = event_data[0]
-
         event = event_data[1]
-
-        name_from_SQL = SQLite.get_user_info(Other_function.get_key(Data.user_data, event))
+        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(Data.user_data, event))
         if name_from_SQL is None:
             name_from_SQL = event
         date_now = datetime.datetime.now()  # Получаем текущую дату
         difference_date = first_date - date_now
         difference_date = difference_date.days + 1
         print(name_from_SQL)
-
-        # Склоняем "день"
-        # def count_day():
-        #     dd = ''
-        #     if difference_date == 0:
-        #         dd = 'Сегодня инвентаризация.'
-        #     elif difference_date == 1:
-        #         dd = 'До предстоящей инвентаризации остался 1 день.'
-        #     elif 1 < difference_date <= 4:
-        #         dd = 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-        #     elif difference_date == 5:
-        #         dd = 'До предстоящей инвентаризации осталось 5 дней.'
-        #     # elif difference_date > 5:
-        #     #     dd = 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
-        #     return dd
 
         def count_day(n):
             stayed = ['остался', 'осталось']
@@ -108,14 +88,14 @@ def sh_send_invent(sheet_name):
         # Если
         if 0 <= difference_date <= 5:
             # Если в БД у пользователя содержится стикер
-            if SQLite.get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            if Classes.SQL().get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
                 # Пришлёт сообщение о дежурном
-                Notifications.notification_for(text_message, 'status', 'admin')
+                Classes.Notification().notification_for(text_message, 'status', 'admin')
                 # Пришлёт стикер этого дежурного
-                Notifications.send_sticker_for(event, 'status', 'admin')
+                Classes.Notification().send_sticker_for(event, 'status', 'admin')
             else:
                 # Пришлёт сообщение о дежурном
-                Notifications.notification_for(text_message, 'status', 'admin')
+                Classes.Notification().notification_for(text_message, 'status', 'admin')
             print('Отчет sh_send_invent:\n' + text_message + '\n')
         else:
             print('Отчет sh_send_invent:\n В ближайшее время на инвентаризацию никто не идёт!\n')
@@ -123,8 +103,8 @@ def sh_send_invent(sheet_name):
         print('Отчет sh_send_invent:\n На странице <' + sheet_name + '> отсутствуют данные!\n')
 
 
-# Кто сегодня закрывает сигналы
 def sh_random_name():
+    """Присылает уведомление кто сегодня закрывает сигналы"""
     if datetime.datetime.today().isoweekday() <= 5:
         list_name = ['Паша', 'Дима', 'Никита']
         random_name = random.choice(list_name)
@@ -150,17 +130,17 @@ def sh_notification(sheet_name):
                         if sheet_name == 'Уведомления для всех':
                             text_message = '• Уведомление для зарегистрированных пользователей •\n\n' + event
                             print(text_message)
-                            Notifications.notification_all_reg(text_message)
+                            Classes.Notification().all_registered(text_message)
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Уведомления для подписчиков':
                             text_message = '• Уведомление для подписчиков •\n\n' + event
                             print(text_message)
-                            Notifications.notification_for(text_message, 'notification', 'yes')
+                            Classes.Notification().notification_for(text_message, 'notification', 'yes')
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Уведомления для админов':
                             text_message = '• Уведомление для администраторов •\n\n' + event
                             print(text_message)
-                            Notifications.notification_for(text_message, 'status', 'admin')
+                            Classes.Notification().notification_for(text_message, 'status', 'admin')
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif sheet_name == 'Инвентаризация':
                             sh_send_invent(sheet_name)
@@ -238,7 +218,12 @@ def checking_the_number_of_records():
                        '. Необходимо заполнить файл!'
 
         text_message = count_records(count_date_list)
-        Notifications.notification_for(text_message, 'status', 'admin')
+        Classes.Notification().notification_for(text_message, 'status', 'admin')
+
+
+# def sh_tracking_sensor():
+#     for i in Data.list_controllers:
+#         Classes.TrackingSensor(i).get_data()
 
 
 time_dej = '15:00'
@@ -246,10 +231,8 @@ time_other = '08:00'
 
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)
-# schedule.every().day.at(time_other).do(sh_random_name)
-# schedule.every(10).minutes.do(Tracking_sensors.check_errors_sensor)
-schedule.every(10).minutes.do(Tracking_sensors.TrackingSensor)
-# schedule.every(10).seconds.do(Tracking_sensors.check_errors_sensor)
+schedule.every().day.at(time_other).do(sh_random_name)
+schedule.every(10).minutes.do(Classes.TrackingSensor.cycle_get_data)
 schedule.every().day.at(time_other).do(checking_the_number_of_records)
 
 # sh_queue()
