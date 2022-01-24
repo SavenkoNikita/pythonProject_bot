@@ -221,11 +221,6 @@ def checking_the_number_of_records():
         Classes.Notification().notification_for(text_message, 'status', 'admin')
 
 
-# def sh_tracking_sensor():
-#     for i in Data.list_controllers:
-#         Classes.TrackingSensor(i).get_data()
-
-
 time_dej = '15:00'
 time_other = '08:00'
 
