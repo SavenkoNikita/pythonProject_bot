@@ -13,6 +13,16 @@ class SQL:
     def __init__(self):
         self.sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         self.cursor = self.sqlite_connection.cursor()
+        # if message.forward_from is not None:  # Если сообщение является пересылаемым
+        #     self.user_id = message.forward_from.id
+        #     self.first_name = message.forward_from.first_name
+        #     self.last_name = message.forward_from.last_name
+        #     self.username = message.forward_from.username
+        # else:
+        #     self.user_id = message.from_user.id
+        #     self.first_name = message.from_user.first_name
+        #     self.last_name = message.from_user.last_name
+        #     self.username = message.from_user.username
 
     def check_for_existence(self, user_id):
         """Проверка на существование пользователя в БД"""
@@ -24,12 +34,12 @@ class SQL:
 
     def check_for_admin(self, user_id):
         """Проверка на то, является ли пользователь админом"""
-        # if self.check_for_existence(user_id) is True:
-        info = self.cursor.execute('SELECT * FROM users WHERE status=? and user_id=?', ('admin', user_id))
-        if info.fetchone() is None:  # Если пользователь не админ
-            return False
-        else:  # Если пользователь админ
-            return True
+        if self.check_for_existence(user_id) is True:
+            info = self.cursor.execute('SELECT * FROM users WHERE status=? and user_id=?', ('admin', user_id))
+            if info.fetchone() is None:  # Если пользователь не админ
+                return False
+            else:  # Если пользователь админ
+                return True
 
     def check_for_notification(self, user_id):
         """Проверка на то, подписался ли пользователь на рассылку уведомлений"""
@@ -39,6 +49,14 @@ class SQL:
                 return False
             else:  # Если пользователь подписан на рассылку
                 return True
+
+    def set_subscribe(self, user_id):
+        """Присваивает статус <подписан> в БД"""
+        self.update_sqlite_table('yes', user_id, 'notification')
+
+    def set_unsubscribe(self, user_id):
+        """Присваивает статус <отписан> в БД"""
+        self.update_sqlite_table('no', user_id, 'notification')
 
     def db_table_val(self, user_id, first_name, last_name, username):
         """Проверка на уникальность и добавление данных о пользователе в SQL"""
@@ -71,9 +89,16 @@ class SQL:
 
             i = 0
             while i < len(all_user_sql):
-                print(all_user_sql[i])
-                Data.bot.send_message(chat_id=all_user_sql[i], text=text_message)
-                time.sleep(1)
+                user_name = SQL().get_user_info(all_user_sql[i])
+                try:
+                    print(user_name)
+                    Data.bot.send_message(all_user_sql[i], text=text_message)
+                    # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
+                except Data.telebot.apihelper.ApiTelegramException:
+                    text_error = 'Пользователь <' + user_name + '> заблокировал бота!'
+                    print(text_error)
+                    Other_function.logging_event('error', str(text_error))
+                    self.log_out(all_user_sql[i])  # SQL().log_out(all_user_sql[i])
                 i += 1
             self.cursor.execute('INSERT INTO users (user_id, user_first_name, user_last_name, username) VALUES (?, ?, '
                                 '?, ?)',
@@ -119,20 +144,21 @@ class SQL:
     def log_out(self, user_id):
         """Стереть все данные о пользователе из БД"""
         try:
-            try_message = 'Все данные о пользователе <' + self.get_user_info(user_id) + '> успешно удалены из БД!'
-            print(try_message)
-            Other_function.logging_event('info', try_message)
-            self.cursor.execute('DELETE from users where user_id=' + str(user_id))
-            self.sqlite_connection.commit()
-            self.cursor.close()
+            if self.sqlite_connection:
+                try_message = 'Все данные о пользователе <' + self.get_user_info(user_id) + '> успешно удалены из БД!'
+                print(try_message)
+                Other_function.logging_event('info', try_message)
+                self.cursor.execute('''DELETE from users where user_id = ?''', (user_id,))
+                self.sqlite_connection.commit()
+                self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             Other_function.logging_event('error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
-    def update_data_user(self, message):  #user_id, first_name, last_name, username):
+    def update_data_user(self, message):
         """Обновить данные о пользователе"""
         user_id = message.from_user.id
         first_name = message.from_user.first_name
@@ -157,15 +183,14 @@ class SQL:
             except sqlite3.Error as error:
                 print("Ошибка при работе с SQLite: ", error)
                 Other_function.logging_event('error', str(error))
-            finally:
-                if self.sqlite_connection:
-                    self.sqlite_connection.close()
+            # finally:
+            #     if self.sqlite_connection:
+            #         self.sqlite_connection.close()
 
     def get_user_info(self, user_id):
         """Получить данные о пользователе"""
         try:
-            sql_select_query = """select * from users where user_id = ?"""
-            self.cursor.execute(sql_select_query, (user_id,))
+            self.cursor.execute("""select * from users where user_id = ?""", (user_id,))
             records = self.cursor.fetchall()
             for row in records:
                 if row[4] is not None:  # Если в SQL есть запись о username
@@ -177,9 +202,9 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             Other_function.logging_event('error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def get_user_sticker(self, user_id):
         """Получить стикер пользователя"""
@@ -196,9 +221,9 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             Other_function.logging_event('error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def get_list_users(self):
         """Получить список всех пользователей"""
@@ -220,78 +245,114 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             Other_function.logging_event('error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
+
+    def set_user(self, user_id):
+        """Установить пользователю права юзера"""
+        self.update_sqlite_table('user', user_id, 'status')
+
+    def set_admin(self, user_id):
+        """Установить пользователю права админа"""
+        self.update_sqlite_table('admin', user_id, 'status')
 
 
 class TrackingSensor:
     """Мониторинг неисправных датчиков"""
 
-    def __init__(self, ip_address_Poseidon):
-        self.list_controllers = ip_address_Poseidon
-        self.url = 'http://' + self.list_controllers + '/values.xml'
+    def __init__(self):
+        self.list_controllers = Data.list_controllers
 
+    @property
     def get_data(self):
         """Получить имя контроллера, имя датчика, id датчика и текущие показания температуры"""
-        try:
-            web_file = urllib.request.urlopen(self.url)
-            root_node = ET.parse(web_file).getroot()
 
-            device_name = 'Agent/DeviceName'
-            sensor_name = 'SenSet/Entry/Name'
-            sensor_id = 'SenSet/Entry/ID'
-            sensor_value = 'SenSet/Entry/Value'
+        sensors_with_an_error = []
 
-            name_dev = root_node.find(device_name).text
-            # print(name_dev)
+        for i in self.list_controllers:
+            try:
+                url = 'http://' + i + '/values.xml'
+                web_file = urllib.request.urlopen(url)
+                root_node = ET.parse(web_file).getroot()
 
-            data_sheets = [
-                sensor_name,
-                sensor_id,
-                sensor_value
-            ]
+                device_name = 'Agent/DeviceName'
+                sensor_name = 'SenSet/Entry/Name'
+                sensor_id = 'SenSet/Entry/ID'
+                sensor_value = 'SenSet/Entry/Value'
 
-            list_data_sensor = []
-            for i in data_sheets:
-                for tag in root_node.findall(i):
-                    data_list = tag.text
-                    list_data_sensor.append(data_list)
+                name_dev = root_node.find(device_name).text
+                # print(name_dev)
 
-            def chunk_using_generators(lst, n):
-                for element in range(0, len(lst), n):
-                    yield lst[element:element + n]
+                data_sheets = [
+                    sensor_name,
+                    sensor_id,
+                    sensor_value
+                ]
 
-            list_data_sensor = list(chunk_using_generators(list_data_sensor, int(len(list_data_sensor) / 3)))
+                list_data_sensor = []
+                for element in data_sheets:
+                    for tag in root_node.findall(element):
+                        data_list = tag.text
+                        list_data_sensor.append(data_list)
 
-            list_sensor_name = list_data_sensor[0]
-            list_sensor_id = list_data_sensor[1]
-            list_sensor_value = list_data_sensor[2]
+                def chunk_using_generators(lst, n):
+                    for elem in range(0, len(lst), n):
+                        yield lst[elem:elem + n]
 
-            count = 0
-            number_of_entries = len(list_data_sensor[0])
+                list_data_sensor = list(chunk_using_generators(list_data_sensor, int(len(list_data_sensor) / 3)))
 
-            while count < number_of_entries:
-                text = 'Sensor_name: ' + list_sensor_name[count] + \
-                       '\nID: ' + list_sensor_id[count] + \
-                       '\nValue: ' + list_sensor_value[count] + '\n'
-                # print(text)
-                if list_sensor_value[count] == str(-999.9):
-                    text_message = 'Недоступен датчик:\n' + name_dev + '\n' + text
+                list_sensor_name = list_data_sensor[0]
+                list_sensor_id = list_data_sensor[1]
+                list_sensor_value = list_data_sensor[2]
+
+                count = 0
+                number_of_entries = len(list_data_sensor[0])
+
+                while count < number_of_entries:
+                    # text = 'Sensor_name: ' + list_sensor_name[count] + \
+                    #        '\nID: ' + list_sensor_id[count] + \
+                    #        '\nValue: ' + list_sensor_value[count] + '\n'
+                    # print(text)
+
+                    sensors_with_an_error.append([list_sensor_name[count], list_sensor_value[count]])
+
+                    count += 1
+            except OSError:
+                text_error = 'Опрос датчиков:\n' + 'Нет соединения с ' + i
+                print(text_error)
+                Data.bot.send_message(Data.list_admins.get('Никита'), text_error)
+                Other_function.logging_event('warning', text_error)
+
+        return sensors_with_an_error
+
+    def check(self):
+        """Если есть неисправные датчики, формируется список"""
+        list_errors = []
+        while True:
+            for name, value in self.get_data:
+                if name not in list_errors and value == '-999.9':
+                    list_errors.append(name)
+                    text_message = 'Датчик ' + name + ' не работает'
                     print(text_message)
-                    Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
-                    Other_function.logging_event('warning', text_message)
-                count += 1
-        except OSError:
-            text_error = 'Опрос датчиков:\n' + 'Нет соединения с ' + self.url
-            print(text_error)
-            Data.bot.send_message(Data.list_admins.get('Никита'), text_error)
-            Other_function.logging_event('warning', text_error)
+                    self.notification_for_observers(text_message)
+                elif name in list_errors and value != '-999.9':
+                    list_errors.remove(name)
+                    text_message = 'Работа датчика ' + name + ' восстановлена'
+                    self.notification_for_observers(text_message)
+            time.sleep(2)
 
-    def cycle_get_data(self):
-        """Получить данные из списка адресов"""
-        for i in Data.list_controllers:
-            TrackingSensor(i).get_data()
+    def notification_for_observers(self, text_message):
+        """Рассылает уведомления списку пользователей"""
+        list_observers = [
+            Data.list_admins.get('Никита'),
+        ]
+
+        for user_id in list_observers:
+            Data.bot.send_message(chat_id=user_id, text=text_message)
+
+
+# TrackingSensor().check()
 
 
 class Notification:
@@ -382,7 +443,7 @@ class Notification:
                 username = SQL().get_user_info(all_id_sql[i])
                 try:
                     print(username)
-                    user_sticker = SQL().get_user_sticker(Other_function.get_key(Data.user_data, user_first_name))
+                    user_sticker = SQL().get_user_sticker(Other_function.get_key(user_first_name))
                     Data.bot.send_sticker(all_id_sql[i], user_sticker)
                     # Data.bot.send_sticker(Data.list_admins.get('Никита'), user_sticker)
                 except Data.telebot.apihelper.ApiTelegramException:
@@ -401,3 +462,10 @@ class Notification:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
                 print("Соединение с SQLite закрыто")
+
+# class BotCommands:
+#     def __init__(self):
+#         self.StartCommand = 'start'
+#         self.RegisterCommand = 'register'
+#
+# BotCommands = BotCommands()
