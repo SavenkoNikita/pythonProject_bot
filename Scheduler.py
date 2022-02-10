@@ -27,7 +27,7 @@ def sh_send_dej(sheet_name):
         difference_date = first_date - date_now
         difference_date = difference_date.days + 1
 
-        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(Data.user_data, event))
+        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(event))
         if name_from_SQL is None:
             name_from_SQL = event
         text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' ' + 'будет дежурить ' + \
@@ -35,7 +35,7 @@ def sh_send_dej(sheet_name):
 
         if difference_date == 1:
             # Если в БД у пользователя содержится стикер
-            if Classes.SQL().get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            if Classes.SQL().get_user_sticker(Other_function.get_key(event)) is not None:
                 # Пришлёт сообщение о дежурном
                 Classes.Notification().notification_for(text_message, 'notification', 'yes')
                 # Пришлёт стикер этого дежурного
@@ -59,7 +59,7 @@ def sh_send_invent(sheet_name):
         event_data = date_list_today[0]
         first_date = event_data[0]
         event = event_data[1]
-        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(Data.user_data, event))
+        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(event))
         if name_from_SQL is None:
             name_from_SQL = event
         date_now = datetime.datetime.now()  # Получаем текущую дату
@@ -86,9 +86,9 @@ def sh_send_invent(sheet_name):
         text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
         text_message = text_day + '\n' + text_who  # Объединяем строки выше в одну
         # Если
-        if 0 <= difference_date <= 5:
+        if 0 <= difference_date <= 2:
             # Если в БД у пользователя содержится стикер
-            if Classes.SQL().get_user_sticker(Other_function.get_key(Data.user_data, event)) is not None:
+            if Classes.SQL().get_user_sticker(Other_function.get_key(event)) is not None:
                 # Пришлёт сообщение о дежурном
                 Classes.Notification().notification_for(text_message, 'status', 'admin')
                 # Пришлёт стикер этого дежурного
@@ -97,8 +97,8 @@ def sh_send_invent(sheet_name):
                 # Пришлёт сообщение о дежурном
                 Classes.Notification().notification_for(text_message, 'status', 'admin')
             print('Отчет sh_send_invent:\n' + text_message + '\n')
-        else:
-            print('Отчет sh_send_invent:\n В ближайшее время на инвентаризацию никто не идёт!\n')
+        # else:
+        #     print('Отчет sh_send_invent:\n В ближайшее время на инвентаризацию никто не идёт!\n')
     else:
         print('Отчет sh_send_invent:\n На странице <' + sheet_name + '> отсутствуют данные!\n')
 
@@ -111,6 +111,17 @@ def sh_random_name():
         end_text = 'Случайным образом определено, что сигналы сегодня закрывает ' + random_name
         for i in list_name:
             Data.bot.send_message(chat_id=Data.list_admins.get(i), text=end_text)
+
+    # if datetime.datetime.today().isoweekday() <= 5:
+    #     list_name = ['Паша', 'Дима', 'Никита']
+    #     for item in list_name:
+    #         user_id = Other_function.get_key(item)
+    #         text_message = 'Ты на заводе сегодня?'
+    #         # Data.bot.send_message(user_id, text_message)
+    #         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    #         buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов', 'Отмена']
+    #         keyboard.add(*buttons)
+    #         Data.bot.send_message(user_id, text_message, reply_markup=keyboard)
 
 
 def sh_notification(sheet_name):
@@ -227,10 +238,10 @@ time_other = '08:00'
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)
 schedule.every().day.at(time_other).do(sh_random_name)
-schedule.every(10).minutes.do(Classes.TrackingSensor.cycle_get_data)
+# schedule.every().hour.do(Classes.TrackingSensor().get_data)
 schedule.every().day.at(time_other).do(checking_the_number_of_records)
 
-# sh_queue()
+Classes.TrackingSensor().check()
 
 while True:
     schedule.run_pending()
