@@ -698,9 +698,11 @@ def other_functions(message):
     if existence(message) is True:
         i_can = "Чтобы узнать что я умею напиши /help."
         bot.send_message(message.from_user.id, i_can)
+        print(answer_bot + i_can + '\n')
     else:
         answer_message = 'Чтобы пользоваться функциями бота, необходимо пройти регистрацию -> /start'
         bot.send_message(message.from_user.id, answer_message)
+        print(answer_bot + answer_message + '\n')
 
 
 if __name__ == '__main__':
