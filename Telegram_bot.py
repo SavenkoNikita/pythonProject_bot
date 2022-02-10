@@ -257,7 +257,7 @@ def set_to_user(message):
     """Лишить пользователя прав администратора"""
     print(full_name_user(message) + 'отправил команду:\n' + message.text)
     if rights_admin(message) is True:
-        text_message = '• Чтобы пользователю присвоить статус <user>, перешлите мне сообщение от этого человека.\n'\
+        text_message = '• Чтобы пользователю присвоить статус <user>, перешлите мне сообщение от этого человека.\n' \
                        '• Если хотите отказаться от прав админа, в ответ пришлите сообщение с любым текстом.\n' \
                        '• Для отмены операции нажмите "Отмена".'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -610,8 +610,8 @@ def create_record_step_4(message, list_of_answers):
     text_message = '• Запись добавлена в лист: "' + str(list_of_answers[0]) + '"\n' + \
                    '• Текст: "' + str(text_notification) + '"\n' + \
                    '• Дата уведомления: "' + str(date_notification) + '"\n'
-    Classes.Notification(message).notification_for(message.from_user.first_name + ' создал новое событие\n\n' + \
-                                                   text_message, 'status', 'admin')
+    Classes.Notification().notification_for(message.from_user.first_name + ' создал новое событие\n\n' + text_message,
+                                            'status', 'admin')
     list_of_answers.clear()
     exit()
 
