@@ -74,7 +74,7 @@ def start_command(message):
                         'дежурный в ближайшие дни, кто и когда отсутствует и прочая информация.\n' + \
                         'Для того чтобы пользоваться функциями бота, необходимо пройти регистрацию нажав /register. ' \
                         'Тем самым вы даёте согласие на хранение и обработку данных о вашем аккаунте. В базу данных ' \
-                        'будут занесены следующие сведения:\n ' + \
+                        'будут занесены следующие сведения:\n' + \
                         'ID: ' + str(message.from_user.id) + '\n' + \
                         'Имя: ' + str(message.from_user.first_name) + '\n' + \
                         'Фамилия: ' + str(message.from_user.last_name) + '\n' + \
@@ -699,9 +699,8 @@ def other_functions(message):
         i_can = "Чтобы узнать что я умею напиши /help."
         bot.send_message(message.from_user.id, i_can)
     else:
-        bot.send_message(message.from_user.id, existence(message))
-    # print(message.text)
-    # bot.send_message(message.from_user.id, message.text)
+        answer_message = 'Чтобы пользоваться функциями бота, необходимо пройти регистрацию -> /start'
+        bot.send_message(message.from_user.id, answer_message)
 
 
 if __name__ == '__main__':
