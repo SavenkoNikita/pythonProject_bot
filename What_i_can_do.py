@@ -1,5 +1,4 @@
 import Classes
-import SQLite
 
 # Команды доступные всем
 list_command_user = [
