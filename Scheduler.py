@@ -7,7 +7,6 @@ import schedule
 import Classes
 import Data
 import Other_function
-import Test3
 
 
 def sh_send_dej(sheet_name):

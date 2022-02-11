@@ -255,6 +255,7 @@ class SQL:
         """Установить пользователю права админа"""
         self.update_sqlite_table('admin', user_id, 'status')
 
+
 class Notification:
     """Методы уведомлений"""
 
@@ -362,4 +363,3 @@ class Notification:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
                 print("Соединение с SQLite закрыто")
-

@@ -31,6 +31,7 @@ def get_data_user_SQL(value):
             return end_text
 
 
+# noinspection PyTypeChecker
 def read_sheet(sheet_name):
     opener = urllib.request.build_opener(SMBHandler)
     file_name = opener.open(Data.route)

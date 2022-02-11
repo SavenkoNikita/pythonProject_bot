@@ -576,6 +576,7 @@ def create_record_step_3(message, list_of_answers):
     bot.register_next_step_handler(message, create_record_step_4, list_of_answers)  # Регистрация следующего действия
 
 
+# noinspection PyTypeChecker
 def create_record_step_4(message, list_of_answers):
     print(full_name_user(message) + 'написал:\n' + message.text)
     list_of_answers.append(message.text)
