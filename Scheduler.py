@@ -7,6 +7,7 @@ import schedule
 import Classes
 import Data
 import Other_function
+import Test3
 
 
 def sh_send_dej(sheet_name):
@@ -191,21 +192,6 @@ def sh_queue():
         i += 1
 
 
-# def cancel_job():
-#     start_date = '22.12.2021'
-#     start_date = datetime.date(start_date)
-#     start_date = datetime.strftime('dd.mm.yyyy')
-#     finish_date = '10.12.2022'
-#     finish_date = datetime.date(finish_date)
-#     finish_date = datetime.strftime('dd.mm.yyyy')
-#
-#     stop_func = [
-#
-#     ]
-#
-#     if start_date <= datetime.datetime.now() >= finish_date:
-
-
 def checking_the_number_of_records():
     date_list = Other_function.read_sheet('Дежурный')[0]
     count_date_list = len(date_list)
@@ -238,10 +224,8 @@ time_other = '08:00'
 schedule.every().day.at(time_dej).do(sh_send_dej, 'Дежурный')  # Проверяет и уведомляет о дежурном
 schedule.every().day.at(time_other).do(sh_queue)
 schedule.every().day.at(time_other).do(sh_random_name)
-# schedule.every().hour.do(Classes.TrackingSensor().get_data)
 schedule.every().day.at(time_other).do(checking_the_number_of_records)
 
-Classes.TrackingSensor().check()
 
 while True:
     schedule.run_pending()
