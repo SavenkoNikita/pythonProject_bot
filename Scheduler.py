@@ -5,6 +5,7 @@ import datetime
 import schedule
 
 import Classes
+import Count
 import Data
 import Other_function
 
@@ -67,22 +68,22 @@ def sh_send_invent(sheet_name):
         difference_date = difference_date.days + 1
         print(name_from_SQL)
 
-        def count_day(n):
-            stayed = ['остался', 'осталось']
-            days = ['день', 'дня', 'дней']
+        # def count_day(n):
+        #     stayed = ['остался', 'осталось']
+        #     days = ['день', 'дня', 'дней']
+        #
+        #     if n == 0:
+        #         return 'Сегодня инвентаризация.'
+        #     elif n % 10 == 1 and n % 100 != 11:
+        #         s = 0
+        #         d = 0
+        #         return 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
+        #     elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
+        #         s = 1
+        #         d = 1
+        #         return 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
 
-            if n == 0:
-                return 'Сегодня инвентаризация.'
-            elif n % 10 == 1 and n % 100 != 11:
-                s = 0
-                d = 0
-                return 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
-            elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
-                s = 1
-                d = 1
-                return 'До предстоящей инвентаризации ' + stayed[s] + ' ' + str(n) + ' ' + days[d]
-
-        text_day = count_day(difference_date)  # Кол-во дней до инвентаризации
+        text_day = Count.Counter().days_before_inventory(difference_date)  # Кол-во дней до инвентаризации
         text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
         text_message = text_day + '\n' + text_who  # Объединяем строки выше в одну
         # Если

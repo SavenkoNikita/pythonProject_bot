@@ -10,6 +10,7 @@ from smb.SMBHandler import SMBHandler
 import urllib.request
 
 import Classes
+import Count
 import Data
 import Other_function
 import What_i_can_do
@@ -165,19 +166,19 @@ def invent(message):
         # print(name_from_SQL)
 
         # Склоняем "день"
-        def count_day():
-            if difference_date == 0:
-                return 'Сегодня инвентаризация.'
-            elif difference_date == 1:
-                return 'До предстоящей инвентаризации остался 1 день.'
-            elif 1 < difference_date <= 4:
-                return 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
-            elif difference_date == 5:
-                return 'До предстоящей инвентаризации осталось 5 дней.'
-            elif difference_date > 5:
-                return 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
+        # def count_day():
+        #     if difference_date == 0:
+        #         return 'Сегодня инвентаризация.'
+        #     elif difference_date == 1:
+        #         return 'До предстоящей инвентаризации остался 1 день.'
+        #     elif 1 < difference_date <= 4:
+        #         return 'До предстоящей инвентаризации осталось ' + str(difference_date) + ' дня.'
+        #     elif difference_date == 5:
+        #         return 'До предстоящей инвентаризации осталось 5 дней.'
+        #     elif difference_date > 5:
+        #         return 'Следующая инвентаризация состоится ' + str(first_date_format) + '.'
 
-        text_day = count_day()  # Кол-во дней до инвентаризации
+        text_day = Count.Counter().days_before_inventory(difference_date)  # Кол-во дней до инвентаризации
         text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
         end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
         # Если в БД у пользователя содержится стикер
