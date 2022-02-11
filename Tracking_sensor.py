@@ -24,9 +24,7 @@ class TrackingSensor:
             'Деф 2 поверхность',
             'Деф 3 поверхность'
         ]
-        self.list_observers_defroster = [
-            1377358138
-        ]
+        self.list_observers_defroster = Data.list_observers_defroster
 
     @property
     def get_data(self):
