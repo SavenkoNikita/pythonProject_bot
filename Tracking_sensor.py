@@ -116,7 +116,7 @@ class TrackingSensor:
                         for user_id in self.list_observers_defroster:
                             Data.bot.send_message(chat_id=user_id, text=text_message)
 
-            time.sleep(2)
+            time.sleep(300)
 
 
 TrackingSensor().check()
