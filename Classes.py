@@ -12,16 +12,6 @@ class SQL:
     def __init__(self):
         self.sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False)
         self.cursor = self.sqlite_connection.cursor()
-        # if message.forward_from is not None:  # Если сообщение является пересылаемым
-        #     self.user_id = message.forward_from.id
-        #     self.first_name = message.forward_from.first_name
-        #     self.last_name = message.forward_from.last_name
-        #     self.username = message.forward_from.username
-        # else:
-        #     self.user_id = message.from_user.id
-        #     self.first_name = message.from_user.first_name
-        #     self.last_name = message.from_user.last_name
-        #     self.username = message.from_user.username
 
     def check_for_existence(self, user_id):
         """Проверка на существование пользователя в БД"""

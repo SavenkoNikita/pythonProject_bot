@@ -72,7 +72,8 @@ class File_processing:
             self.count_meaning = 2  # Количество непустых колонок 2
 
     def difference_date(self, date):
-        f"""На вход принимает дату. Возвращает разницу в днях между сегодня и {date}. Где "1" означает "завтра" и тд"""
+        f"""На вход принимает дату. Возвращает разницу в днях между сегодня и {date}. 
+        Где "0" означает сегодня, "1" - "завтра" и тд"""
 
         difference = date - self.now_date  # Разница между 1‑й датой и сегодня
         difference = difference.days + 1  # Форматируем в кол-во дней +1
@@ -90,21 +91,21 @@ class File_processing:
         for i in range(1, self.sheet.max_row):  # Повторить для каждого значения в колонке А
             if i is not None:  # Если значение не пустое
                 if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
-                    if self.count_meaning == 2:
-                        date = self.sheet.cell(row=i, column=1).value  # .strftime("%d.%m.%Y")
-                        meaning = self.sheet.cell(row=i, column=2).value
-                        line = [date, meaning]
-                        date_list.append([line])
-                    elif self.count_meaning == 3:
-                        date_one = self.sheet.cell(row=i, column=1).value  # .strftime("%d.%m.%Y")
-                        date_two = self.sheet.cell(row=i, column=2).value  # .strftime("%d.%m.%Y")
-                        meaning = self.sheet.cell(row=i, column=3).value
-                        line = [date_one, date_two, meaning]
-                        date_list.append(line)
+                    if self.count_meaning == 2:  # Если заполнены 2 колонки
+                        date = self.sheet.cell(row=i, column=1).value  # Ячейка с датой
+                        meaning = self.sheet.cell(row=i, column=2).value  # Ячейка с событием
+                        line = [date, meaning]  # Лист из 2 значений
+                        date_list.append([line])  # Добавить лист в общий список
+                    elif self.count_meaning == 3:  # Если заполнены 3 колонки
+                        date_one = self.sheet.cell(row=i, column=1).value  # Ячейка с первой датой
+                        date_two = self.sheet.cell(row=i, column=2).value  # Ячейка со второй датой
+                        meaning = self.sheet.cell(row=i, column=3).value  # Ячейка с событием
+                        line = [date_one, date_two, meaning]  # Лист из 3 значений
+                        date_list.append(line)  # Добавить лист в общий список
 
         date_list.sort()  # Сортируем лист по дате
 
-        if len(date_list) == 0:
+        if len(date_list) == 0:  # Если список пуст
             print(f'Список <{self.sheet_name}> пуст')
             return None
         else:
@@ -113,14 +114,14 @@ class File_processing:
     def clear_old_data(self):
         """Очистка неактуальных данных"""
 
-        for i in range(1, self.sheet.max_row):  # Повторить для каждого значения в колонке А
+        for i in range(1, self.sheet.max_row):  # Повторить для каждого значения в 1 колонке
             if i is not None:  # Если значение не пустое
                 if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
-                    if self.difference_date(self.sheet.cell(row=i, column=1).value) < 0:
-                        date_event = self.sheet.cell(row=i, column=1).value
-                        event = self.sheet.cell(row=i, column=self.count_meaning).value
+                    if self.difference_date(self.sheet.cell(row=i, column=1).value) < 0:  # Если событие в прошлом
+                        date_event = self.sheet.cell(row=i, column=1)  # Колонка с датой
+                        event = self.sheet.cell(row=i, column=self.count_meaning).value  # Ячейка с событием
                         print(f'Удалена строка {date_event.row}\n'
-                              f'Дата: {date_event}\n'
+                              f'Дата: {date_event.value}\n'
                               f'Текст: {event}\n\n')
                         self.sheet.delete_rows(i)  # Удаляем указанную в скобках строку
                         self.wb.save('test.xlsx')  # Сохранить книгу
@@ -155,30 +156,6 @@ class File_processing:
                 return sticker
             else:
                 return None
-
-        # if self.count_meaning == 3:
-        #     sticker = Classes.SQL().get_user_sticker(get_key(self.sheet.cell(row=2, column=self.count_meaning).value))
-        #     if sticker is not None:
-        #         return sticker
-        #     else:
-        #         return None
-        # elif self.count_meaning == 2:
-        #     sticker = Classes.SQL().get_user_sticker(get_key(self.sheet.cell(row=2, column=self.count_meaning).value))
-        #     if sticker is not None:
-        #         return sticker
-        #     else:
-        #         return None
-
-    # def dej_tomorrow(self):
-    #     """Проверяет, идёт кто завтра на инвент или есть ли дежурный"""
-    #
-    #     if self.difference_date == 1:
-    #         if self.sheet_name == 'Дежурный':
-    #             return self.next_dej()
-    #         elif self.sheet_name == 'Инвентаризация':
-    #             self.next_invent()
-    #     else:
-    #         print('На завтра событий нет')
 
     def list_dej(self):
         """Возвращает список всех дежурных, что есть в списке"""
@@ -250,12 +227,12 @@ class File_processing:
                         elif self.difference_date(
                                 self.sheet.cell(row=i, column=1).value) >= 1:  # Если дата не наступила
                             if self.count_meaning == 2:
-                                print(f'{str(File_processing.check_event_today.__qualname__)}\n'
+                                print(f'{File_processing.check_event_today.__qualname__}\n'
                                       f'Событие не наступило\nЛист:{self.sheet_name}\n'
                                       f'Текст уведомления:{self.sheet.cell(row=i, column=2).value}\n'
                                       f'Дата:{self.sheet.cell(row=i, column=1).value.strftime("%d.%m.%Y")}\n\n')
                             elif self.count_meaning == 3:
-                                print(f'{str(File_processing.check_event_today.__qualname__)}\n'
+                                print(f'{File_processing.check_event_today.__qualname__}\n'
                                       f'Событие не наступило\nЛист:{self.sheet_name}\n'
                                       f'Текст уведомления:{self.sheet.cell(row=i, column=3).value}\n'
                                       f'Дата:{self.sheet.cell(row=i, column=1).value.strftime("%d.%m.%Y")}\n\n')

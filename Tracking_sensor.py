@@ -3,6 +3,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 import Data
+import Other_function
 
 
 class TrackingSensor:
@@ -82,9 +83,9 @@ class TrackingSensor:
                     count += 1
             except OSError:
                 # text_error = 'Нет соединения с ' + i
-                # print(text_error)
-                # Data.bot.send_message(Data.list_admins.get('Никита'), text_error)
-                # Other_function.logging_event('warning', text_error)
+                print(OSError)
+                Data.bot.send_message(Data.list_admins.get('Никита'), OSError)
+                Other_function.logging_event('warning', OSError)
                 pass
 
         return sensors_with_an_error
