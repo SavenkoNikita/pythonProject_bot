@@ -3,6 +3,7 @@ import time
 
 import Data
 import Other_function
+import Telegram_bot
 
 
 class SQL:
@@ -363,3 +364,15 @@ class Notification:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
                 print("Соединение с SQLite закрыто")
+
+    def repeat_for_list(self, data_list, user_id, count=1):
+        """Присылает {count} элементов из списка {data_list} пользователю {user_id}. Если не указать {count},
+        пришлёт первый элемент из списка."""
+
+        temporary_list = []
+        for elem in range(0, count):
+            Data.bot.send_message(user_id, data_list[elem])
+            temporary_list.append(elem)
+
+        print(f'{Telegram_bot.answer_bot}')
+        print(temporary_list, sep='\n')
