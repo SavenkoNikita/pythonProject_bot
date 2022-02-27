@@ -1,13 +1,7 @@
-import datetime
-import os
 import random
 import time
-import urllib
 
 import telebot
-from openpyxl import load_workbook
-from smb.SMBHandler import SMBHandler
-import urllib.request
 
 import Classes
 import Count
@@ -21,15 +15,15 @@ answer_bot = 'Бот ответил:\n'
 
 
 def full_name_user(message):
-    """Получаем имя пользователя: Администратор/Пользователь + Имя + ID"""
+    """Принимает на вход сообщение. Возвращает имя пользователя: Администратор/Пользователь + Имя + ID"""
+
     check_admin = Classes.SQL().check_for_admin(message.from_user.id)  # Проверяем является ли пользователь админом
-    # if rights_admin(message) is True:
     if check_admin is True:
         status_user = 'Администратор '
     else:
         status_user = 'Пользователь '
-    name_user = message.from_user.first_name + ' (ID: ' + str(message.from_user.id) + ') '  # Получаем имя и id
-    pattern = str(tconv(message.date)) + '\n' + status_user + name_user  # Итог дата, /n, статус и данные пользователя
+    name_user = f'{message.from_user.first_name} (ID: {message.from_user.id})'  # Получаем имя и id
+    pattern = f'{tconv(message.date)}\n{status_user} {name_user}'  # Итог дата, /n, статус и данные пользователя
     return pattern
 
 
@@ -39,13 +33,13 @@ def existence(message):
     else:
         user_id = message.from_user.id
 
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if Classes.SQL().check_for_existence(user_id) is True:  # Проверка на наличие юзера в БД
         Classes.SQL().update_data_user(message)
         return True
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться -> /start'
-        print(answer_bot + end_text + '\n')
+        print(f'{answer_bot}{end_text}\n')
         return end_text
 
 
@@ -60,18 +54,19 @@ def rights_admin(message):
             return True
         else:  # Если пользователь не админ, бот сообщит об этом
             end_text = 'У вас нет прав для выполнения этой команды'
-            print(answer_bot + end_text + '\n')
+            print(f'{answer_bot}{end_text}\n')
             return end_text
 
 
 def types_message(message):
-    """Имитация нажатия клавиш"""
+    """Имитация нажатия клавиш ботом"""
+
     if message.forward_from is not None:  # Если сообщение является пересылаемым
         user_id = message.forward_from.id
     else:
         user_id = message.from_user.id
 
-    count_text_message = random.randint(3, 7)
+    count_text_message = random.randint(3, 7)  # Случайное кол-во секунд будет имитироваться набор текста
 
     bot.send_chat_action(user_id, action='typing')
     time.sleep(count_text_message)
@@ -80,76 +75,80 @@ def types_message(message):
 @bot.message_handler(commands=['start'])
 def start_command(message):
     """Приветственное сообщение"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
+    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if Classes.SQL().check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         # Приветственное сообщение
-        hello_message = 'Добро пожаловать ' + message.from_user.first_name + '!\n' + \
-                        'Это информационный бот IT отдела. Тут можно узнать кто из системных администраторов ' \
-                        'дежурный в ближайшие дни, кто и когда отсутствует и прочая информация.\n' + \
-                        'Для того чтобы пользоваться функциями бота, необходимо пройти регистрацию нажав /register. ' \
-                        'Тем самым вы даёте согласие на хранение и обработку данных о вашем аккаунте. В базу данных ' \
-                        'будут занесены следующие сведения:\n' + \
-                        'ID: ' + str(message.from_user.id) + '\n' + \
-                        'Имя: ' + str(message.from_user.first_name) + '\n' + \
-                        'Фамилия: ' + str(message.from_user.last_name) + '\n' + \
-                        'Username:  @' + str(message.from_user.username) + '\n'
+        hello_message = f'Добро пожаловать {message.from_user.first_name}!\n' \
+                        f'Это информационный бот IT отдела. Тут можно узнать кто из системных администраторов ' \
+                        f'дежурный в ближайшие дни, кто и когда отсутствует и прочая информация.\n' \
+                        f'Для того чтобы пользоваться функциями бота, необходимо пройти регистрацию нажав /register. ' \
+                        f'Тем самым вы даёте согласие на хранение и обработку данных о вашем аккаунте. В базу данных ' \
+                        f'будут занесены следующие сведения:\n' \
+                        f'ID: {message.from_user.id}\n' \
+                        f'Имя: {message.from_user.first_name}\n' \
+                        f'Фамилия: {message.from_user.last_name}\n' \
+                        f'Username:  @{message.from_user.username}\n'
         types_message(message)
         bot.reply_to(message, hello_message)
-        print(answer_bot + hello_message + '\n')
+        print(f'{answer_bot}{hello_message}\n')
     else:  # Эта строка появится если уже зарегистрированный пользователь попытается заново пройти регистрацию
-        end_text = 'Привет еще раз, ' + message.from_user.first_name + '\n' + 'Мы уже знакомы!'
+        end_text = f'Привет еще раз, {message.from_user.first_name}\nМы уже знакомы!'
         types_message(message)
         bot.reply_to(message, end_text)
-        print(answer_bot + end_text + '\n')
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['register'])
 def register(message):
     """Регистрация данных о пользователе в БД"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
+    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if Classes.SQL().check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         Classes.SQL().db_table_val(message.from_user.id, message.from_user.first_name, message.from_user.last_name,
                                    message.from_user.username)
         time.sleep(5)  # Подождать указанное кол-во секунд
-        register_message = 'Добро пожаловать ' + message.from_user.first_name + '!\n' + \
-                           'Регистрация успешно завершена!' + '\n' + \
-                           'Чтобы узнать, что умеет бот, жми /help.\n' \
-                           'Не забудь подписаться на рассылку, чтобы быть в курсе последних событий, жми /subscribe'
+        register_message = f'Добро пожаловать {message.from_user.first_name}!\n' \
+                           f'Регистрация успешно завершена!\n' \
+                           f'Чтобы узнать, что умеет бот, жми /help.\n' \
+                           f'Не забудь подписаться на рассылку, чтобы быть в курсе последних событий, жми /subscribe'
         types_message(message)
         bot.reply_to(message, register_message)  # Бот пришлёт уведомление об успешной регистрации
-        print(answer_bot + register_message + '\n')
+        print(f'{answer_bot}{register_message}\n')
     else:  # Иначе бот уведомит о том что пользователь уже регистрировался
-        end_text = 'Вы уже зарегистрированы!\n' + 'Чтобы узнать что умеет бот жми /help.'
+        end_text = f'Вы уже зарегистрированы!\nЧтобы узнать что умеет бот жми /help.'
         types_message(message)
         bot.reply_to(message, end_text)
-        print(answer_bot + end_text + '\n')
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['log_out'])
 def log_out(message):
     """Удаление данных о пользователе из БД"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
+    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if Classes.SQL().check_for_existence(message.from_user.id) is True:  # Если пользователь присутствует в БД
         Classes.SQL().log_out(message.from_user.id)  # Удаление данных из БД
         first_message = 'Подождите...'
         types_message(message)
         bot.reply_to(message, first_message)
-        log_out_message = 'До новых встреч ' + message.from_user.first_name + '!\n' + \
-                          'Данные о вашем аккаунте успешно удалены!' + '\n' + \
-                          'Чтобы снова пользоваться функционалом бота, жми /register.'
+        log_out_message = f'До новых встреч {message.from_user.first_name}!\n' \
+                          f'Данные о вашем аккаунте успешно удалены!\n' \
+                          f'Чтобы снова пользоваться функционалом бота, жми /register.'
         types_message(message)
         bot.reply_to(message, log_out_message)  # Прощальное сообщение
-        print(answer_bot + log_out_message + '\n')
+        print(f'{answer_bot}{log_out_message}\n')
     else:  # Иначе бот уведомит о том что пользователь ещё не регистрировался
-        end_text = 'Нельзя удалить данные которых нет :)\n' + 'Чтобы это сделать, нужно зарегистрироваться!'
+        end_text = f'Нельзя удалить данные которых нет :)\nЧтобы это сделать, нужно зарегистрироваться!'
         types_message(message)
         bot.reply_to(message, end_text)
-        print(answer_bot + end_text + '\n')
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
     """Список доступных команд"""
+
     if existence(message) is True:  # Проверка на наличие юзера в БД
         keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
         keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
@@ -157,76 +156,73 @@ def help_command(message):
         types_message(message)
         # Показ списка доступных команд и кнопки "Написать разработчику"
         bot.reply_to(message, list_commands, reply_markup=keyboard)
-        print(answer_bot + list_commands + '\n')
+        print(f'{answer_bot}{list_commands}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_message = existence(message)
         types_message(message)
         bot.reply_to(message, end_message)
+        print(f'{answer_bot}{end_message}\n')
 
 
 @bot.message_handler(commands=['invent'])
 def invent(message):
     """Узнать кто следующий на инвентаризацию"""
-    list_name = 'Инвентаризация'  # Получаем имя страницы по ключу
+
+    list_name = 'Инвентаризация'  # Имя страницы
 
     if rights_admin(message) is True:
-        date_list_today = Other_function.read_sheet(list_name)[1]
-        event_data = date_list_today[0]
-        first_date = event_data[0]
-        # first_date_format = first_date.strftime("%d.%m.%Y")
-        event = event_data[1]
-        name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(event))
-        if name_from_SQL is None:
-            name_from_SQL = event
-        date_now = datetime.datetime.now()  # Получаем текущую дату
-        difference_date = first_date - date_now
-        difference_date = difference_date.days + 1
-
-        text_day = Count.Counter().days_before_inventory(difference_date)  # Кол-во дней до инвентаризации
-        text_who = 'Судя по графику, выходит ' + name_from_SQL + '.'  # Имя следующего дежурного
-        end_text = text_day + '\n' + text_who  # Объединяем строки выше в одну
-        # Если в БД у пользователя содержится стикер
-        if Classes.SQL().get_user_sticker(Other_function.get_key(event)) is not None:
-            # Пришлёт сообщение о дежурном
+        if Other_function.File_processing(list_name).read_file() is not None:
+            text_message = Other_function.File_processing(list_name).next_invent()
+            sticker = Other_function.File_processing(list_name).sticker_next_dej()
             types_message(message)
-            bot.reply_to(message, end_text)
-            # Пришлёт стикер этого дежурного
-            bot.send_sticker(message.chat.id, Classes.SQL().get_user_sticker(Other_function.get_key(event)))
+            bot.reply_to(message, text_message)
+            if sticker is not None:
+                bot.send_sticker(message.chat.id, sticker)
+            print(f'{answer_bot}{text_message}\n')
         else:
-            end_text = rights_admin(message)
+            text_message = Other_function.File_processing(list_name).next_invent()
             types_message(message)
-            bot.reply_to(message, end_text)
+            bot.reply_to(message, text_message)
+            print(f'{answer_bot}{text_message}\n')
+    else:
+        end_text = rights_admin(message)
+        types_message(message)
+        bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['random'])
 def random_name(message):
     """Получить случайное имя из сисадминов"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
     if rights_admin(message) is True:
         list_name = ['Паша', 'Дима', 'Никита']  # Список имён
         r_name = random.choice(list_name)  # Получение случайного значения из списка
         types_message(message)
         bot.reply_to(message, r_name)  # Отправка сообщения с рандомным именем
-        print(answer_bot + r_name + '\n')
+        print(f'{answer_bot}{r_name}\n')
     else:
         end_text = rights_admin(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['set_admin'])
 def set_to_admin(message):
     """Назначить пользователя админом"""
+
     if rights_admin(message) is True:
-        text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека\n'
+        text_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека'
         types_message(message)
         bot.reply_to(message, text_message)  # Бот пришлёт выше указанный текст
-        print(text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
         bot.register_next_step_handler(message, receive_id)  # Регистрация следующего действия
     else:
         end_text = rights_admin(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 def receive_id(message):
@@ -236,27 +232,28 @@ def receive_id(message):
         first_name_future_admin = str(message.forward_from.first_name)  # Получаем имя будущего админа
         last_name_future_admin = str(message.forward_from.last_name)  # Получаем фамилию будущего админа
         full_name_future_admin = first_name_future_admin + ' ' + last_name_future_admin  # Склеиваем данные воедино
-        print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_admin +
-              ' содержащее текст:\n' + message.text)
-        answer_text = 'Пользователь <' + full_name_future_admin + '> добавлен в список администраторов'
+        print(f'{full_name_user(message)} переслал сообщение от пользователя {full_name_future_admin} '
+              f'содержащее текст:\n {message.text}')
+        answer_text = f'Пользователь <{full_name_future_admin}> добавлен в список администраторов'
         if Classes.SQL().check_for_existence(id_future_admin) is True:  # Проверка на наличие человека в БД
             if Classes.SQL().check_for_admin(id_future_admin) is False:  # Проверка админ ли юзер
                 Classes.SQL().set_admin(id_future_admin)  # Обновляем статус нового админа в БД
                 types_message(message)
                 bot.reply_to(message, answer_text)  # Бот уведомляет об этом того кто выполнил запрос
-                print(answer_text + '\n')
-                bot.send_message(id_future_admin, 'Администратор <' + message.from_user.first_name +
-                                 '> предоставил вам права администратора')  # Бот уведомляет пользователя, что
-                # такой-то юзер, дал ему права админа
+                print(f'{answer_bot}{answer_text}\n')
+                bot.send_message(id_future_admin, f'Администратор <{message.from_user.first_name}> '
+                                                  f'предоставил вам права администратора')  # Бот уведомляет
+                # пользователя, что такой-то юзер, дал ему права админа
             else:  # Если тот кому предоставляют права уже админ, бот сообщит об ошибке
                 end_text = 'Нельзя пользователю дать права администратора, поскольку он им уже является!'
                 types_message(message)
                 bot.reply_to(message, end_text)
+                print(f'{answer_bot}{end_text}\n')
         else:  # Если того кому пытаются дать права нет в БД, бот сообщит об ошибке
             end_text = 'Вы пытаетесь дать права администратора пользователю который отсутствует в базе данных!'
             types_message(message)
             bot.reply_to(message, end_text)
-            print(end_text + '\n')
+            print(f'{answer_bot}{end_text}\n')
     except Exception as error:  # В любом другом случае бот сообщит об ошибке
         error_text = 'Что-то пошло не так. Чтобы попробовать снова, жми /set_admin'
         types_message(message)
@@ -270,7 +267,7 @@ def receive_id(message):
 @bot.message_handler(commands=['set_user'])
 def set_to_user(message):
     """Лишить пользователя прав администратора"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
     if rights_admin(message) is True:
         text_message = '• Чтобы пользователю присвоить статус <user>, перешлите мне сообщение от этого человека.\n' \
                        '• Если хотите отказаться от прав админа, в ответ пришлите сообщение с любым текстом.\n' \
@@ -281,15 +278,17 @@ def set_to_user(message):
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)  # Бот пришлёт выше указанный текст и клавиатуру
         bot.register_next_step_handler(message, receive_id_user)  # Регистрация следующего действия
+        print(f'{answer_bot}{text_message}\n')
     else:
         end_text = rights_admin(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 def receive_id_user(message):
     try:
-        print(full_name_user(message) + 'написал:\n' + message.text)
+        print(f'{full_name_user(message)} написал:\n{message.text}')
         hide_keyboard = telebot.types.ReplyKeyboardRemove()
         if message.text == 'Отмена':
             text_message = 'Операция прервана.'
@@ -301,28 +300,29 @@ def receive_id_user(message):
             first_name_future_user = str(message.from_user.first_name)  # Получаем имя будущего юзера
             last_name_future_user = str(message.from_user.last_name)  # Получаем фамилию будущего юзера
             full_name_future_user = first_name_future_user + ' ' + last_name_future_user  # Склеиваем данные воедино
-            print(full_name_user(message) + ' переслал сообщение от пользователя ' + full_name_future_user +
-                  ' содержащее текст:\n' + message.text)
-            answer_text = 'Пользователю <' + full_name_future_user + '> присвоен статус <user>'
+            print(f'{full_name_user(message)} переслал сообщение от пользователя {full_name_future_user} '
+                  f'содержащее текст:\n {message.text}')
+            answer_text = f'Пользователю <{full_name_future_user}> присвоен статус <user>'
             if Classes.SQL().check_for_existence(id_future_user) is True:  # Проверка на наличие человека в БД
                 if Classes.SQL().check_for_admin(id_future_user) is True:  # Проверка админ ли юзер
                     Classes.SQL().set_user(id_future_user)  # Обновляем статус нового юзера в БД
                     types_message(message)
                     bot.reply_to(message, answer_text, reply_markup=hide_keyboard)  # Бот уведомляет об этом того кто
                     # выполнил запрос
-                    print(answer_text + '\n')
-                    bot.send_message(id_future_user, 'Администратор <' + message.from_user.first_name +
-                                     '> лишил вас прав администратора')  # Бот уведомляет нового юзера, что
+                    print(f'{answer_bot}{answer_text}\n')
+                    bot.send_message(id_future_user, f'Администратор <{message.from_user.first_name}> лишил вас прав '
+                                                     f'администратора')  # Бот уведомляет нового юзера, что
                     # пользователь <Имя>, лишил его прав админа
                 else:  # Если тот, кого лишают прав админа, уже и так юзер, бот сообщит об ошибке
                     end_text = 'Нельзя пользователю присвоить статус <user> поскольку он им уже является'
                     types_message(message)
                     bot.reply_to(message, end_text, reply_markup=hide_keyboard)
+                    print(f'{answer_bot}{end_text}\n')
             else:  # Если того, кого пытаются лишить прав админа, нет в БД, бот сообщит об ошибке
                 end_text = 'Вы пытаетесь присвоить пользователю статус <user>, который отсутствует в базе данных!'
                 types_message(message)
                 bot.reply_to(message, end_text, reply_markup=hide_keyboard)
-                print(end_text + '\n')
+                print(f'{answer_bot}{end_text}\n')
 
     except Exception as error:  # В любом другом случае бот сообщит об ошибке
         error_text = 'Что-то пошло не так. Чтобы попробовать снова, жми /set_user'
@@ -336,7 +336,7 @@ def receive_id_user(message):
 @bot.message_handler(commands=['subscribe'])
 def set_subscribe(message):
     """Подписка на рассылку"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
     if existence(message) is True:  # Проверка на наличие юзера в БД
         if Classes.SQL().check_for_notification(message.from_user.id) is False:  # Если пользователь не подписчик
             Classes.SQL().set_subscribe(message.from_user.id)  # Присвоить статус <подписан>
@@ -345,23 +345,24 @@ def set_subscribe(message):
             types_message(message)
             bot.reply_to(message, end_text)  # Отправка текста выше
             #  Отсылка уведомлений о действии разработчику
-            bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + 'подписался на '
-                                                                                                    'уведомления.')
-            print(answer_bot + end_text + '\n')
+            bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                             text=f'{full_name_user(message)} подписался на уведомления.')
+            print(f'{answer_bot}{end_text}\n')
         else:  # Если подписчик пытается подписаться, то получит ошибку
             end_text = 'Вы уже подписаны на уведомления.'
             types_message(message)
             bot.reply_to(message, end_text)
-            print(answer_bot + end_text + '\n')
+            print(f'{answer_bot}{end_text}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['unsubscribe'])
 def set_subscribe(message):
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
     if existence(message) is True:
         if Classes.SQL().check_for_notification(message.from_user.id) is True:  # Если пользователь подписчик
             Classes.SQL().set_unsubscribe(message.from_user.id)  # Присвоить в БД статус <не подписан>
@@ -369,47 +370,51 @@ def set_subscribe(message):
             types_message(message)
             bot.reply_to(message, end_text)  # Отправка текста выше
             #  Отсылка уведомлений о действии разработчику
-            bot.send_message(chat_id=Data.list_admins.get('Никита'), text=full_name_user(message) + 'отписался от '
-                                                                                                    'уведомлений.')
-            print(answer_bot + end_text + '\n')
+            bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                             text=f'{full_name_user(message)} отписался от уведомлений.')
+            print(f'{answer_bot}{end_text}\n')
         else:  # Если не подписчик пытается отписаться, то получит ошибку
             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
             types_message(message)
             bot.reply_to(message, end_text)
-            print(answer_bot + end_text + '\n')
+            print(f'{answer_bot}{end_text}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['change_sticker'])
-def change_sticker_1(message):
+def change_sticker(message):
     """Присвоить/сменить себе стикер"""
+
     if rights_admin(message) is True:
         text_message = 'Отправь мне стикер который хочешь привязать в своей учётной записи!'
         types_message(message)
         bot.reply_to(message, text_message)
-        bot.register_next_step_handler(message, change_sticker_2)  # Регистрация следующего действия
+        bot.register_next_step_handler(message, change_sticker_step_2)  # Регистрация следующего действия
+        print(f'{answer_bot}{text_message}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = rights_admin(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
-def change_sticker_2(message):
-    print(full_name_user(message) + 'отправил стикер ' + message.sticker.file_id)
+def change_sticker_step_2(message):
+    print(f'{full_name_user(message)} отправил стикер {message.sticker.file_id}')
     Classes.SQL().update_sqlite_table(message.sticker.file_id, message.from_user.id, 'sticker')
     end_text = 'Стикер обновлён'
     types_message(message)
     bot.reply_to(message, end_text)
-    print(answer_bot + end_text + '\n')
+    print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['dezhurnyj'])
 def dej(message):
     """Узнать кто дежурный"""
-    print(full_name_user(message) + 'отправил команду:\n' + message.text)
+
     if existence(message) is True:  # Проверка на наличие юзера в БД
         text_message = 'Что вы хотите получить?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -418,90 +423,65 @@ def dej(message):
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
         bot.register_next_step_handler(message, dej_step_2)  # Регистрация следующего действия
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 def dej_step_2(message):
-    print(full_name_user(message) + 'написал:\n' + message.text)
-    date_list = Other_function.read_sheet('Дежурный')[0]
-    count_date_list = len(date_list)
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    sheet_name = 'Дежурный'
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     try:
         if message.text == 'Имя следующего дежурного':
-            date_list_today = Other_function.read_sheet('Дежурный')[1]
-            event_data = date_list_today[0]
-            first_date = event_data[0]
-            first_date = first_date.strftime("%d.%m.%Y")
-            last_date = event_data[1]
-            last_date = last_date.strftime("%d.%m.%Y")
-            event = event_data[2]
-            name_from_SQL = Classes.SQL().get_user_info(Other_function.get_key(event))
-            text_message = 'В период с ' + first_date + ' по ' + last_date + ' ' + 'будет дежурить ' + name_from_SQL + \
-                           '.'
-            # Если в БД у пользователя содержится стикер
-            if Classes.SQL().get_user_sticker(Other_function.get_key(event)) is not None:
-                # Пришлёт сообщение о дежурном
-                types_message(message)
-                bot.reply_to(message, text_message, reply_markup=hide_keyboard)
-                # Пришлёт стикер этого дежурного
-                bot.send_sticker(message.chat.id, Classes.SQL().get_user_sticker(Other_function.get_key(event)))
-            else:
-                # Пришлёт сообщение о дежурном
-                types_message(message)
-                bot.reply_to(message, text_message, reply_markup=hide_keyboard)
-            print(answer_bot + text_message + '\n')
-        elif message.text == 'Список дежурных':
-            text_message = Count.Counter().number_of_events(count_date_list)
+            text_message = Other_function.File_processing(sheet_name).next_dej()
+            user_sticker = Other_function.File_processing(sheet_name).sticker_next_dej()
+            # Пришлёт сообщение о дежурном
             types_message(message)
             bot.reply_to(message, text_message, reply_markup=hide_keyboard)
-            bot.register_next_step_handler(message, dej_step_3)  # Регистрация следующего действия
-            print(answer_bot + text_message + '\n')
+            if user_sticker is not None:
+                # Пришлёт стикер этого дежурного
+                bot.send_sticker(message.chat.id, user_sticker)
+            print(f'{answer_bot}{text_message}\n')
+        elif message.text == 'Список дежурных':
+            count_data_list = len(Other_function.File_processing(sheet_name).list_dej())
+            text_message = Count.Counter().number_of_events(count_data_list)
+            types_message(message)
+            bot.reply_to(message, text_message, reply_markup=hide_keyboard)
+            bot.register_next_step_handler(message, dej_step_3, sheet_name,
+                                           count_data_list)  # Регистрация следующего действия
+            print(f'{answer_bot}{text_message}\n')
     except Exception as error:  # В любом другом случае бот сообщит об ошибке
-        text_message = 'Что-то пошло не так. Чтобы попробовать снова, жми /test'
+        text_message = 'Что-то пошло не так. Чтобы попробовать снова, жми /dezhurnyj'
         types_message(message)
         bot.reply_to(message, text_message)
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
         print(str(error))
         Other_function.logging_event('error', str(error))
 
 
-def dej_step_3(message):
-    print(full_name_user(message) + 'написал:\n' + message.text)
+def dej_step_3(message, sheet_name, count_data_list):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    count = int(message.text)
     try:
-        count = int(message.text)
-        date_list = Other_function.read_sheet('Дежурный')[0]
-
-        if date_list is not None:
-            if count <= len(date_list):
-                print(answer_bot)
-                for i in range(0, count):
-                    event_data = date_list[i]
-                    first_date = event_data[0]
-                    first_date_format = first_date.strftime("%d.%m.%Y")
-                    last_date = event_data[1]
-                    last_date_format = last_date.strftime("%d.%m.%Y")
-                    event = event_data[2]
-                    text_message = 'В период с ' + first_date_format + ' по ' + last_date_format + ' будет дежурить ' \
-                                   + event
-                    types_message(message)
-                    bot.send_message(message.from_user.id, text_message, reply_markup=hide_keyboard)
-                    print(text_message)
-            else:
-                text_message = 'Вы запрашиваете ' + str(count) + ' записей, а есть только ' + str(
-                    len(date_list)) + '.\n' + 'Попробуйте снова - /dezhurnyj'
-                types_message(message)
-                bot.reply_to(message, text_message, reply_markup=hide_keyboard)
-                print(answer_bot + text_message + '\n')
+        if count <= count_data_list:
+            data_list = Other_function.File_processing(sheet_name).list_dej()
+            Classes.Notification().repeat_for_list(data_list, message.from_user.id, count)
+        else:
+            text_message = f'Вы запрашиваете {count} записей, а есть только {count_data_list}.\n' \
+                           f'Попробуйте снова - /dezhurnyj'
+            types_message(message)
+            bot.reply_to(message, text_message, reply_markup=hide_keyboard)
+            print(f'{answer_bot}{text_message}\n')
     except Exception as error:  # В любом другом случае бот сообщит об ошибке
         text_message = 'Я не распознал число, попробуйте снова - /dezhurnyj'
         types_message(message)
         bot.reply_to(message, text_message)
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
         print(str(error))
         Other_function.logging_event('error', str(error))
 
@@ -509,6 +489,7 @@ def dej_step_3(message):
 @bot.message_handler(commands=['get_list'])
 def get_list(message):
     """Получить список всех пользователей"""
+
     if rights_admin(message) is True:
         text_message = Classes.SQL().get_list_users()
         types_message(message)
@@ -517,11 +498,13 @@ def get_list(message):
         end_text = rights_admin(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(commands=['feed_back'])
 def feed_back(message):
     """Обратная связь"""
+
     if existence(message) is True:  # Проверка на наличие юзера в БД
         text_message = 'Выберите тип обращения'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -530,46 +513,55 @@ def feed_back(message):
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
         bot.register_next_step_handler(message, feed_back_step_2)  # Регистрация следующего действия
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 def feed_back_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
     answer = 'Опишите суть обращения. Чем подробнее тем лучше.\n'
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Отмена']
     keyboard.add(*buttons)
     types_message(message)
     bot.reply_to(message, answer, reply_markup=keyboard)
-    contacting_technical_support = message.text + '\n'
+    contacting_technical_support = f'{message.text}\n'
     bot.register_next_step_handler(message, feed_back_step_3,
                                    contacting_technical_support)  # Регистрация следующего действия
-    print(answer_bot + answer + '\n')
+    print(f'{answer_bot}{answer}\n')
 
 
 def feed_back_step_3(message, text_problem):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Отмена':
         text_message = 'Обращение отменено.'
         types_message(message)
         bot.reply_to(message, text_message)
+        print(f'{answer_bot}{text_message}\n')
     else:
-        problem = 'FEED_BACK\n' + text_problem + message.text
+        problem = f'FEED_BACK:\n{text_problem}{message.text}'
         Other_function.logging_event('info', problem)
-        text_message = 'Ваше обращение создано!\n' + 'Тип: ' + text_problem + 'Текст сообщения: ' + message.text
+        text_message = f'Ваше обращение создано!\n' \
+                       f'Тип: {text_problem}\n' \
+                       f'Текст сообщения: {message.text}'
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=hide_keyboard)
         bot.send_message(chat_id=Data.list_admins.get('Никита'),
-                         text='Поступило новое обращение от пользователя:\n' + 'Тип: ' + text_problem +
-                              'Текст сообщения: ' + message.text)
+                         text=f'Поступило новое обращение от пользователя:\n'
+                              f'Тип: {text_problem}\n'
+                              f'Текст сообщения: {message.text}')
+        print(f'{answer_bot}{text_message}\n')
 
 
 @bot.message_handler(commands=['create_record'])
 def create_record(message):
     """Создать уведомление"""
+
     if rights_admin(message) is True:
         text_message = 'В какой лист добавить запись?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -578,28 +570,31 @@ def create_record(message):
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
         bot.register_next_step_handler(message, create_record_step_2, buttons)  # Регистрация следующего действия
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
     else:
         end_text = rights_admin(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 def create_record_step_2(message, list_sheet):
-    print(full_name_user(message) + 'написал:\n' + message.text)
+    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Отмена':
         text_message = 'Операция прервана.'
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{text_message}\n')
     elif message.text not in list_sheet:
-        text_message = 'Нет листа с именем <' + str(message.text) + '>! Необходимо выбрать из списка.'
+        text_message = f'Нет листа с именем <{message.text}>! Необходимо выбрать из списка.'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Ок']
         keyboard.add(*buttons)
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
         bot.register_next_step_handler(message, create_record)  # Регистрация следующего действия
+        print(f'{answer_bot}{text_message}\n')
     else:
         list_of_answers = [message.text]
         text_message = 'Введи текст уведомления'
@@ -607,62 +602,47 @@ def create_record_step_2(message, list_sheet):
         bot.reply_to(message, text_message, reply_markup=hide_keyboard)
         bot.register_next_step_handler(message, create_record_step_3,
                                        list_of_answers)  # Регистрация следующего действия
+        print(f'{answer_bot}{text_message}\n')
 
 
 def create_record_step_3(message, list_of_answers):
-    print(full_name_user(message) + 'написал:\n' + message.text)
+    print(f'{full_name_user(message)} написал:\n{message.text}')
     list_of_answers.append(message.text)
-    text_message = 'Введи дату когда уведомить о событии в формате <ДД.ММ.ГГГГ>. \n*Примечание: если дату указать ' \
-                   'некорректно, уведомление не сработает!'
+    text_message = 'Введи дату когда уведомить о событии в формате <ДД.ММ.ГГГГ>.\n' \
+                   '*Примечание: если дату указать некорректно, уведомление не сработает!*'
     types_message(message)
     bot.reply_to(message, text_message)
     bot.register_next_step_handler(message, create_record_step_4, list_of_answers)  # Регистрация следующего действия
+    print(f'{answer_bot}{text_message}\n')
 
 
 # noinspection PyTypeChecker
 def create_record_step_4(message, list_of_answers):
-    print(full_name_user(message) + 'написал:\n' + message.text)
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+
     list_of_answers.append(message.text)
-    print(list_of_answers)
+
     sheet_name = list_of_answers[0]
-    text_notification = list_of_answers[1]
-    date_notification = list_of_answers[2]
-    opener = urllib.request.build_opener(SMBHandler)
-    file_name = opener.open(Data.route)
-    wb = load_workbook(file_name)  # Открываем нужную книгу
-    sheet = wb[sheet_name]  # Получить лист по ключу
-    column_a = sheet['A']  # Колонка A
-    print(len(column_a))
+    date = list_of_answers[2]
+    text_event = list_of_answers[1]
 
-    i = 0
-    while column_a[i]:  # Повторить пока в колонке А не пусто
-        if column_a[i].value is None:
-            print('Строка ' + str(column_a[i].row) + '-' + str(column_a[i].value) + ' пустая')
-            empty_string = column_a[i].row
-            sheet.cell(row=empty_string, column=1).value = date_notification  #
-            sheet.cell(row=empty_string, column=2).value = text_notification  #
-            wb.save('test.xlsx')  # Сохранить книгу
-            file = open('test.xlsx', 'rb')
-            file_name = opener.open(Data.route, data=file)
-            file_name.close()
-            os.remove('test.xlsx')
-            break
+    text_message = Other_function.File_processing(sheet_name).create_event(date, text_event)
+    types_message(message)
+    bot.reply_to(message, text_message)
+    print(f'{answer_bot}{text_message}\n')
 
-        if i < len(column_a):
-            i += 1
+    report_text = f'{full_name_user(message)} создал событие\n\n{text_message}'
+    bot.send_message(chat_id=Data.list_admins.get('Никита'), text=report_text)
 
-    text_message = '• Запись добавлена в лист: "' + str(list_of_answers[0]) + '"\n' + \
-                   '• Текст: "' + str(text_notification) + '"\n' + \
-                   '• Дата уведомления: "' + str(date_notification) + '"\n'
-    Classes.Notification().notification_for(message.from_user.first_name + ' создал новое событие\n\n' + text_message,
-                                            'status', 'admin')
     list_of_answers.clear()
+
     exit()
 
 
 @bot.message_handler(commands=['games'])
 def games(message):
     """Игры"""
+
     if existence(message) is True:  # Проверка на наличие юзера в БД
         text_message = 'На данный момент доступна одна игра'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -671,16 +651,17 @@ def games(message):
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
         bot.register_next_step_handler(message, games_step_2)  # Регистрация следующего действия
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
     else:
         end_text = existence(message)
         types_message(message)
         bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 def games_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
     if message.text == 'Играть в "Угадаю число"':
-        print(full_name_user(message) + 'написал ' + message.text)
         text_message = 'Хорошо, начнём. Правила просты - загадай число от 1 до 100 а я попробую его угадать. ' \
                        'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
                        'жми "больше", а если угадал - "в точку".'
@@ -689,50 +670,57 @@ def games_step_2(message):
         keyboard.add(*buttons)
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
         bot.register_next_step_handler(message, games_step_3)
     elif message.text == 'Отмена':
-        print(full_name_user(message) + 'написал ' + message.text)
-        text_message = 'Хорошо, сыграем в следующий раз.'
+        text_message = 'Хорошо, сыграем в другой раз.'
         types_message(message)
         bot.reply_to(message, text_message)
-        print(answer_bot + text_message + '\n')
+        print(f'{answer_bot}{text_message}\n')
 
 
 def games_step_3(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}\n')
     if message.text == 'Начнём':
-        print(full_name_user(message) + 'написал ' + message.text)
         number = random.randint(0, 100)
-        text_message = 'Возможно это ' + str(number) + ' ?'
+        text_message = f'Возможно это {number}?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Больше', 'Меньше', 'В точку']
         keyboard.add(*buttons)
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=keyboard)
-        print(answer_bot + text_message + '\n')
+        print(f'{text_message}')
         bot.register_next_step_handler(message, games_step_4, number, lower=1, high=100, count=1)
 
 
 def games_step_4(message, number, lower, high, count):
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Больше':
-        print(message.text)
+        print(f'{message.text}\n')
         lower = number + 1
     elif message.text == 'Меньше':
-        print(message.text)
+        print(f'{message.text}\n')
         high = number - 1
     elif message.text == 'В точку':
-        text_message = 'Я угадал твоё число за ' + str(count) + ' ходов'
+        print(f'{message.text}\n')
+        text_message = f'Я угадал твоё число за {count} ходов'
         types_message(message)
         bot.reply_to(message, text_message, reply_markup=hide_keyboard)
         text_message_2 = 'Сыграем ещё? /games'
         bot.send_message(message.from_user.id, text_message_2)
-        print(answer_bot + text_message + '\n')
+        print(f'{text_message}\n{text_message_2}\n')
         exit()
     else:
         print(message.text)
     middle = (high + lower) // 2
-    text_message = 'Я думаю твоё число ' + str(middle)
+    list_phrase = [
+        'Я думаю твоё число',
+        'Скорее всего это',
+        'Всё, я знаю -',
+        'Маловероятно, но похоже ты задумал число'
+    ]
+    random_phrase = random.choice(list_phrase)
+    text_message = f'{random_phrase} {middle}'
     print(text_message)
     count += 1
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -749,12 +737,12 @@ def other_functions(message):
         i_can = "Чтобы узнать что я умею напиши /help."
         types_message(message)
         bot.reply_to(message, i_can)
-        print(answer_bot + i_can + '\n')
+        print(f'{answer_bot}{i_can}\n')
     else:
         answer_message = 'Чтобы пользоваться функциями бота, необходимо пройти регистрацию -> /start'
         types_message(message)
         bot.reply_to(message, answer_message)
-        print(answer_bot + answer_message + '\n')
+        print(f'{answer_bot}{answer_message}\n')
 
 
 if __name__ == '__main__':
@@ -763,7 +751,7 @@ if __name__ == '__main__':
             bot.polling(none_stop=True)
         except Exception as e:
             time.sleep(3)
-            bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Бот выдал ошибку: ' + str(e))
+            bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'Бот выдал ошибку: {e}')
             print(str(e))
             Other_function.logging_event('error', str(e))
             # os.kill(os.getpid(), 9)
