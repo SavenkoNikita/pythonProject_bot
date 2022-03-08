@@ -35,7 +35,7 @@ class TrackingSensor:
 
         for i in self.list_controllers:
             try:
-                url = 'http://' + i + '/values.xml'
+                url = f'http://{i}/values.xml'
                 web_file = urllib.request.urlopen(url)
                 root_node = ET.parse(web_file).getroot()
 
@@ -82,7 +82,7 @@ class TrackingSensor:
 
                     count += 1
             except OSError:
-                # text_error = 'Нет соединения с ' + i
+                # text_error = f'Нет соединения с {i}'
                 print(OSError)
                 Data.bot.send_message(Data.list_admins.get('Никита'), OSError)
                 Other_function.logging_event('warning', OSError)
@@ -92,16 +92,19 @@ class TrackingSensor:
 
     def check(self):
         """Если есть неисправные датчики, формируется список"""
+
         list_errors = []
+        list_id = []
         while True:
             for name, value in self.get_data:
                 if name not in list_errors and value == '-999.9':
                     list_errors.append(name)
-                    text_message = 'Датчик <' + name + '> не работает'
+                    text_message = f'Датчик <{name}> не работает'
                     print(text_message)
 
                     for user_id in self.list_observers:
-                        Data.bot.send_message(chat_id=user_id, text=text_message)
+                        not_job = Data.bot.send_message(chat_id=user_id, text=text_message)
+                        list_id.append(not_job.message_id)
 
                     if name in self.list_names_def_sensor:
                         for user_id in self.list_observers_defroster:
@@ -109,15 +112,24 @@ class TrackingSensor:
 
                 elif name in list_errors and value != '-999.9':
                     list_errors.remove(name)
-                    text_message = 'Работа датчика <' + name + '> восстановлена'
+                    text_message = f'Работа датчика <{name}> восстановлена'
+                    print(text_message)
+
                     for user_id in self.list_observers:
-                        Data.bot.send_message(chat_id=user_id, text=text_message)
+                        job = Data.bot.send_message(chat_id=user_id, text=text_message)
+                        list_id.append(job.message_id)
 
                     if name in self.list_names_def_sensor:
                         for user_id in self.list_observers_defroster:
                             Data.bot.send_message(chat_id=user_id, text=text_message)
 
             time.sleep(300)
+
+            for user_id in self.list_observers:
+                if len(list_id) != 0:
+                    for id_message in list_id:
+                        Data.bot.delete_message(chat_id=user_id, message_id=id_message)
+                        list_id.remove(id_message)
 
 
 TrackingSensor().check()
