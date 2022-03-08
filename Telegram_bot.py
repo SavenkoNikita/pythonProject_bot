@@ -731,6 +731,11 @@ def games_step_4(message, number, lower, high, count):
     bot.register_next_step_handler(message, games_step_4, middle, lower, high, count)
 
 
+@bot.message_handler(commands=['vote'])
+def vote(message):
+    bot.send_poll(message.from_user.id, 'вопрос', options=['1', '2', '3'])
+
+
 @bot.message_handler(content_types=['text'])
 def other_functions(message):
     if existence(message) is True:
