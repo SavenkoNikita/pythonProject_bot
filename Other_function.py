@@ -90,6 +90,8 @@ class File_processing:
 
         for i in range(1, self.sheet.max_row):  # Повторить для каждого значения в колонке А
             if i is not None:  # Если значение не пустое
+                # print(f'Строка <{i}> с тексом <{self.sheet.cell(row=i, column=1).value}> '
+                #       f'имеет тип <{type(self.sheet.cell(row=i, column=1).value)}>')
                 if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
                     if self.count_meaning == 2:  # Если заполнены 2 колонки
                         date = self.sheet.cell(row=i, column=1).value  # Ячейка с датой
@@ -214,16 +216,16 @@ class File_processing:
                                 print(text_message)
                                 Classes.Notification().notification_for(text_message, 'status', 'admin')
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
-                        elif self.difference_date(self.sheet.cell(row=i, column=1).value) == 1:
-                            if self.sheet_name == 'Дежурный':
-                                text_message = self.next_dej()
-                                name_dej = self.sheet.cell(row=i, column=3).value
-                                print(text_message)
-                                Classes.Notification().notification_for(text_message, 'notification', 'yes')
-                                Classes.Notification().send_sticker_for(name_dej, 'notification', 'yes')
-                                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
-                            elif self.sheet_name == 'Инвентаризация':
-                                self.next_invent()
+                        # elif self.difference_date(self.sheet.cell(row=i, column=1).value) == 1:
+                        #     if self.sheet_name == 'Дежурный':
+                        #         text_message = self.next_dej()
+                        #         name_dej = self.sheet.cell(row=i, column=3).value
+                        #         print(text_message)
+                        #         Classes.Notification().notification_for(text_message, 'notification', 'yes')
+                        #         Classes.Notification().send_sticker_for(name_dej, 'notification', 'yes')
+                        #         # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                        #     elif self.sheet_name == 'Инвентаризация':
+                        #         self.next_invent()
                         elif self.difference_date(
                                 self.sheet.cell(row=i, column=1).value) >= 1:  # Если дата не наступила
                             if self.count_meaning == 2:
@@ -237,7 +239,37 @@ class File_processing:
                                       f'Текст уведомления:{self.sheet.cell(row=i, column=3).value}\n'
                                       f'Дата:{self.sheet.cell(row=i, column=1).value.strftime("%d.%m.%Y")}\n\n')
 
-                        # time.sleep(5)
+                        time.sleep(5)
+
+    def check_dej_today(self):
+        """Проверяет есть ли завтра дежурный. Результат - уведомление соответствующей группе пользователей."""
+
+        if self.read_file() is not None:
+            for i in range(1, self.sheet.max_row):
+                if self.sheet_name in Data.sheets_file:
+                    if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
+                        if self.difference_date(self.sheet.cell(row=i, column=1).value) == 1:
+                            if self.sheet_name == 'Дежурный':
+                                text_message = self.next_dej()
+                                name_dej = self.sheet.cell(row=i, column=3).value
+                                print(text_message)
+                                Classes.Notification().notification_for(text_message, 'notification', 'yes')
+                                Classes.Notification().send_sticker_for(name_dej, 'notification', 'yes')
+                                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                            elif self.sheet_name == 'Инвентаризация':
+                                self.next_invent()
+                        elif self.difference_date(self.sheet.cell(row=i, column=1).value) >= 1:
+                            '''Если дата не наступила'''
+                            if self.count_meaning == 2:
+                                print(f'{File_processing.check_event_today.__qualname__}\n'
+                                      f'Событие не наступило\nЛист:{self.sheet_name}\n'
+                                      f'Текст уведомления:{self.sheet.cell(row=i, column=2).value}\n'
+                                      f'Дата:{self.sheet.cell(row=i, column=1).value.strftime("%d.%m.%Y")}\n\n')
+                            elif self.count_meaning == 3:
+                                print(f'{File_processing.check_event_today.__qualname__}\n'
+                                      f'Событие не наступило\nЛист:{self.sheet_name}\n'
+                                      f'Текст уведомления:{self.sheet.cell(row=i, column=3).value}\n'
+                                      f'Дата:{self.sheet.cell(row=i, column=1).value.strftime("%d.%m.%Y")}\n\n')
 
     def create_event(self, date, text_event):
         """Принимает дату и текст уведомления и записывает в файл. Возвращает текст с описанием созданного
@@ -249,7 +281,8 @@ class File_processing:
                 if self.sheet.cell(row=i, column=1).value is None:
                     print(f'Строка {self.sheet.cell(row=i, column=1).row} пустая')
                     empty_string = self.sheet.cell(row=i, column=1).row
-                    self.sheet.cell(row=empty_string, column=1).value = date  # Дата
+                    date_obj = datetime.datetime.strptime(date, '%d.%m.%Y')
+                    self.sheet.cell(row=empty_string, column=1).value = date_obj  # Дата
                     self.sheet.cell(row=empty_string, column=2).value = text_event  # Текст события
                     self.wb.save('test.xlsx')  # Сохранить книгу
                     file = open('test.xlsx', 'rb')
@@ -261,6 +294,8 @@ class File_processing:
                                    f'• Текст: <{text_event}>\n'
 
                     return text_message
+        except urllib as e:
+            print(f'Ошибка при работе с файлом:\n{e}')
         except Exception as e:
             # time.sleep(3)
             print(str(e))
