@@ -27,7 +27,7 @@ time_dej = '15:00'
 time_other = '08:00'
 
 # Проверяет и уведомляет о дежурном
-schedule.every().day.at(time_dej).do(Other_function.File_processing('Дежурный').check_event_today)
+schedule.every().day.at(time_dej).do(Other_function.File_processing('Дежурный').check_dej_today)
 # Проверяет есть ли сегодня уведомления
 schedule.every().day.at(time_other).do(repeat_for_list)
 # Присылает случайное имя кто идёт в цех
