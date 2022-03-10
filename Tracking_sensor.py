@@ -112,7 +112,7 @@ class TrackingSensor:
 
                 elif name in list_errors and value != '-999.9':
                     list_errors.remove(name)
-                    text_message = f'Работа датчика <{name}> восстановлена'
+                    text_message = f'Работа датчика <{name}> восстановлена.\nТекущее показание температуры <{value}C>.'
                     print(text_message)
 
                     for user_id in self.list_observers:
