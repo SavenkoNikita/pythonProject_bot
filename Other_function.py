@@ -216,18 +216,10 @@ class File_processing:
                                 print(text_message)
                                 Classes.Notification().notification_for(text_message, 'status', 'admin')
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
-                        # elif self.difference_date(self.sheet.cell(row=i, column=1).value) == 1:
-                        #     if self.sheet_name == 'Дежурный':
-                        #         text_message = self.next_dej()
-                        #         name_dej = self.sheet.cell(row=i, column=3).value
-                        #         print(text_message)
-                        #         Classes.Notification().notification_for(text_message, 'notification', 'yes')
-                        #         Classes.Notification().send_sticker_for(name_dej, 'notification', 'yes')
-                        #         # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
-                        #     elif self.sheet_name == 'Инвентаризация':
-                        #         self.next_invent()
-                        elif self.difference_date(
-                                self.sheet.cell(row=i, column=1).value) >= 1:  # Если дата не наступила
+                        elif 0 <= self.difference_date(self.sheet.cell(row=i, column=1).value) <= 2:
+                            if self.sheet_name == 'Инвентаризация':
+                                self.next_invent()
+                        elif self.difference_date(self.sheet.cell(row=i, column=1).value) >= 1:  # Дата не наступила
                             if self.count_meaning == 2:
                                 print(f'{File_processing.check_event_today.__qualname__}\n'
                                       f'Событие не наступило\nЛист:{self.sheet_name}\n'
