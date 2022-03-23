@@ -5,6 +5,7 @@ import sqlite3
 import time
 import traceback
 import urllib
+import requests
 
 from openpyxl import load_workbook
 from smb.SMBHandler import SMBHandler
@@ -444,6 +445,7 @@ class File_processing:
         self.file_name = self.opener.open(Data.route)
         self.wb = load_workbook(self.file_name)  # Открываем нужную книгу
         self.sheet = self.wb[sheet_name]  # Получить лист по имени
+        self.first_column = self.sheet['A']
         self.now_date = datetime.datetime.now()  # Получаем текущую дату
         self.title_first_column = self.sheet.cell(row=1, column=1).value  # Заголовок первой колонки
         self.title_second_column = self.sheet.cell(row=1, column=2).value  # Заголовок второй колонки
@@ -520,10 +522,11 @@ class File_processing:
     def clear_old_data(self):
         """Очистка неактуальных данных"""
 
-        for i in range(2, self.sheet.max_row):  # Повторить для каждого значения в 1 колонке
-            if i is not None:  # Если значение не пустое
-                if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
-                    if self.difference_date(self.sheet.cell(row=i, column=1).value) < 0:  # Если событие в прошлом
+        for i in range(2, 10):  # Повторить для каждого значения в 1 колонке
+            if self.sheet.cell(row=i, column=1).value is not None:  # Если значение не пустое
+                date = datetime.datetime.strptime(self.sheet.cell(row=i, column=1).value, '%d.%m.%Y')
+                if isinstance(date, datetime.datetime):  # Если значение == дата
+                    if self.difference_date(date) < 0:  # Если событие в прошлом
                         date_event = self.sheet.cell(row=i, column=1)  # Колонка с датой
                         event = self.sheet.cell(row=i, column=self.count_meaning).value  # Ячейка с событием
                         print(f'Удалена строка {date_event.row}\n'
@@ -538,7 +541,11 @@ class File_processing:
                         time.sleep(1)
                         self.clear_old_data()
                     else:
-                        continue
+                        print(f'{self.difference_date(self.sheet.cell(row=i, column=1).value)}')
+                else:
+                    print(f'{type(self.sheet.cell(row=i, column=1).value)} не дата')
+            # else:
+            #     print(f'{self.sheet.cell(row=i, column=1).value} is None')
 
     def next_dej(self):
         """Если файл заполнен, возвращает строку 'В период с {first_date} по {second_date} будет дежурить {name}.'"""

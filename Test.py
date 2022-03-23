@@ -32,10 +32,10 @@
 # print(Other_function.File_processing('Уведомления для подписчиков').check_event_today())
 # print(Other_function.File_processing('Дежурный').read_file())
 # print(Other_function.File_processing('Дежурный').next_dej())
-import datetime
+# import datetime
 
-import Functions
-import Other_function
+# import Functions
+# import Other_function
 
 
 
@@ -65,8 +65,9 @@ import Other_function
 # import Scheduler
 #
 # Scheduler.repeat_for_list()
+import Functions
 
-# data_list = Other_function.File_processing('Уведомления для подписчиков').read_file()
+# data_list = Functions.File_processing('Уведомления для подписчиков').read_file()
 #
 # if data_list is not None:
 #     for i in data_list:
@@ -80,3 +81,8 @@ import Other_function
 #             print(f'Кол-во значений: {len(i)}\n\n')
 
 Functions.File_processing('Уведомления для подписчиков').clear_old_data()
+
+# if -13 <= -999.9:
+#     print(True)
+# else:
+#     print(False)
