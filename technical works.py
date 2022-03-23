@@ -1,5 +1,6 @@
 import time
 import Data
+import Functions
 import Other_function
 
 bot = Data.bot
@@ -30,4 +31,4 @@ if __name__ == '__main__':
             text_error = e
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'Бот выдал ошибку: {text_error}')
             print(text_error)
-            Other_function.logging_event('error', text_error)
+            Functions.logging_event('error', text_error)

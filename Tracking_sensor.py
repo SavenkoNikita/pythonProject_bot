@@ -1,9 +1,10 @@
+import datetime
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
 
 import Data
-import Other_function
+import Functions
 
 
 class TrackingSensor:
@@ -25,11 +26,31 @@ class TrackingSensor:
             'Деф 2 поверхность',
             'Деф 3 поверхность'
         ]
+
+        self.list_names_def_one = [
+            'Дефростер 1',
+            'Деф 1 внутри',
+            'Деф 1 поверхность'
+        ]
+
+        self.list_names_def_two = [
+            'Дефростер 2',
+            'Деф 2 внутри',
+            'Деф 2 поверхность'
+        ]
+
+        self.list_names_def_three = [
+            'Дефростер 3',
+            'Деф 3 внутри',
+            'Деф 3 поверхность'
+        ]
+
         self.list_observers_defroster = Data.list_observers_defroster
 
     @property
     def get_data(self):
-        """Получить имя контроллера, имя датчика, id датчика и текущие показания температуры"""
+        """Получить имя контроллера, имя датчика, id датчика и текущие показания температуры. Результат - список с
+        вложенными списками [name, value] """
 
         sensors_with_an_error = []
 
@@ -85,51 +106,134 @@ class TrackingSensor:
                 # text_error = f'Нет соединения с {i}'
                 print(OSError)
                 Data.bot.send_message(Data.list_admins.get('Никита'), OSError)
-                Other_function.logging_event('warning', OSError)
+                Functions.logging_event('warning', OSError)
                 pass
 
         return sensors_with_an_error
 
-    def check(self):
-        """Если есть неисправные датчики, формируется список"""
+    def check_defroster(self):
+        """Формирует список датчиков дефростеров. Результат - список"""
 
-        list_errors = []
-        list_id = []
+        def_one = []
+        def_two = []
+        def_three = []
+
+        for name, value in self.get_data:
+            if name in self.list_names_def_sensor:
+                if value <= '-999.9':
+                    text_message = f'"{name}": неисправен'
+                    if name in self.list_names_def_one:
+                        def_one.append(text_message)
+                    elif name in self.list_names_def_two:
+                        def_two.append(text_message)
+                    elif name in self.list_names_def_three:
+                        def_three.append(text_message)
+                else:
+                    text_message = f'"{name}": {value} ℃'
+                    if name in self.list_names_def_one:
+                        def_one.append(text_message)
+                    elif name in self.list_names_def_two:
+                        def_two.append(text_message)
+                    elif name in self.list_names_def_three:
+                        def_three.append(text_message)
+
+        def_one.sort()
+        def_two.sort()
+        def_three.sort()
+
+        now_date = datetime.datetime.now().strftime('%d.%m.%Y %H:%M')
+        nl = '\n'
+        end_text = f'**Мониторинг дефростеров**\n' \
+                   f'{now_date}\n\n' \
+                   f'_Первый дефростер_\n' \
+                   f'{nl.join(def_one)}\n\n' \
+                   f'_Второй дефростер_\n' \
+                   f'{nl.join(def_two)}\n\n' \
+                   f'_Третий дефростер_\n' \
+                   f'{nl.join(def_three)}\n\n'
+
+        return end_text
+
+    def check_all(self):
+
+        sensors_error = []
+
+        for name, value in self.get_data:
+            if value <= '-999.9':
+                text_message = f'{name}'
+                sensors_error.append(text_message)
+
+        if len(sensors_error) != 0:
+            sensors_error.sort()
+        else:
+            text_message = f'Все датчики работают корректно'
+            sensors_error.append(text_message)
+
+        now_date = datetime.datetime.now().strftime('%d.%m.%Y %H:%M')
+        nl = '\n'
+        end_text = f'**Мониторинг неисправных датчиков**\n' \
+                   f'{now_date}\n\n' \
+                   f'_Список неисправных:_\n' \
+                   f'{nl.join(sensors_error)}\n\n'
+
+        return end_text
+
+    def notification_of_errors(self):
+
+        list_id_mes_def = {}
+
+        for user in self.list_observers_defroster:  # Повторить для каждого юзера в списке наблюдателей за дефростером
+            id_mes_def = Data.bot.send_message(user, 'Start tracking sensor in defroster')
+            list_id_mes_def[user] = id_mes_def  # Добавить в словарь пару id_user: id_message
+            Data.bot.pin_chat_message(user, message_id=id_mes_def.message_id)  # Закрепляет сообщение у пользователя
+
+        list_id_mes = {}
+
+        for user in self.list_observers:  # Повторить для каждого юзера в списке наблюдателей
+            id_mes = Data.bot.send_message(user, 'Start tracking all error sensor')
+            list_id_mes[user] = id_mes  # Добавить в словарь пару id_user: id_message
+            Data.bot.pin_chat_message(user, message_id=id_mes.message_id)  # Закрепляет сообщение у пользователя
+
         while True:
-            for name, value in self.get_data:
-                if name not in list_errors and value == '-999.9':
-                    list_errors.append(name)
-                    text_message = f'Датчик <{name}> не работает'
-                    print(text_message)
+            try:
+                for key, value in list_id_mes_def.items():
+                    Data.bot.edit_message_text(text=self.check_defroster(), chat_id=key, message_id=value.message_id,
+                                               parse_mode='Markdown')
 
-                    for user_id in self.list_observers:
-                        not_job = Data.bot.send_message(chat_id=user_id, text=text_message)
-                        list_id.append(not_job.message_id)
+                for key, value in list_id_mes.items():
+                    Data.bot.edit_message_text(text=self.check_all(), chat_id=key, message_id=value.message_id,
+                                               parse_mode='Markdown')
 
-                    if name in self.list_names_def_sensor:
-                        for user_id in self.list_observers_defroster:
-                            Data.bot.send_message(chat_id=user_id, text=text_message)
+                time.sleep(60)
+            except KeyboardInterrupt:
+                time.sleep(3)
+                text_message = 'TrackingSensor был прерван вручную'
+                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
+                print(text_message)
+                Functions.logging_event('error', text_message)
 
-                elif name in list_errors and value != '-999.9':
-                    list_errors.remove(name)
-                    text_message = f'Работа датчика <{name}> восстановлена.\nТекущее показание температуры <{value}C>.'
-                    print(text_message)
+                for key, value in list_id_mes_def.items():
+                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
 
-                    for user_id in self.list_observers:
-                        job = Data.bot.send_message(chat_id=user_id, text=text_message)
-                        list_id.append(job.message_id)
+                for key, value in list_id_mes.items():
+                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
 
-                    if name in self.list_names_def_sensor:
-                        for user_id in self.list_observers_defroster:
-                            Data.bot.send_message(chat_id=user_id, text=text_message)
+                break
+            except Exception as e:
+                time.sleep(3)
+                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'TrackingSensor: {e}')
+                print(str(e))
+                Functions.logging_event('error', str(e))
 
-            time.sleep(300)
+                for key, value in list_id_mes_def.items():
+                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
 
-            for user_id in self.list_observers:
-                if len(list_id) != 0:
-                    for id_message in list_id:
-                        Data.bot.delete_message(chat_id=user_id, message_id=id_message)
-                        list_id.remove(id_message)
+                for key, value in list_id_mes.items():
+                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
 
 
-TrackingSensor().check()
+TrackingSensor().notification_of_errors()

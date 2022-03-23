@@ -1,10 +1,12 @@
 import random
 import time
 import datetime
+import traceback
 
 import schedule
 
 import Data
+import Functions
 import Other_function
 
 
@@ -20,19 +22,33 @@ def sh_random_name():
 
 def repeat_for_list():
     for i in Data.sheets_file:
-        Other_function.File_processing(i).check_event_today()
+        Functions.File_processing(i).check_event_today()
 
 
 time_dej = '15:00'
-time_other = '08:00'
+# Проверяет и уведомляет есть ли завтра дежурный
+schedule.every().day.at(time_dej).do(Functions.File_processing('Дежурный').check_dej_tomorrow)
 
-# Проверяет и уведомляет о дежурном
-schedule.every().day.at(time_dej).do(Other_function.File_processing('Дежурный').check_dej_today)
+time_other = '08:00'
 # Проверяет есть ли сегодня уведомления
 schedule.every().day.at(time_other).do(repeat_for_list)
 # Присылает случайное имя кто идёт в цех
 schedule.every().day.at(time_other).do(sh_random_name)
 
 while True:
-    schedule.run_pending()
-    time.sleep(1)
+    try:
+        schedule.run_pending()
+        time.sleep(1)
+    except KeyboardInterrupt:
+        time.sleep(3)
+        text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nScheduler был прерван вручную'
+        Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
+        print(text_message)
+        Functions.logging_event('error', text_message)
+        break
+    except Exception:
+        text_error = traceback.format_exc()
+        Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_error)
+        print(text_error)
+        Functions.logging_event('error', text_error)
+
