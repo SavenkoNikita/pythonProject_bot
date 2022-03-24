@@ -248,7 +248,7 @@ class SQL:
             records = self.cursor.fetchall()
             for row in records:
                 if row[4] is not None:  # Если в SQL есть запись о username
-                    name_and_username = row[2] + ' @' + row[4]  # Получаем имя и username
+                    name_and_username = f'{row[2]} @{row[4]}'  # Получаем имя и username
                 else:
                     name_and_username = row[2]  # Получаем имя
                 return name_and_username
@@ -594,9 +594,13 @@ class File_processing:
         """Если файл заполнен, возвращает строку 'До предстоящей инвентаризации осталось {N} дней.
         Судя по графику, выходит {name}'"""
 
+        self.clear_old_data()
+
         if self.sheet_name == 'Инвентаризация':
             if self.read_file() is not None:
                 name_from_SQL = SQL().get_user_info(get_key(self.sheet.cell(row=2, column=2).value))
+                if name_from_SQL is None:
+                    name_from_SQL = self.sheet.cell(row=2, column=2).value
                 dead_line_date = self.difference_date(self.sheet.cell(row=2, column=1).value)
                 dead_line_text = Counter().days_before_inventory(dead_line_date)
                 text_who = f'Судя по графику, выходит {name_from_SQL}.'  # Имя следующего дежурного
