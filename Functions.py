@@ -5,8 +5,6 @@ import sqlite3
 import time
 import traceback
 import urllib
-import requests
-
 from openpyxl import load_workbook
 from smb.SMBHandler import SMBHandler
 
@@ -524,26 +522,29 @@ class File_processing:
 
         for i in range(2, 10):  # Повторить для каждого значения в 1 колонке
             if self.sheet.cell(row=i, column=1).value is not None:  # Если значение не пустое
-                date = datetime.datetime.strptime(self.sheet.cell(row=i, column=1).value, '%d.%m.%Y')
-                if isinstance(date, datetime.datetime):  # Если значение == дата
-                    if self.difference_date(date) < 0:  # Если событие в прошлом
-                        date_event = self.sheet.cell(row=i, column=1)  # Колонка с датой
-                        event = self.sheet.cell(row=i, column=self.count_meaning).value  # Ячейка с событием
-                        print(f'Удалена строка {date_event.row}\n'
-                              f'Дата: {date_event.value}\n'
-                              f'Текст: {event}\n\n')
-                        self.sheet.delete_rows(i)  # Удаляем указанную в скобках строку
-                        self.wb.save('test.xlsx')  # Сохранить книгу
-                        file = open('test.xlsx', 'rb')
-                        self.file_name = self.opener.open(Data.route, data=file)
-                        self.file_name.close()
-                        os.remove('test.xlsx')
-                        time.sleep(1)
-                        self.clear_old_data()
-                    else:
-                        print(f'{self.difference_date(self.sheet.cell(row=i, column=1).value)}')
+                if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
+                    date = self.sheet.cell(row=i, column=1).value
                 else:
-                    print(f'{type(self.sheet.cell(row=i, column=1).value)} не дата')
+                    date = datetime.datetime.strptime(self.sheet.cell(row=i, column=1).value, '%d.%m.%Y')
+
+                if self.difference_date(date) < 0:  # Если событие в прошлом
+                    date_event = self.sheet.cell(row=i, column=1)  # Колонка с датой
+                    event = self.sheet.cell(row=i, column=self.count_meaning).value  # Ячейка с событием
+                    print(f'Удалена строка {date_event.row}\n'
+                          f'Дата: {date_event.value}\n'
+                          f'Текст: {event}\n\n')
+                    self.sheet.delete_rows(i)  # Удаляем указанную в скобках строку
+                    self.wb.save('test.xlsx')  # Сохранить книгу
+                    file = open('test.xlsx', 'rb')
+                    self.file_name = self.opener.open(Data.route, data=file)
+                    self.file_name.close()
+                    os.remove('test.xlsx')
+                    time.sleep(1)
+                    self.clear_old_data()
+                    # else:
+                    #     print(f'{self.difference_date(self.sheet.cell(row=i, column=1).value)}')
+                # else:
+                #     print(f'{type(self.sheet.cell(row=i, column=1).value)} не дата')
             # else:
             #     print(f'{self.sheet.cell(row=i, column=1).value} is None')
 

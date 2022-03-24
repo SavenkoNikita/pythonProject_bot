@@ -7,7 +7,6 @@ import schedule
 
 import Data
 import Functions
-import Other_function
 
 
 def sh_random_name():
@@ -51,4 +50,4 @@ while True:
         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_error)
         print(text_error)
         Functions.logging_event('error', text_error)
-
+        break

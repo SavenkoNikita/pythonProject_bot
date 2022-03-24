@@ -80,9 +80,11 @@ import Functions
 #             print(i)
 #             print(f'Кол-во значений: {len(i)}\n\n')
 
-Functions.File_processing('Уведомления для подписчиков').clear_old_data()
+# Functions.File_processing('Уведомления для подписчиков').clear_old_data()
 
 # if -13 <= -999.9:
 #     print(True)
 # else:
 #     print(False)
+
+print(Functions.File_processing('Дежурный').next_dej())
