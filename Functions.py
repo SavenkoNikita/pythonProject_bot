@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import random
 import sqlite3
 import time
 import traceback
@@ -9,6 +10,7 @@ from openpyxl import load_workbook
 from smb.SMBHandler import SMBHandler
 
 import Data
+import Tracking_sensor
 from Data import list_command_admin, list_command_user
 
 
@@ -71,6 +73,16 @@ def can_help(user_id):
     return end_text
 
 
+def random_name():
+    """Присылает уведомление кто сегодня закрывает сигналы"""
+    if datetime.datetime.today().isoweekday() <= 5:
+        list_name = ['Паша', 'Дима', 'Никита']
+        random_name = random.choice(list_name)
+        end_text = f'Случайным образом определено, что сигналы сегодня закрывает {random_name}'
+        for i in list_name:
+            Data.bot.send_message(chat_id=Data.list_admins.get(i), text=end_text)
+
+
 class SQL:
     """Проверка, добавление, обновление и удаление данных о пользователях"""
 
@@ -78,13 +90,18 @@ class SQL:
         self.sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False, timeout=10)
         self.cursor = self.sqlite_connection.cursor()
 
-    def check_for_existence(self, user_id):
+    def check_for_existence(self, user_id, table_DB='users'):
         """Проверка на существование пользователя в БД"""
-        info = self.cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
-        if info.fetchone() is None:  # Если человека нет в бд
-            return False
-        else:  # Если есть человек в бд
-            return True
+
+        try:
+            info = self.cursor.execute(f'SELECT * FROM {table_DB} WHERE user_id=?', (user_id,))
+            if info.fetchone() is None:  # Если человека нет в бд
+                return False
+            else:  # Если есть человек в бд
+                return True
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
 
     def check_for_admin(self, user_id):
         """Проверка на то, является ли пользователь админом"""
@@ -95,22 +112,28 @@ class SQL:
             else:  # Если пользователь админ
                 return True
 
-    def check_for_notification(self, user_id):
-        """Проверка на то, подписался ли пользователь на рассылку уведомлений"""
-        if self.check_for_existence(user_id) is True:
-            info = self.cursor.execute('SELECT * FROM users WHERE notification=? and user_id=?', ('yes', user_id))
-            if info.fetchone() is None:  # Если пользователь НЕ подписан на рассылку
-                return False
-            else:  # Если пользователь подписан на рассылку
-                return True
+    # def check_status_bd(self, user_id, column_bd):
+    #     """Проверяет статус колонки в БД. Возвращает булево."""
+    #     if self.check_for_existence(user_id) is True:
+    #         info = self.cursor.execute(f'SELECT * FROM users WHERE {column_bd}=? and user_id=?', ('yes', user_id))
+    #         if info.fetchone() is None:  # Если пользователь НЕ подписан на рассылку
+    #             return False
+    #         else:  # Если пользователь подписан на рассылку
+    #             return True
 
-    def set_subscribe(self, user_id):
-        """Присваивает статус <подписан> в БД"""
-        self.update_sqlite_table('yes', user_id, 'notification')
+    def change_status_DB(self, user_id, column_bd):
+        """Меняет у {user_id} в БД статус {column_bd} c 'yes' на 'no' и наоборот в зависимости от текущего статуса."""
 
-    def set_unsubscribe(self, user_id):
-        """Присваивает статус <отписан> в БД"""
-        self.update_sqlite_table('no', user_id, 'notification')
+        status = self.check_status_DB(user_id, column_bd, 'yes')
+
+        if status is False:
+            self.update_sqlite_table('yes', user_id, column_bd)
+        else:
+            self.update_sqlite_table('no', user_id, column_bd)
+
+    # def set_unsubscribe(self, user_id):
+    #     """Присваивает статус <отписан> в БД"""
+    #     self.update_sqlite_table('no', user_id, 'notification')
 
     def db_table_val(self, user_id, first_name, last_name, username):
         """Проверка на уникальность и добавление данных о пользователе в SQL"""
@@ -164,8 +187,8 @@ class SQL:
             print(end_text)
         elif self.check_for_existence(user_id) is True:
             # обновление изменений данных о пользователе:
-            sqlite_update_query = 'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? WHERE ' \
-                                  'user_id =' + str(user_id)
+            sqlite_update_query = f'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? ' \
+                                  f'WHERE user_id = {user_id}'
             column_values = (first_name, last_name, username)
             self.cursor.execute(sqlite_update_query, column_values)
             self.sqlite_connection.commit()
@@ -184,7 +207,7 @@ class SQL:
         """Обновление статуса пользователя в SQL"""
         if self.check_for_existence(user_id) is True:
             try:
-                self.cursor.execute(("Update users set " + column_name + " = ? where user_id = ?"), (status, user_id))
+                self.cursor.execute(f"Update users set {column_name} = ? where user_id = ?", (status, user_id))
                 self.sqlite_connection.commit()
                 print("Запись успешно обновлена")
                 self.cursor.close()
@@ -195,22 +218,19 @@ class SQL:
                 if self.sqlite_connection:
                     self.sqlite_connection.close()
 
-    def log_out(self, user_id):
+    def log_out(self, user_id, table_name_DB='users'):
         """Стереть все данные о пользователе из БД"""
         try:
             if self.sqlite_connection:
-                try_message = 'Все данные о пользователе <' + self.get_user_info(user_id) + '> успешно удалены из БД!'
+                try_message = f'Все данные о пользователе <{self.get_user_info(user_id)}> успешно удалены из {table_name_DB}! '
                 print(try_message)
                 logging_event('info', try_message)
-                self.cursor.execute('''DELETE from users where user_id = ?''', (user_id,))
+                self.cursor.execute(f'DELETE from {table_name_DB} where user_id = ?', (user_id,))
                 self.sqlite_connection.commit()
                 self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event('error', str(error))
-        # finally:
-        #     if self.sqlite_connection:
-        #         self.sqlite_connection.close()
 
     def update_data_user(self, message):
         """Обновить данные о пользователе"""
@@ -311,6 +331,116 @@ class SQL:
         """Установить пользователю права админа"""
         self.update_sqlite_table('admin', user_id, 'status')
 
+    def check_status_DB(self, user_id, column_name, status, table_DB='users'):
+        f"""Проверяет у конкретного {user_id} соответствует ли {status} в колонке {column_name}."""
+
+        try:
+            request = f'select * from {table_DB} where user_id = ? and {column_name} = ?'
+            self.cursor.execute(request, (user_id, status))
+            user = self.cursor.fetchone()
+            if user is not None:
+                return True
+            else:
+                return False
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+
+    def create_list_users(self, column_name_DB, column_meaning, name_table_DB='users'):
+        """Формирует список пользователей с подходящими параметрами. Например, список id_user которые подписаны на
+        уведомления. На вход принимает имя колонки из БД и значение ячейки. Результат list[user_id]."""
+
+        try:
+            info = self.cursor.execute(f'SELECT * FROM {name_table_DB} WHERE {column_name_DB}=?', (column_meaning,))
+            records = self.cursor.fetchall()
+
+            list_users_id = []
+
+            for row in records:
+                if info.fetchone() is None:  # Если есть совпадение по запросу
+                    list_users_id.append(row[1])
+
+            if len(list_users_id) == 0:
+                return None
+            else:
+                return list_users_id
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def get_mess_id(self, user_id):
+        """Проверяет есть ли message_id в tracking_sensor_defroster и если есть возвращает его"""
+
+        try:
+            request = f'select * from tracking_sensor_defroster where user_id = ?'
+            self.cursor.execute(request, (user_id,))
+            row = self.cursor.fetchone()
+            if row is not None:
+                return row[1]
+            else:
+                return None
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def add_user_by_table_def(self, user_id):
+        """Если пользователь подписан на дефростеры и отсутствует в tracking_sensor_defroster, добавляет его."""
+
+        try:
+            if self.check_status_DB(user_id, 'def', 'yes') is True:
+                if self.check_for_existence(user_id, "tracking_sensor_defroster") is False:
+                    self.cursor.execute('INSERT INTO tracking_sensor_defroster (user_id, message_id) VALUES (?, ?)',
+                                        (user_id, None))
+                    self.sqlite_connection.commit()
+                    self.cursor.close()
+                    print(f'Пользователь {user_id} успешно добавлен в таблицу "tracking_sensor_defroster"')
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def update_mess_id_by_table_def(self, user_id, message_id):
+        f"""В таблице tracking_sensor_defroster обновляет пользователю {user_id} значение {message_id}"""
+
+        try:
+            if self.check_status_DB(user_id, 'def', 'yes') is True:
+                if self.check_for_existence(user_id, "tracking_sensor_defroster") is True:
+                    # обновление изменений данных о сообщении:
+                    sqlite_update_query = f'UPDATE tracking_sensor_defroster set message_id={message_id} ' \
+                                          f'WHERE user_id={user_id}'
+                    self.cursor.execute(sqlite_update_query)
+                    self.sqlite_connection.commit()
+                    self.cursor.close()
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def get_dict(self):
+        """Получить список user_id и message_id"""
+
+        try:
+            request = f'select * from tracking_sensor_defroster'
+            self.cursor.execute(request)
+            row = self.cursor.fetchall()
+            return row
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
 
 class Notification:
     """Методы уведомлений"""
@@ -351,9 +481,12 @@ class Notification:
                 print('Соединение с SQLite закрыто')
 
     def notification_for(self, text_message, column, column_meaning):
-        """Уведомления для юзеров с указанными параметрами"""
+        f"""Уведомления для юзеров с указанными параметрами. Принимает {text_message}, название столбца в БД {column}, 
+        и искомое значение этой колонки {column_meaning}. Например - я хочу уведомить подписчиков о событии, 
+        это будет выглядеть так: notification_for('Сообщение, которое хочу передать', 'notification', 'yes')."""
+
         try:
-            self.cursor.execute(('SELECT * FROM users WHERE ' + column + ' = ?'), [column_meaning])
+            self.cursor.execute(f'SELECT * FROM users WHERE {column}= ?', [column_meaning])
             records = self.cursor.fetchall()
             # print('Список ID:\n')
             all_id_sql = []
@@ -433,6 +566,25 @@ class Notification:
         for i in temporary_list:
             print(i)
 
+    def update_mess_def(self):
+        """Обновляет сообщение у пользователей которые отслеживают дефростеры"""
+
+        try:
+            text_message = Tracking_sensor.TrackingSensor().check_defroster()
+            data_list = SQL().get_dict()
+            if len(data_list) != 0:
+                for elem in data_list:
+                    user_id = elem[0]
+                    message_id = elem[1]
+                    Data.bot.edit_message_text(text=text_message, chat_id=user_id, message_id=message_id,
+                                               parse_mode='Markdown')
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
 
 class File_processing:
     """Обработка файла"""
@@ -461,12 +613,12 @@ class File_processing:
         difference = date - self.now_date  # Разница между 1‑й датой и сегодня
         difference = difference.days + 1  # Форматируем в кол-во дней +1
 
-        if difference == -1:
-            print('Событие было вчера')
-        elif difference == 0:
-            print('Событие сегодня')
-        elif difference == 1:
-            print('Событие завтра')
+        # if difference == -1:
+        #     print('Событие было вчера')
+        # elif difference == 0:
+        #     print('Событие сегодня')
+        # elif difference == 1:
+        #     print('Событие завтра')
 
         return difference
 
@@ -659,14 +811,17 @@ class File_processing:
             if self.sheet_name == 'Дежурный':
                 if self.sheet_name in Data.sheets_file:
                     for i in data_list:
+                        # print(i)
                         date = i[0]
                         if self.difference_date(date) == 1:  # Если завтра
                             text_message = self.next_dej()
-                            name_dej = self.sheet.cell(row=i, column=3).value
+                            name_dej = i[2]
                             print(text_message)
                             Notification().notification_for(text_message, 'notification', 'yes')
                             Notification().send_sticker_for(name_dej, 'notification', 'yes')
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                        elif self.difference_date(date) < 0:  # Если событие в прошлом
+                            self.clear_old_data()
 
     def create_event(self, date, text_event):
         """Принимает дату и текст уведомления и записывает в файл. Возвращает текст с описанием созданного
