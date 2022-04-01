@@ -336,8 +336,9 @@ def set_subscribe(message):
     """Подписка на рассылку"""
 
     if existence(message) is True:  # Проверка на наличие юзера в БД
-        if Functions.SQL().check_for_notification(message.from_user.id) is False:  # Если пользователь не подписчик
-            Functions.SQL().set_subscribe(message.from_user.id)  # Присвоить статус <подписан>
+        if Functions.SQL().check_status_bd(message.from_user.id,
+                                           'notification') is False:  # Если пользователь не подписчик
+            Functions.SQL().change_status_DB(message.from_user.id, 'notification')  # Присвоить статус <подписан>
             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
                        'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
             types_message(message)
@@ -361,8 +362,9 @@ def set_subscribe(message):
 @bot.message_handler(commands=['unsubscribe'])
 def set_subscribe(message):
     if existence(message) is True:
-        if Functions.SQL().check_for_notification(message.from_user.id) is True:  # Если пользователь подписчик
-            Functions.SQL().set_unsubscribe(message.from_user.id)  # Присвоить в БД статус <не подписан>
+        if Functions.SQL().check_status_bd(message.from_user.id, 'notification') is True:  # Если пользователь подписчик
+            Functions.SQL().change_status_DB(message.from_user.id,
+                                             'notification')  # Присвоить в БД статус <не подписан>
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
             types_message(message)
             bot.reply_to(message, end_text)  # Отправка текста выше
@@ -661,8 +663,8 @@ def games_step_2(message):
     print(f'{full_name_user(message)} написал:\n{message.text}')
     if message.text == 'Играть в "Угадаю число"':
         answer_message = 'Хорошо, начнём. Правила просты - загадай число от 1 до 100 а я попробую его угадать. ' \
-                       'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
-                       'жми "больше", а если угадал - "в точку".'
+                         'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
+                         'жми "больше", а если угадал - "в точку".'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Начнём']
         keyboard.add(*buttons)
@@ -732,6 +734,81 @@ def games_step_4(message, number, lower, high, count):
 @bot.message_handler(commands=['vote'])
 def vote(message):
     bot.send_poll(message.from_user.id, 'вопрос', options=['1', '2', '3'])
+
+
+@bot.message_handler(commands=['defrosters'])
+def check_defroster_step_1(message):
+    """Подписка на мониторинг показаний дефростеров. Результат - придёт авто обновляемое сообщение."""
+
+    if existence(message) is True:  # Проверка на наличие юзера в БД
+        if Functions.SQL().check_status_DB(message.from_user.id, 'def', 'yes') is False:  # Если пользователь не наблюдатель
+            answer_message = 'На данный момент вы не отслеживаете показания с датчиков дефростеров. Хотите начать?'
+        else:
+            answer_message = 'На данный момент вы являетесь наблюдателем показаний с датчиков дефростеров. Прекратить' \
+                             ' отслеживать? '
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Да', 'Отмена']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, check_defroster_step_2)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        answer_message = existence(message)
+        types_message(message)
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
+
+
+def check_defroster_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Да':
+        Functions.SQL().change_status_DB(message.from_user.id, 'def')  # Изменить текущий статус
+        text_message = 'Подождите...'
+        types_message(message)
+        bot.reply_to(message, text_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{text_message}\n')
+        time.sleep(3)
+
+        if Functions.SQL().check_status_DB(message.from_user.id, 'def', 'yes') is True:  # Если пользователь наблюдатель
+            Functions.SQL().add_user_by_table_def(message.from_user.id)
+
+            message_id = bot.send_message(message.from_user.id, 'Start tracking sensor in defroster').message_id
+            Functions.SQL().update_mess_id_by_table_def(message.from_user.id, message_id)
+            bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
+
+            end_message = 'Теперь вам доступны показания датчиков дефростеров. Сообщение обновляется автоматически.'
+            bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                             text=f'{full_name_user(message)} начал отслеживать показания датчиков дефростеров.')
+
+            types_message(message)
+            bot.send_message(chat_id=message.from_user.id, text=end_message)
+            print(f'{answer_bot}{end_message}\n')
+        else:
+            if Functions.SQL().check_for_existence(message.from_user.id, 'tracking_sensor_defroster') is False:
+                pass
+            else:
+                if Functions.SQL().get_mess_id(message.from_user.id) is not None:
+                    message_id = Functions.SQL().get_mess_id(message.from_user.id)
+
+                    Data.bot.unpin_chat_message(chat_id=message.from_user.id, message_id=message_id)
+                    Data.bot.delete_message(chat_id=message.from_user.id, message_id=message_id)
+
+                Functions.SQL().log_out(message.from_user.id, 'tracking_sensor_defroster')
+
+                end_message = 'Вы прекратили отслеживать показания. Если передумаете клик - /defrosters.'
+                bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                                 text=f'{full_name_user(message)} прекратил отслеживать показания датчиков дефростеров.')
+
+                types_message(message)
+                bot.send_message(chat_id=message.from_user.id, text=end_message)
+                print(f'{answer_bot}{end_message}\n')
+    elif message.text == 'Отмена':
+        text_message = ''
+        types_message(message)
+        bot.reply_to(message, text_message)
+        print(f'{answer_bot}{text_message}\n')
 
 
 @bot.message_handler(content_types=['text'])
