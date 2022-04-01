@@ -45,7 +45,9 @@ class TrackingSensor:
             'Деф 3 поверхность'
         ]
 
-        self.list_observers_defroster = Data.list_observers_defroster
+        # self.list_observers_defroster = Data.list_observers_defroster
+
+        self.list_observers_defroster = Functions.SQL().create_list_users('def', 'yes')
 
     @property
     def get_data(self):
@@ -120,7 +122,7 @@ class TrackingSensor:
 
         for name, value in self.get_data:
             if name in self.list_names_def_sensor:
-                if value <= '-999.9':
+                if int(float(value)) <= int(float(-999.9)):
                     text_message = f'"{name}": неисправен'
                     if name in self.list_names_def_one:
                         def_one.append(text_message)
@@ -159,7 +161,7 @@ class TrackingSensor:
         sensors_error = []
 
         for name, value in self.get_data:
-            if value <= '-999.9':
+            if int(float(value)) <= int(float(-999.9)):
                 text_message = f'{name}'
                 sensors_error.append(text_message)
 
@@ -180,12 +182,12 @@ class TrackingSensor:
 
     def notification_of_errors(self):
 
-        list_id_mes_def = {}
-
-        for user in self.list_observers_defroster:  # Повторить для каждого юзера в списке наблюдателей за дефростером
-            id_mes_def = Data.bot.send_message(user, 'Start tracking sensor in defroster')
-            list_id_mes_def[user] = id_mes_def  # Добавить в словарь пару id_user: id_message
-            Data.bot.pin_chat_message(user, message_id=id_mes_def.message_id)  # Закрепляет сообщение у пользователя
+        # list_id_mes_def = {}
+        #
+        # for user in self.list_observers_defroster:  # Повторить для каждого юзера в списке наблюдателей за дефростером
+        #     id_mes_def = Data.bot.send_message(user, 'Start tracking sensor in defroster')
+        #     list_id_mes_def[user] = id_mes_def  # Добавить в словарь пару id_user: id_message
+        #     Data.bot.pin_chat_message(user, message_id=id_mes_def.message_id)  # Закрепляет сообщение у пользователя
 
         list_id_mes = {}
 
@@ -194,46 +196,52 @@ class TrackingSensor:
             list_id_mes[user] = id_mes  # Добавить в словарь пару id_user: id_message
             Data.bot.pin_chat_message(user, message_id=id_mes.message_id)  # Закрепляет сообщение у пользователя
 
-        while True:
-            try:
-                for key, value in list_id_mes_def.items():
-                    Data.bot.edit_message_text(text=self.check_defroster(), chat_id=key, message_id=value.message_id,
-                                               parse_mode='Markdown')
+        # while True:
+        #     try:
+        #         # for key, value in list_id_mes_def.items():
+        #         #     Data.bot.edit_message_text(text=self.check_defroster(),
+        #         #                                chat_id=key,
+        #         #                                message_id=value.message_id,
+        #         #                                parse_mode='Markdown')
+        #
+        #         for key, value in list_id_mes.items():
+        #             Data.bot.edit_message_text(text=self.check_all(),
+        #                                        chat_id=key,
+        #                                        message_id=value.message_id,
+        #                                        parse_mode='Markdown')
+        #
+        #         time.sleep(60)
+        #     except KeyboardInterrupt:
+        #         time.sleep(3)
+        #         text_message = 'TrackingSensor был прерван вручную'
+        #         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
+        #         print(text_message)
+        #         Functions.logging_event('error', text_message)
+        #
+        #         # for key, value in list_id_mes_def.items():
+        #         #     Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+        #         #     Data.bot.delete_message(chat_id=key, message_id=value.message_id)
+        #
+        #         for key, value in list_id_mes.items():
+        #             Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+        #             Data.bot.delete_message(chat_id=key, message_id=value.message_id)
+        #
+        #         break
+        #     except Exception as e:
+        #         time.sleep(3)
+        #         Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'TrackingSensor: {e}')
+        #         print(str(e))
+        #         Functions.logging_event('error', str(e))
+        #
+        #         # for key, value in list_id_mes_def.items():
+        #         #     Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+        #         #     Data.bot.delete_message(chat_id=key, message_id=value.message_id)
+        #
+        #         for key, value in list_id_mes.items():
+        #             Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
+        #             Data.bot.delete_message(chat_id=key, message_id=value.message_id)
+        #
+        #         # break
 
-                for key, value in list_id_mes.items():
-                    Data.bot.edit_message_text(text=self.check_all(), chat_id=key, message_id=value.message_id,
-                                               parse_mode='Markdown')
 
-                time.sleep(60)
-            except KeyboardInterrupt:
-                time.sleep(3)
-                text_message = 'TrackingSensor был прерван вручную'
-                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
-                print(text_message)
-                Functions.logging_event('error', text_message)
-
-                for key, value in list_id_mes_def.items():
-                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
-                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
-
-                for key, value in list_id_mes.items():
-                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
-                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
-
-                break
-            except Exception as e:
-                time.sleep(3)
-                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'TrackingSensor: {e}')
-                print(str(e))
-                Functions.logging_event('error', str(e))
-
-                for key, value in list_id_mes_def.items():
-                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
-                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
-
-                for key, value in list_id_mes.items():
-                    Data.bot.unpin_chat_message(chat_id=key, message_id=value.message_id)
-                    Data.bot.delete_message(chat_id=key, message_id=value.message_id)
-
-
-TrackingSensor().notification_of_errors()
+# TrackingSensor().notification_of_errors()
