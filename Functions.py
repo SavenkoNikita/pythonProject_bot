@@ -389,17 +389,17 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def add_user_by_table_def(self, user_id):
-        """Если пользователь подписан на дефростеры и отсутствует в tracking_sensor_defroster, добавляет его."""
+    def add_user_by_table(self, user_id, column_name, status, name_table_DB):
+        f"""Если пользователь подписан на {column_name} и отсутствует в {name_table_DB}, добавляет его."""
 
         try:
-            if self.check_status_DB(user_id, 'def', 'yes') is True:
-                if self.check_for_existence(user_id, "tracking_sensor_defroster") is False:
-                    self.cursor.execute('INSERT INTO tracking_sensor_defroster (user_id, message_id) VALUES (?, ?)',
+            if self.check_status_DB(user_id, column_name, status) is True:
+                if self.check_for_existence(user_id, name_table_DB) is False:
+                    self.cursor.execute(f'INSERT INTO {name_table_DB} (user_id, message_id) VALUES (?, ?)',
                                         (user_id, None))
                     self.sqlite_connection.commit()
                     self.cursor.close()
-                    print(f'Пользователь {user_id} успешно добавлен в таблицу "tracking_sensor_defroster"')
+                    print(f'Пользователь {user_id} успешно добавлен в таблицу {name_table_DB}')
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event('error', str(error))
@@ -407,14 +407,14 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def update_mess_id_by_table_def(self, user_id, message_id):
-        f"""В таблице tracking_sensor_defroster обновляет пользователю {user_id} значение {message_id}"""
+    def update_mess_id_by_table(self, user_id, message_id, table_name_DB, name_column_in_table_users):
+        f"""В таблице {table_name_DB} обновляет пользователю {user_id} значение {message_id}"""
 
         try:
-            if self.check_status_DB(user_id, 'def', 'yes') is True:
-                if self.check_for_existence(user_id, "tracking_sensor_defroster") is True:
+            if self.check_status_DB(user_id, name_column_in_table_users, 'yes') is True:
+                if self.check_for_existence(user_id, table_name_DB) is True:
                     # обновление изменений данных о сообщении:
-                    sqlite_update_query = f'UPDATE tracking_sensor_defroster set message_id={message_id} ' \
+                    sqlite_update_query = f'UPDATE {table_name_DB} set message_id={message_id} ' \
                                           f'WHERE user_id={user_id}'
                     self.cursor.execute(sqlite_update_query)
                     self.sqlite_connection.commit()
@@ -426,11 +426,11 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def get_dict(self):
+    def get_dict(self, table_name_DB):
         """Получить список user_id и message_id"""
 
         try:
-            request = f'select * from tracking_sensor_defroster'
+            request = f'select * from {table_name_DB}'
             self.cursor.execute(request)
             row = self.cursor.fetchall()
             return row
@@ -566,12 +566,12 @@ class Notification:
         for i in temporary_list:
             print(i)
 
-    def update_mess_def(self):
-        """Обновляет сообщение у пользователей которые отслеживают дефростеры"""
+    def update_mess(self, name_table_DB, func):
+        """Обновляет сообщение у пользователей."""
 
         try:
-            text_message = Tracking_sensor.TrackingSensor().check_defroster()
-            data_list = SQL().get_dict()
+            text_message = func
+            data_list = SQL().get_dict(name_table_DB)
             if len(data_list) != 0:
                 for elem in data_list:
                     user_id = elem[0]
@@ -584,6 +584,12 @@ class Notification:
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
+
+    # def update_mess_all_sensor(self):
+    #     """"""
+    #
+    #     try:
+    #         text_message = Tracking_sensor.TrackingSensor().check_all()
 
 
 class File_processing:
@@ -673,11 +679,16 @@ class File_processing:
         """Очистка неактуальных данных"""
 
         for i in range(2, 10):  # Повторить для каждого значения в 1 колонке
-            if self.sheet.cell(row=i, column=1).value is not None:  # Если значение не пустое
-                if isinstance(self.sheet.cell(row=i, column=1).value, datetime.datetime):  # Если значение == дата
-                    date = self.sheet.cell(row=i, column=1).value
+            date = self.sheet.cell(row=i, column=1).value
+            # print(date)
+            # print(type(date))
+            if date is not None:  # Если значение не пустое
+                if isinstance(date, datetime.datetime):  # Если значение == дата
+                    # print('date')
+                    date = date
                 else:
-                    date = datetime.datetime.strptime(self.sheet.cell(row=i, column=1).value, '%d.%m.%Y')
+                    date = datetime.datetime.strptime(date, '%d.%m.%Y')
+                    # print(f'{date} not date')
 
                 if self.difference_date(date) < 0:  # Если событие в прошлом
                     date_event = self.sheet.cell(row=i, column=1)  # Колонка с датой
@@ -778,8 +789,8 @@ class File_processing:
                                 text_message = f'• Уведомление для зарегистрированных пользователей •\n\n' \
                                                f'{meaning}'
                                 print(text_message)
-                                Notification().all_registered(text_message)
-                                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                                # Notification().all_registered(text_message)
+                                Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                             elif self.sheet_name == 'Уведомления для подписчиков':
                                 text_message = f'• Уведомление для подписчиков •\n\n' \
                                                f'{meaning}'
@@ -813,7 +824,9 @@ class File_processing:
                     for i in data_list:
                         # print(i)
                         date = i[0]
+                        # print(date)
                         if self.difference_date(date) == 1:  # Если завтра
+                            # print(f'{date} is tomorrow')
                             text_message = self.next_dej()
                             name_dej = i[2]
                             print(text_message)
@@ -898,5 +911,3 @@ class Counter:
         else:  # <5, 47 записей>
             r = 2
             return 'На данный момент есть ' + str(number) + ' ' + records[r] + '. Сколько событий показать?'
-
-

@@ -336,8 +336,8 @@ def set_subscribe(message):
     """Подписка на рассылку"""
 
     if existence(message) is True:  # Проверка на наличие юзера в БД
-        if Functions.SQL().check_status_bd(message.from_user.id,
-                                           'notification') is False:  # Если пользователь не подписчик
+        if Functions.SQL().check_status_DB(message.from_user.id, 'notification',
+                                           'yes') is False:  # Если пользователь не подписчик
             Functions.SQL().change_status_DB(message.from_user.id, 'notification')  # Присвоить статус <подписан>
             end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
                        'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
@@ -362,7 +362,8 @@ def set_subscribe(message):
 @bot.message_handler(commands=['unsubscribe'])
 def set_subscribe(message):
     if existence(message) is True:
-        if Functions.SQL().check_status_bd(message.from_user.id, 'notification') is True:  # Если пользователь подписчик
+        if Functions.SQL().check_status_DB(message.from_user.id, 'notification',
+                                           'yes') is True:  # Если пользователь подписчик
             Functions.SQL().change_status_DB(message.from_user.id,
                                              'notification')  # Присвоить в БД статус <не подписан>
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
@@ -741,7 +742,8 @@ def check_defroster_step_1(message):
     """Подписка на мониторинг показаний дефростеров. Результат - придёт авто обновляемое сообщение."""
 
     if existence(message) is True:  # Проверка на наличие юзера в БД
-        if Functions.SQL().check_status_DB(message.from_user.id, 'def', 'yes') is False:  # Если пользователь не наблюдатель
+        if Functions.SQL().check_status_DB(message.from_user.id, 'def',
+                                           'yes') is False:  # Если пользователь не наблюдатель
             answer_message = 'На данный момент вы не отслеживаете показания с датчиков дефростеров. Хотите начать?'
         else:
             answer_message = 'На данный момент вы являетесь наблюдателем показаний с датчиков дефростеров. Прекратить' \
@@ -765,17 +767,17 @@ def check_defroster_step_2(message):
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Да':
         Functions.SQL().change_status_DB(message.from_user.id, 'def')  # Изменить текущий статус
-        text_message = 'Подождите...'
+        answer_message = 'Подождите...'
         types_message(message)
-        bot.reply_to(message, text_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{text_message}\n')
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_message}\n')
         time.sleep(3)
 
         if Functions.SQL().check_status_DB(message.from_user.id, 'def', 'yes') is True:  # Если пользователь наблюдатель
-            Functions.SQL().add_user_by_table_def(message.from_user.id)
+            Functions.SQL().add_user_by_table(message.from_user.id, 'def', 'yes', 'tracking_sensor_defroster')
 
             message_id = bot.send_message(message.from_user.id, 'Start tracking sensor in defroster').message_id
-            Functions.SQL().update_mess_id_by_table_def(message.from_user.id, message_id)
+            Functions.SQL().update_mess_id_by_table(message.from_user.id, message_id, 'tracking_sensor_defroster', 'def')
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
 
             end_message = 'Теперь вам доступны показания датчиков дефростеров. Сообщение обновляется автоматически.'
@@ -799,16 +801,94 @@ def check_defroster_step_2(message):
 
                 end_message = 'Вы прекратили отслеживать показания. Если передумаете клик - /defrosters.'
                 bot.send_message(chat_id=Data.list_admins.get('Никита'),
-                                 text=f'{full_name_user(message)} прекратил отслеживать показания датчиков дефростеров.')
+                                 text=f'{full_name_user(message)} прекратил отслеживать показания датчиков '
+                                      f'дефростеров.')
 
                 types_message(message)
                 bot.send_message(chat_id=message.from_user.id, text=end_message)
                 print(f'{answer_bot}{end_message}\n')
     elif message.text == 'Отмена':
-        text_message = ''
+        end_text = 'Операция прервана'
         types_message(message)
-        bot.reply_to(message, text_message)
-        print(f'{answer_bot}{text_message}\n')
+        bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
+
+
+@bot.message_handler(commands=['all_sensors'])
+def check_error_sensor(message):
+    if rights_admin(message) is True:  # Проверка на наличие юзера в БД
+        # Если пользователь не наблюдатель
+        if Functions.SQL().check_status_DB(message.from_user.id, 'observer_all_sensor', 'yes') is False:
+            answer_message = 'На данный момент вы не отслеживаете неисправные датчики. Хотите начать?'
+        else:
+            answer_message = 'На данный момент вы отслеживаете неисправные датчики. Прекратить отслеживать?'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Да', 'Отмена']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, check_error_sensor_step_2)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        answer_message = existence(message)
+        types_message(message)
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
+
+
+def check_error_sensor_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Да':
+        Functions.SQL().change_status_DB(message.from_user.id, 'observer_all_sensor')  # Изменить текущий статус
+        answer_message = 'Подождите...'
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_message}\n')
+        time.sleep(3)
+
+        if Functions.SQL().check_status_DB(message.from_user.id, 'observer_all_sensor',
+                                           'yes') is True:  # Если пользователь наблюдатель
+            Functions.SQL().add_user_by_table(message.from_user.id, 'observer_all_sensor', 'yes',
+                                              'observers_for_faulty_sensors')
+
+            message_id = bot.send_message(message.from_user.id, 'Start tracking error sensors').message_id
+            Functions.SQL().update_mess_id_by_table(message.from_user.id, message_id, 'observers_for_faulty_sensors',
+                                                    'observer_all_sensor')
+            bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
+
+            end_message = 'Теперь вам доступен список неисправных датчиков. Сообщение обновляется автоматически.'
+            bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                             text=f'{full_name_user(message)} начал отслеживать список неисправных датчиков.')
+
+            types_message(message)
+            bot.send_message(chat_id=message.from_user.id, text=end_message)
+            print(f'{answer_bot}{end_message}\n')
+        else:
+            if Functions.SQL().check_for_existence(message.from_user.id, 'observers_for_faulty_sensors') is False:
+                pass
+            else:
+                if Functions.SQL().get_mess_id(message.from_user.id) is not None:
+                    message_id = Functions.SQL().get_mess_id(message.from_user.id)
+
+                    Data.bot.unpin_chat_message(chat_id=message.from_user.id, message_id=message_id)
+                    Data.bot.delete_message(chat_id=message.from_user.id, message_id=message_id)
+
+                Functions.SQL().log_out(message.from_user.id, 'observers_for_faulty_sensors')
+
+                end_message = 'Вы прекратили отслеживать список неисправных датчиков. ' \
+                              'Если передумаете клик - /all_sensors.'
+                bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                                 text=f'{full_name_user(message)} прекратил отслеживать список неисправных датчиков.')
+
+                types_message(message)
+                bot.send_message(chat_id=message.from_user.id, text=end_message)
+                print(f'{answer_bot}{end_message}\n')
+    elif message.text == 'Отмена':
+        end_text = ''
+        types_message(message)
+        bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
 
 
 @bot.message_handler(content_types=['text'])
