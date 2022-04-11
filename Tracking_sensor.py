@@ -164,6 +164,8 @@ class TrackingSensor:
             if int(float(value)) <= int(float(-999.9)):
                 text_message = f'{name}'
                 sensors_error.append(text_message)
+                Functions.logging_event('error', f'Неисправен датчик "{name}". '
+                                                 f'Текущее показание температуры: {int(float(value))} ℃')
 
         if len(sensors_error) != 0:
             sensors_error.sort()
