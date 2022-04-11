@@ -29,3 +29,20 @@ import Functions
 
 # Functions.File_processing('Дежурный').check_dej_tomorrow()
 
+# print(Functions.SQL().search_not_answer())
+
+# question = 'Здрасьте!'
+# answer = 'И вам не хворать!'
+
+# Functions.SQL().update_answer_speak_DB(question, answer)
+
+data_list = Functions.File_processing('Дежурный').read_file()
+
+for i in data_list:
+    first_date = i[0].strftime('%d.%m.%Y')  # Дата str(1)
+    second_date = i[1].strftime('%d.%m.%Y')  # Дата str(2)
+    name_from_SQL = i[2]  # Имя дежурного
+
+    text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
+
+    print(text_message)
