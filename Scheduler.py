@@ -1,3 +1,4 @@
+import datetime
 import time
 import traceback
 
@@ -24,16 +25,16 @@ def check_event(sheet_name):
 schedule.every().day.at('15:00').do(Functions.File_processing('Дежурный').check_dej_tomorrow)
 
 # Если инвент вот-вот начнётся, придёт уведомление
-schedule.every().day.at('07:00').do(check_event('Инвентаризация'))
+schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
 
 # Проверяет есть ли сегодня уведомления для подписчиков и отправляет их
-schedule.every().day.at('08:00').do(check_event('Уведомления для подписчиков'))
+schedule.every().day.at('08:00').do(check_event, 'Уведомления для подписчиков')
 
 # Проверяет есть ли сегодня уведомления для всех и отправляет их
-schedule.every().day.at('08:01').do(check_event('Уведомления для всех'))
+schedule.every().day.at('08:01').do(check_event, 'Уведомления для всех')
 
 # Проверяет есть ли сегодня уведомления для админов и отправляет их
-schedule.every().day.at('08:02').do(check_event('Уведомления для админов'))
+schedule.every().day.at('08:02').do(check_event, 'Уведомления для админов')
 
 # Присылает случайное имя кто идёт в цех
 schedule.every().day.at('08:03').do(random_name)
@@ -50,4 +51,5 @@ while True:
         # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_error)
         # print(text_error)
         # Functions.logging_event('error', text_error)
+        print(datetime.datetime.now())
         print(e)
