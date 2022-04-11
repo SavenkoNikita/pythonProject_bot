@@ -777,7 +777,8 @@ def check_defroster_step_2(message):
             Functions.SQL().add_user_by_table(message.from_user.id, 'def', 'yes', 'tracking_sensor_defroster')
 
             message_id = bot.send_message(message.from_user.id, 'Start tracking sensor in defroster').message_id
-            Functions.SQL().update_mess_id_by_table(message.from_user.id, message_id, 'tracking_sensor_defroster', 'def')
+            Functions.SQL().update_mess_id_by_table(message.from_user.id, message_id, 'tracking_sensor_defroster',
+                                                    'def')
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
 
             end_message = 'Теперь вам доступны показания датчиков дефростеров. Сообщение обновляется автоматически.'
@@ -891,13 +892,52 @@ def check_error_sensor_step_2(message):
         print(f'{answer_bot}{end_text}\n')
 
 
+@bot.message_handler(commands=['answer'])
+def answer(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    if message.from_user.id == Data.list_admins.get('Никита'):
+        if Functions.SQL().count_not_answer() > 0:
+            answer_message = Functions.SQL().search_not_answer()
+            text = f'Как ответить на это сообщение?\n<{answer_message}>'
+            bot.reply_to(message, text)
+            bot.register_next_step_handler(message, answer_step_two, answer_message)
+        else:
+            text = Functions.SQL().search_not_answer()
+            bot.reply_to(message, text)
+        print(f'{answer_bot}{text}\n')
+
+
+def answer_step_two(message, question):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    answer = message.text
+    Functions.SQL().update_answer_speak_DB(question, answer)
+
+    text = 'Запомнил. Продолжим? /answer'
+    bot.reply_to(message, text)
+    print(f'{answer_bot}{text}\n')
+
+
 @bot.message_handler(content_types=['text'])
-def other_functions(message):
+def speak(message):
     if existence(message) is True:
-        i_can = "Чтобы узнать что я умею напиши /help."
-        types_message(message)
-        bot.reply_to(message, i_can)
-        print(f'{answer_bot}{i_can}\n')
+        text_message = message.text.capitalize()
+        answer = Functions.SQL().talk(text_message)
+        if answer is None:
+            text_one = random.choice(Data.list_answer_speak)
+            text_two = '\nГоворите со мной чаще, я научусь!'
+            end_text = f'{text_one} {text_two}'
+            types_message(message)
+            bot.reply_to(message, end_text)
+            print(f'{answer_bot}{end_text}\n')
+
+            count = Functions.SQL().count_not_answer()
+            end_message = f'На данный момент есть {count} вопросов без ответа. Ответить на вопросы - /answer'
+            bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_message)
+        else:
+            types_message(message)
+            bot.reply_to(message, answer)
+            print(f'{answer_bot}{answer}\n')
+            # bot.send_message(message.from_user.id, answer)
     else:
         answer_message = 'Чтобы пользоваться функциями бота, необходимо пройти регистрацию -> /start'
         types_message(message)
