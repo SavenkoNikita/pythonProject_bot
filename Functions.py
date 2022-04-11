@@ -441,6 +441,99 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
+    def talk(self, text_message):
+        """Ищет в БД ответ на вопрос. Принимает текст сообщения. Если есть ответ, возвращает его,
+        а если нет, возвращает None"""
+
+        try:
+            request = f'select * from talk where question = ?'
+            self.cursor.execute(request, (text_message,))
+            row = self.cursor.fetchone()
+            if row is not None:
+                return row[1]
+            else:
+                self.insert_data_speak_DB(text_message)
+                return None
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def insert_data_speak_DB(self, text_message):
+        """Если вопрос отсутствует в БД, добавляет его."""
+
+        try:
+            self.cursor.execute(f'INSERT INTO talk (question, answer) VALUES (?, ?)',
+                                (text_message, None))
+            self.sqlite_connection.commit()
+            self.cursor.close()
+            print(f'Запись {text_message} успешно добавлена в таблицу talk')
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def update_answer_speak_DB(self, question, answer):
+        """"""
+
+        try:
+            sqlite_update_query = f'UPDATE talk set answer=? WHERE question=?'
+            self.cursor.execute(sqlite_update_query, (answer, question,))
+            self.sqlite_connection.commit()
+            self.cursor.close()
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def count_not_answer(self, count=0):
+        """Считает кол-во вопросов без ответа. Результат - число."""
+
+        try:
+            self.cursor.execute('select * from talk')
+            row = self.cursor.fetchall()
+            for rows in row:
+                # print(rows[1])
+                if rows[1] is None:
+                    count += 1
+
+            # count_none_rows = f'На данный момент есть {count} вопросов без ответа.'
+            return count
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def search_not_answer(self):
+        """Находит первый вопрос без ответа. Результат - текст вопроса."""
+
+        try:
+            self.cursor.execute('select * from talk')
+            row = self.cursor.fetchall()
+            for rows in row:
+                if rows[0] is not None:
+                    if rows[1] is None:
+                        text = rows[0]
+                        return text
+
+            text = 'Нет вопросов без ответа :)'
+            return text
+
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
 
 class Notification:
     """Методы уведомлений"""
@@ -789,8 +882,8 @@ class File_processing:
                                 text_message = f'• Уведомление для зарегистрированных пользователей •\n\n' \
                                                f'{meaning}'
                                 print(text_message)
-                                # Notification().all_registered(text_message)
-                                Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                                Notification().all_registered(text_message)
+                                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                             elif self.sheet_name == 'Уведомления для подписчиков':
                                 text_message = f'• Уведомление для подписчиков •\n\n' \
                                                f'{meaning}'
@@ -822,16 +915,19 @@ class File_processing:
             if self.sheet_name == 'Дежурный':
                 if self.sheet_name in Data.sheets_file:
                     for i in data_list:
-                        # print(i)
                         date = i[0]
-                        # print(date)
                         if self.difference_date(date) == 1:  # Если завтра
-                            # print(f'{date} is tomorrow')
-                            text_message = self.next_dej()
-                            name_dej = i[2]
+                            first_date = i[0].strftime('%d.%m.%Y')  # Дата str(1)
+                            second_date = i[1].strftime('%d.%m.%Y')  # Дата str(2)
+                            name_from_SQL = SQL().get_user_info(get_key(i[2]))  # Имя дежурного
+
+                            text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
                             print(text_message)
+
+                            sticker_dej = i[2]
+
                             Notification().notification_for(text_message, 'notification', 'yes')
-                            Notification().send_sticker_for(name_dej, 'notification', 'yes')
+                            Notification().send_sticker_for(sticker_dej, 'notification', 'yes')
                             # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif self.difference_date(date) < 0:  # Если событие в прошлом
                             self.clear_old_data()
