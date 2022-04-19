@@ -412,7 +412,7 @@ def change_sticker_step_2(message):
 
 
 @bot.message_handler(commands=['dezhurnyj'])
-def dej(message):#, copy_call):
+def dej(message):
     """Узнать кто дежурный"""
 
     if existence(message) is True:  # Проверка на наличие юзера в БД
@@ -421,7 +421,7 @@ def dej(message):#, copy_call):
         buttons = ['Имя следующего дежурного', 'Список дежурных']
         keyboard.add(*buttons)
         types_message(message)
-        # bot.send_message(copy_call.from_user.id, answer_message, reply_markup=keyboard)
+        # bot.send_message(copy_call.from_user.id, copy_call.message.text, reply_markup=keyboard)
         bot.reply_to(message, answer_message, reply_markup=keyboard)
         bot.register_next_step_handler(message, dej_step_2)  # Регистрация следующего действия
         print(f'{answer_bot}{answer_message}\n')
@@ -916,86 +916,6 @@ def answer_step_two(message, question):
     text = 'Запомнил. Продолжим? /answer'
     bot.reply_to(message, text)
     print(f'{answer_bot}{text}\n')
-
-# @bot.message_handler(commands=["help"])
-# def start(message):
-#     """Главное меню"""
-#
-#     keyboard = Functions.Bot_menu().main_menu()
-#     #text_m = f'• *__Главное меню__* •'
-#     bot.send_message(chat_id=message.chat.id,
-#                       text='*__Главное меню__*',
-#                       parse_mode="MarkdownV2",
-#                       reply_markup=keyboard)
-#
-#
-# @bot.callback_query_handler(func=lambda call: True)
-# def inline(call):
-#     if call.data == 'button_main_functions':
-#         keyboard = Functions.Bot_menu().lvl_2(Functions.Bot_menu().list_main_functions)
-#         update_menu(call, "Основные функции", keyboard)
-#     elif call.data == 'button_managing_subscriptions':
-#         keyboard = Functions.Bot_menu().lvl_2(Functions.Bot_menu().list_managing_subscriptions)
-#         update_menu(call, "Управление подписками", keyboard)
-#     elif call.data == 'button_account_management':
-#         keyboard = Functions.Bot_menu().lvl_2(Functions.Bot_menu().list_account_management)
-#         update_menu(call, "Настройка аккаунта", keyboard)
-#     elif call.data == 'button_additional_functions':
-#         keyboard = Functions.Bot_menu().lvl_2(Functions.Bot_menu().list_additional_functions)
-#         update_menu(call, "Дополнительные функции", keyboard)
-#     elif call.data == 'button_dej':
-#         # print(f'Имя: {call.from_user.first_name}\nID: {call.from_user.id}\n {call}')
-#         if call.message.from_user.is_bot is True:
-#             call.message.from_user = call.from_user
-#             Telegram_bot.dej(call.message)
-#         # else:
-#
-#         # print(get_param(call.message, 'forward_from'))
-#     # elif message.data == 'button_invent':
-#     #
-#     # elif message.data == 'button_admin':
-#     #
-#     # elif message.data == 'button_user':
-#     #
-#     # elif message.data == 'button_create_notif':
-#     #
-#     # elif message.data == 'button_subscribe':
-#     #
-#     # elif message.data == 'button_unsubscribe':
-#     #
-#     # elif message.data == 'button_defrosters':
-#     #
-#     # elif message.data == 'button_all_sensor':
-#     #
-#     # elif message.data == 'button_log_out':
-#     #
-#     # elif message.data == 'button_sticker':
-#     #
-#     # elif message.data == 'button_feed_back':
-#     #
-#     # elif message.data == 'button_games':
-#     #
-#     # elif message.data == 'button_random':
-#     #
-#     # elif message.data == 'button_all_users':
-#
-#     elif call.data == 'home':
-#         keyboard = Functions.Bot_menu().main_menu()
-#         update_menu(call, "Главное меню", keyboard)
-#
-#
-# def update_menu(message, name_button, keyboard):
-#     #text_m = f'• *__{name_button}__* •'
-#     bot2.edit_message_text(
-#         chat_id=message.message.chat.id,
-#         message_id=message.message.message_id,
-#         text='*__{name_button}__*',
-#         parse_mode="MarkdownV2",
-#         reply_markup=keyboard)
-#
-#
-# def get_param(message, name_param):
-#     return getattr(message, name_param)
 
 
 @bot.message_handler(content_types=['text'])
