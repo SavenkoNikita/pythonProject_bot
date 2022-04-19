@@ -8,9 +8,14 @@ import traceback
 import urllib
 from openpyxl import load_workbook
 from smb.SMBHandler import SMBHandler
+from telebot import types
+import requests
+import urllib.request
+from requests.auth import HTTPBasicAuth
+from http.client import HTTPSConnection
+from base64 import b64encode
 
 import Data
-import Tracking_sensor
 from Data import list_command_admin, list_command_user
 
 
@@ -39,6 +44,7 @@ def get_data_user_SQL(user_name):
 
 
 def logging_event(condition, text):
+    """Возможные варианты записи логов - 'debug', 'info', 'warning', 'error', 'critical'"""
     if text is not None:
         logging.basicConfig(filename=Data.way_to_log_file, level=logging.INFO,
                             format="%(asctime)s - [%(levelname)s] - %(message)s")
@@ -235,6 +241,7 @@ class SQL:
     def update_data_user(self, message):
         """Обновить данные о пользователе"""
         user_id = message.from_user.id
+        # user_id = message.id и далее везде
         first_name = message.from_user.first_name
         last_name = message.from_user.last_name
         username = message.from_user.username
@@ -730,7 +737,7 @@ class File_processing:
         date_list = []  # Объявляем пустой список
 
         try:
-            for i in range(2, self.sheet.max_row):  # Повторить для каждого значения в колонке А
+            for i in range(2, 100):  # Повторить для каждого значения в колонке А
                 if self.sheet.cell(row=i, column=1).value is not None:  # Если ячейка не пустая
                     if self.count_meaning == 2:  # Если заполнены 2 колонки
                         date = self.sheet.cell(row=i, column=1).value  # Ячейка с датой
@@ -914,6 +921,8 @@ class File_processing:
         if data_list is not None:
             if self.sheet_name == 'Дежурный':
                 if self.sheet_name in Data.sheets_file:
+                    # print(data_list)
+                    # print(len(data_list))
                     for i in data_list:
                         date = i[0]
                         if self.difference_date(date) == 1:  # Если завтра
@@ -922,7 +931,7 @@ class File_processing:
                             name_from_SQL = SQL().get_user_info(get_key(i[2]))  # Имя дежурного
 
                             text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
-                            print(text_message)
+                            # print(text_message)
 
                             sticker_dej = i[2]
 
@@ -1007,3 +1016,121 @@ class Counter:
         else:  # <5, 47 записей>
             r = 2
             return 'На данный момент есть ' + str(number) + ' ' + records[r] + '. Сколько событий показать?'
+
+
+class Bot_menu:
+    """Меню бота"""
+
+    def __init__(self):
+        self.markup = types.InlineKeyboardMarkup()
+
+        self.list_main_menu = [
+            ['Основные функции', 'button_main_functions'],
+            ['Управление подписками', 'button_managing_subscriptions'],
+            ['Настройка аккаунта', 'button_account_management'],
+            ['Дополнительные функции', 'button_additional_functions']
+        ]
+
+        self.list_main_functions = [
+            ['Узнать кто дежурный', 'button_dej'],
+            ['Инвентаризация', 'button_invent'],
+            ['Дать пользователю права админа', 'button_admin'],
+            ['Лишить пользователя прав админа', 'button_user'],
+            ['Создать уведомление', 'button_create_notif']
+        ]
+
+        self.list_managing_subscriptions = [
+            ['Подписаться на рассылку уведомлений', 'button_subscribe'],
+            ['Отказаться от рассылки уведомлений', 'button_unsubscribe'],
+            ['Мониторинг дефростеров', 'button_defrosters'],
+            ['Мониторинг неисправных датчиков', 'button_all_sensor']
+        ]
+
+        self.list_account_management = [
+            ['Покинуть чат', 'button_log_out'],
+            ['Сменить стикер аккаунта', 'button_sticker']
+        ]
+
+        self.list_additional_functions = [
+            ['Обратная связь', 'button_feed_back'],
+            ['Игры', 'button_games'],
+            ['Получить случайное имя', 'button_random'],
+            ['Получить список всех пользователей', 'button_all_users']
+        ]
+
+    def init_menu(self, data_list_buttons):
+        temporary_list = []
+        for i in data_list_buttons:
+            temporary_list.append(types.InlineKeyboardButton(text=i[0], callback_data=i[1]))
+
+        for elem in temporary_list:
+            self.markup.add(elem)
+
+        return self.markup
+
+    def step_back(self, name_button):
+        back = types.InlineKeyboardButton(text='<< назад', callback_data=name_button)
+
+        return back
+
+    def home(self):
+        home = types.InlineKeyboardButton(text='<<< на главную', callback_data='home')
+
+        return home
+
+    def main_menu(self):
+        keyboard = self.init_menu(self.list_main_menu)
+
+        return keyboard
+
+    def lvl_2(self, list_function):
+        keyboard = self.init_menu(list_function)
+        keyboard.add(self.home())
+
+        return keyboard
+
+    def lvl_3(self, list_function, name_button):
+        keyboard = self.init_menu(list_function)
+        keyboard.add(self.step_back(name_button))
+        keyboard.add(self.home())
+
+        return keyboard
+
+
+class Exchange_with_ERP:
+    """Позволяет получить некоторые данные из 1С"""
+
+    def __init__(self):
+        self.url = Data.way_erp
+        self.login = Data.login_erp
+        self.password = Data.pass_erp
+        self.user_agent_val = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                              'Chrome/75.0.3770.142 Safari/537.36 '
+        self.cert = (Data.way_to_client_cert, Data.way_to_client_key)
+
+    def get_count_days(self, user_id):
+        """На вход принимает user_id, запрашивает данные из 1С, и возвращает кол-во накопленных дней отпуска."""
+
+        response = requests.get(url=self.url,
+                                headers={'User-Agent': self.user_agent_val},
+                                auth=HTTPBasicAuth(self.login, self.password),
+                                verify=False)
+                                # verify=self.cert)
+
+        try:
+            if response.status_code == 200:
+                print(response.status_code)
+                print(response.json())
+                print('Доступ получен')
+                logging_event('info', f'Пользователь {user_id} запросил кол-во накопленных дней отпуска.')
+                #parsing response.json()
+                # count_days =
+                # return count_days
+            else:
+                error = f'Не удалось получить данные. Status_code <{response.status_code}>'
+                print(error)
+                return error
+        except Exception as e:
+            print(f'При попытке получить данные, возникла ошибка:\n{e}')
+
+
