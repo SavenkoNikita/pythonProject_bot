@@ -1,7 +1,6 @@
 import time
 import Data
 import Functions
-import Other_function
 
 bot = Data.bot
 
@@ -16,8 +15,6 @@ def other_functions(message):
     time.sleep(3)
     bot.delete_message(message.from_user.id, message_id=mes_id.message_id)
 
-    # for id in range((message.message_id - 5), message.message_id):
-    #     bot.delete_message(chat_id=1013175932, message_id=id)
 
     bot.send_poll(id, 'вопрос', options=['1', '2', '3'], )
 
