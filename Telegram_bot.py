@@ -818,7 +818,7 @@ def check_defroster_step_2(message):
 
 @bot.message_handler(commands=['all_sensors'])
 def check_error_sensor(message):
-    if rights_admin(message) is True:  # Проверка на наличие юзера в БД
+    if rights_admin(message) is True:  # Проверка на наличие юзера в БД и является ли он админом
         # Если пользователь не наблюдатель
         if Functions.SQL().check_status_DB(message.from_user.id, 'observer_all_sensor', 'yes') is False:
             answer_message = 'На данный момент вы не отслеживаете неисправные датчики. Хотите начать?'
@@ -916,6 +916,33 @@ def answer_step_two(message, question):
     text = 'Запомнил. Продолжим? /answer'
     bot.reply_to(message, text)
     print(f'{answer_bot}{text}\n')
+
+
+@bot.message_handler(commands=['vacation'])
+def get_number_vacation_days(message):
+    """Функция возвращает кол-во накопившихся дней отпуска либо текст с описанием при возникновении ошибки."""
+
+    if existence(message) is True:
+        count_day = Functions.Exchange_with_ERP().get_count_days(message.from_user.id)
+        days = Functions.Counter().declension_day(count_day)
+        if isinstance(count_day, int):
+            answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
+            types_message(message)
+            bot.send_message(chat_id=message.from_user.id, text=answer_message, parse_mode='MarkdownV2')
+            print(f'{answer_bot}{answer_message}\n')
+        else:
+            answer_message = 'Не удалось получить данные.\n' \
+                             'Для того, чтобы пользоваться этой функцией, у вас должна быть учетная запись в 1С. ' \
+                             'Если она у вас есть, возможно, в вашем профиле отсутствует id Telegram. ' \
+                             'Чтобы это исправить, обратитесь в IT-отдел.'
+            types_message(message)
+            bot.send_message(chat_id=message.from_user.id, text=answer_message)
+            print(f'{answer_bot}{answer_message}\n')
+    else:
+        answer_message = existence(message)
+        types_message(message)
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
 
 
 @bot.message_handler(content_types=['text'])

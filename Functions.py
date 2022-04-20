@@ -1017,6 +1017,20 @@ class Counter:
             r = 2
             return 'На данный момент есть ' + str(number) + ' ' + records[r] + '. Сколько событий показать?'
 
+    def declension_day(self, number):
+        """Принимает на вход число и склоняет слово день. Результат - str<день/дня/дней>"""
+
+        days = ['день', 'дня', 'дней']
+
+        if number == 0:
+            return days[2]
+        elif number % 10 == 1 and number % 100 != 11:
+            return days[0]
+        elif 2 <= number % 10 <= 4 and (number % 100 < 10 or number % 100 >= 20):
+            return days[1]
+        else:
+            return days[2]
+
 
 class Bot_menu:
     """Меню бота"""
@@ -1111,11 +1125,11 @@ class Exchange_with_ERP:
     def get_count_days(self, user_id):
         """На вход принимает user_id, запрашивает данные из 1С, и возвращает кол-во накопленных дней отпуска."""
 
-        response = requests.get(url=self.url,
+        response = requests.get(url=f'{self.url}{user_id}',
                                 headers={'User-Agent': self.user_agent_val},
                                 auth=HTTPBasicAuth(self.login, self.password),
-                                verify=False)
-                                # verify=self.cert)
+                                verify=False,  # verify=self.cert)
+                                params={'id': user_id})
 
         try:
             if response.status_code == 200:
@@ -1123,14 +1137,12 @@ class Exchange_with_ERP:
                 print(response.json())
                 print('Доступ получен')
                 logging_event('info', f'Пользователь {user_id} запросил кол-во накопленных дней отпуска.')
-                #parsing response.json()
-                # count_days =
-                # return count_days
+                # parsing response.json()
+                count_days = response.text
+                return count_days
             else:
                 error = f'Не удалось получить данные. Status_code <{response.status_code}>'
                 print(error)
                 return error
         except Exception as e:
             print(f'При попытке получить данные, возникла ошибка:\n{e}')
-
-
