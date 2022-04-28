@@ -7,7 +7,7 @@ import telebot
 import Data
 import Functions
 
-tconv = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
+time_now = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Data.bot
 answer_bot = 'Бот ответил:\n'
 
@@ -21,7 +21,7 @@ def full_name_user(message):
     else:
         status_user = 'Пользователь '
     name_user = f'{message.from_user.first_name} (ID: {message.from_user.id})'  # Получаем имя и id
-    pattern = f'{tconv(message.date)}\n{status_user} {name_user}'  # Итог дата, /n, статус и данные пользователя
+    pattern = f'{time_now(message.date)}\n{status_user} {name_user}'  # Итог дата, /n, статус и данные пользователя
     return pattern
 
 
@@ -64,7 +64,8 @@ def types_message(message):
     else:
         user_id = message.from_user.id
 
-    count_text_message = random.randint(3, 7)  # Случайное кол-во секунд будет имитироваться набор текста
+    # count_text_message = random.randint(3, 7)  # Случайное кол-во секунд будет имитироваться набор текста
+    count_text_message = float(int(0.1))
 
     bot.send_chat_action(user_id, action='typing')
     time.sleep(count_text_message)
@@ -923,18 +924,15 @@ def get_number_vacation_days(message):
     """Функция возвращает кол-во накопившихся дней отпуска либо текст с описанием при возникновении ошибки."""
 
     if existence(message) is True:
-        count_day = Functions.Exchange_with_ERP().get_count_days(message.from_user.id)
-        days = Functions.Counter().declension_day(count_day)
+        count_day = Functions.Exchange_with_ERP(message, {Data.number: message.from_user.id}).answer_from_ERP()
         if isinstance(count_day, int):
+            days = Functions.Counter().declension_day(count_day)
             answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
             types_message(message)
             bot.send_message(chat_id=message.from_user.id, text=answer_message, parse_mode='MarkdownV2')
-            print(f'{answer_bot}{answer_message}\n')
+            print(f'{answer_bot}На данный момент у вас накоплено &&& дней отпуска\n')
         else:
-            answer_message = 'Не удалось получить данные.\n' \
-                             'Для того, чтобы пользоваться этой функцией, у вас должна быть учетная запись в 1С. ' \
-                             'Если она у вас есть, возможно, в вашем профиле отсутствует id Telegram. ' \
-                             'Чтобы это исправить, обратитесь в IT-отдел.'
+            answer_message = str(count_day)  # Тут текст ошибки
             types_message(message)
             bot.send_message(chat_id=message.from_user.id, text=answer_message)
             print(f'{answer_bot}{answer_message}\n')
@@ -943,6 +941,58 @@ def get_number_vacation_days(message):
         types_message(message)
         bot.reply_to(message, answer_message)
         print(f'{answer_bot}{answer_message}\n')
+
+
+@bot.message_handler(commands=['verification'])
+def verification(message):
+    """Предлагает пользователю обновить ID Telegram в 1С с указанным ИНН. Либо возвращает str(ошибку)."""
+
+    if existence(message) is True:
+        answer_message = 'Для верификации необходим номер вашего ИНН (физ. лицо). ' \
+                         'Эти данные нужны для проверки личности пользователя в 1С. ' \
+                         'Если вы готовы предоставить их прямо сейчас - нажмите "Ок"'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Ок', 'Отмена']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, verification_step_2)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        answer_message = existence(message)
+        types_message(message)
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
+
+
+def verification_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Ок':
+        answer_message = 'Введите номер вашего ИНН'
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        bot.register_next_step_handler(message, verification_step_3)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+    elif message.text == 'Отмена':
+        end_text = 'Операция прервана. Когда будете готовы клик -> /verification'
+        types_message(message)
+        bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
+        exit()
+
+
+def verification_step_3(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    if len(message.text) == 12:
+        answer_message = Functions.Exchange_with_ERP(message, {Data.number: message.from_user.id}).answer_from_ERP()
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        error_text = 'Не удалось выполнить запрос. Номер ИНН должен состоять из 12 символов и содержать ' \
+                     'только цифры. Проверьте корректно ли вы указали данные. Попробуйте снова -> /verification'
+        bot.reply_to(message, error_text)
+        print(f'{answer_bot}{error_text}\n')
 
 
 @bot.message_handler(content_types=['text'])

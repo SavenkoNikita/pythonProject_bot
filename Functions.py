@@ -12,8 +12,7 @@ from telebot import types
 import requests
 import urllib.request
 from requests.auth import HTTPBasicAuth
-from http.client import HTTPSConnection
-from base64 import b64encode
+import xml.etree.ElementTree as ET
 
 import Data
 from Data import list_command_admin, list_command_user
@@ -719,12 +718,12 @@ class File_processing:
         difference = date - self.now_date  # Разница между 1‑й датой и сегодня
         difference = difference.days + 1  # Форматируем в кол-во дней +1
 
-        # if difference == -1:
-        #     print('Событие было вчера')
-        # elif difference == 0:
-        #     print('Событие сегодня')
-        # elif difference == 1:
-        #     print('Событие завтра')
+        if difference == -1:
+            print('Событие было вчера')
+        elif difference == 0:
+            print('Событие сегодня')
+        elif difference == 1:
+            print('Событие завтра')
 
         return difference
 
@@ -919,27 +918,25 @@ class File_processing:
         data_list = self.read_file()
 
         if data_list is not None:
-            if self.sheet_name == 'Дежурный':
-                if self.sheet_name in Data.sheets_file:
-                    # print(data_list)
-                    # print(len(data_list))
-                    for i in data_list:
-                        date = i[0]
-                        if self.difference_date(date) == 1:  # Если завтра
-                            first_date = i[0].strftime('%d.%m.%Y')  # Дата str(1)
-                            second_date = i[1].strftime('%d.%m.%Y')  # Дата str(2)
-                            name_from_SQL = SQL().get_user_info(get_key(i[2]))  # Имя дежурного
+            for i in data_list:
+                date = i[0]
+                if self.difference_date(date) == 1:  # Если завтра
+                    first_date = i[0].strftime('%d.%m.%Y')  # Дата str(1)
+                    second_date = i[1].strftime('%d.%m.%Y')  # Дата str(2)
+                    name_from_SQL = SQL().get_user_info(get_key(i[2]))  # Имя дежурного
 
-                            text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
-                            # print(text_message)
+                    text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
+                    print(datetime.datetime.now(), text_message)
 
-                            sticker_dej = i[2]
+                    sticker_dej = i[2]
 
-                            Notification().notification_for(text_message, 'notification', 'yes')
-                            Notification().send_sticker_for(sticker_dej, 'notification', 'yes')
-                            # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
-                        elif self.difference_date(date) < 0:  # Если событие в прошлом
-                            self.clear_old_data()
+                    Notification().notification_for(text_message, 'notification', 'yes')
+                    Notification().send_sticker_for(sticker_dej, 'notification', 'yes')
+                    # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                elif self.difference_date(date) < 0:  # Если событие в прошлом
+                    self.clear_old_data()
+                # else:
+                #     print(f'Дата {date} не наступила')
 
     def create_event(self, date, text_event):
         """Принимает дату и текст уведомления и записывает в файл. Возвращает текст с описанием созданного
@@ -1114,35 +1111,79 @@ class Bot_menu:
 class Exchange_with_ERP:
     """Позволяет получить некоторые данные из 1С"""
 
-    def __init__(self):
+    def __init__(self, message, params):
         self.url = Data.way_erp
         self.login = Data.login_erp
         self.password = Data.pass_erp
         self.user_agent_val = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                               'Chrome/75.0.3770.142 Safari/537.36 '
-        self.cert = (Data.way_to_client_cert, Data.way_to_client_key)
+        self.user_id = message.from_user.id
+        self.user_name = message.from_user.first_name
+        self.text_from_user = message.text
+        self.params = params
+        self.response = self.get_request()
 
-    def get_count_days(self, user_id):
-        """На вход принимает user_id, запрашивает данные из 1С, и возвращает кол-во накопленных дней отпуска."""
+    def get_request(self):
+        request = requests.get(url=f'{self.url}',
+                               headers={'User-Agent': self.user_agent_val},
+                               auth=HTTPBasicAuth(self.login, self.password),
+                               params=self.params)
 
-        response = requests.get(url=f'{self.url}{user_id}',
-                                headers={'User-Agent': self.user_agent_val},
-                                auth=HTTPBasicAuth(self.login, self.password),
-                                verify=False,  # verify=self.cert)
-                                params={'id': user_id})
+        return request
 
+    def answer_from_ERP(self):
         try:
-            if response.status_code == 200:
-                print(response.status_code)
-                print(response.json())
-                print('Доступ получен')
-                logging_event('info', f'Пользователь {user_id} запросил кол-во накопленных дней отпуска.')
-                # parsing response.json()
-                count_days = response.text
-                return count_days
-            else:
-                error = f'Не удалось получить данные. Status_code <{response.status_code}>'
-                print(error)
-                return error
-        except Exception as e:
-            print(f'При попытке получить данные, возникла ошибка:\n{e}')
+            if self.response.status_code == 200:
+                if Data.func_name1 in self.response.json():
+                    return self.in_out()
+                elif Data.func_name2 in self.response.json():
+                    return self.get_count_days()
+                elif Data.func_name3 in self.response.json():
+                    return self
+            elif self.response.status_code == 400:
+                error_text = self.response.json().value
+                return error_text
+            elif self.response.status_code == 500:
+                update_text = 'Не удалось выполнить запрос, возникла ошибка. Сервер 1С недоступен. ' \
+                              'Производится обновление. Повторите попытку позже.'
+                return update_text
+        except Exception:
+            exception_text = 'Не удалось выполнить запрос, возникла ошибка. Сервер 1С недоступен. ' \
+                             'Возможно производится обновление. Повторите попытку позже.'
+            return exception_text
+
+    def get_count_days(self):
+        """На вход принимает user_id, запрашивает данные из 1С, и возвращает кол-во накопленных дней отпуска.
+        Если пользователь не уволен, функция вернёт число, во всех остальных случаях 1С вернёт ошибку"""
+
+        json = self.response.json()
+        count_day = int(json[Data.func_name2])
+
+        logging_event('info',
+                      f'Пользователь {self.user_name}({self.user_id}) получил ответ от ERP по кол-ву '
+                      f'накопленных дней отпуска.')
+        return count_day
+
+    def verification(self):
+        """Запрос принимает user_id и ИНН пользователя. В случае успеха, обновляет ID Telegram в 1С у пользователя с
+        указанным ИНН. Либо возвращает str(ошибку)."""
+
+        json = self.response.json()
+        answer_erp = json[Data.func_name3]
+        logging_event('info',
+                      f'Пользователь {self.user_name}({self.user_id}) получил ответ от ERP по верификации.')
+        return answer_erp
+
+    def in_out(self):
+        """Хз че делает"""
+
+        json = self.response.json()
+        data_list = []
+        for value in json.values():
+            for elem in value:
+                in_out = elem['Вход']
+                time = elem['Время']
+                string_name = f'{time} {in_out}'
+                data_list.append(string_name)
+
+        return data_list
