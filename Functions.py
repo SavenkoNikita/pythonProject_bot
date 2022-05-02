@@ -12,7 +12,7 @@ from telebot import types
 import requests
 import urllib.request
 from requests.auth import HTTPBasicAuth
-import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
 
 import Data
 from Data import list_command_admin, list_command_user
@@ -82,8 +82,8 @@ def random_name():
     """Присылает уведомление кто сегодня закрывает сигналы"""
     if datetime.datetime.today().isoweekday() <= 5:
         list_name = ['Паша', 'Дима', 'Никита']
-        random_name = random.choice(list_name)
-        end_text = f'Случайным образом определено, что сигналы сегодня закрывает {random_name}'
+        rand_name = random.choice(list_name)
+        end_text = f'Случайным образом определено, что сигналы сегодня закрывает {rand_name}'
         for i in list_name:
             Data.bot.send_message(chat_id=Data.list_admins.get(i), text=end_text)
 
@@ -214,7 +214,8 @@ class SQL:
         """Стереть все данные о пользователе из БД"""
         try:
             if self.sqlite_connection:
-                try_message = f'Все данные о пользователе <{self.get_user_info(user_id)}> успешно удалены из {table_name_DB}! '
+                try_message = f'Все данные о пользователе <{self.get_user_info(user_id)}> успешно удалены ' \
+                              f'из {table_name_DB}! '
                 print(try_message)
                 logging_event('info', try_message)
                 self.cursor.execute(f'DELETE from {table_name_DB} where user_id = ?', (user_id,))
@@ -1187,7 +1188,7 @@ class Exchange_with_ERP:
         return answer_erp
 
     def in_out(self):
-        """Хз че делает"""
+        """Хз что делает"""
 
         json = self.response.json()
         data_list = []
