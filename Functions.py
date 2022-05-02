@@ -540,6 +540,35 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
+    def update_data_in_table_SQL(self, name_table, set_name_column, set_value_column):#, where_name_column, where_value_column):
+
+        """Обновляет данные в таблице {name_table},
+        устанавливает в колонке {set_name_column} значение {set_value_column}, 
+        где строка {where_name_column} совпадает с {where_value_column}"""
+
+        try:
+            sqlite_update_query = f'UPDATE {name_table} set {set_name_column}=?' #WHERE {where_name_column}=?'
+            self.cursor.execute(sqlite_update_query, (set_value_column, ))#, where_value_column,))
+            self.sqlite_connection.commit()
+            self.cursor.close()
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event('error', str(error))
+        finally:
+            if self.sqlite_connection:
+                self.sqlite_connection.close()
+
+    def select_data(self, name_table):#, where_name_column):#, where_value):
+        """"""
+
+        try:
+            self.cursor.execute(f'SELECT * FROM {name_table}')# WHERE {where_name_column}=?')#"{where_value}"')
+            records = self.cursor.fetchall()
+            self.cursor.close()
+            return records
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite: ", error)
+            logging_event('error', str(error))
 
 class Notification:
     """Методы уведомлений"""
@@ -854,23 +883,22 @@ class File_processing:
 
     def next_invent(self):
         """Если файл заполнен, возвращает строку 'До предстоящей инвентаризации осталось {N} дней.
-        Судя по графику, выходит {name}'"""
+        Судя по графику, выходит {name}'."""
 
-        self.clear_old_data()
-
-        if self.sheet_name == 'Инвентаризация':
-            if self.read_file() is not None:
-                name_from_SQL = SQL().get_user_info(get_key(self.sheet.cell(row=2, column=2).value))
-                if name_from_SQL is None:
-                    name_from_SQL = self.sheet.cell(row=2, column=2).value
-                dead_line_date = self.difference_date(self.sheet.cell(row=2, column=1).value)
-                dead_line_text = Counter().days_before_inventory(dead_line_date)
-                text_who = f'Судя по графику, выходит {name_from_SQL}.'  # Имя следующего дежурного
-                text_message = f'{dead_line_text} {text_who}'
-                return text_message
-            elif self.read_file() is None:
-                text_message = 'Нет данных об этом. Необходимо заполнить файл!'
-                return text_message
+        if self.read_file() is not None:
+            date_event = self.read_file()[0][0]
+            name_in_list = self.read_file()[0][1]
+            name_from_SQL = SQL().get_user_info(get_key(name_in_list))
+            if name_from_SQL is None:
+                name_from_SQL = name_in_list
+            dead_line_date = self.difference_date(date_event)
+            dead_line_text = Counter().days_before_inventory(dead_line_date)
+            text_who = f'Судя по графику, выходит {name_from_SQL}.'  # Имя следующего дежурного
+            text_message = f'{dead_line_text} {text_who}'
+            return text_message
+        elif self.read_file() is None:
+            text_message = f'Лист {self.sheet_name} пуст. Необходимо заполнить файл!'
+            return text_message
 
     def check_event_today(self):
         """Проверяет есть ли сегодня событие. Результат - уведомление соответствующей группе пользователей."""
@@ -923,16 +951,18 @@ class File_processing:
                 if self.difference_date(date) == 1:  # Если завтра
                     first_date = i[0].strftime('%d.%m.%Y')  # Дата str(1)
                     second_date = i[1].strftime('%d.%m.%Y')  # Дата str(2)
+                    name = i[2]
                     name_from_SQL = SQL().get_user_info(get_key(i[2]))  # Имя дежурного
 
                     text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
-                    print(datetime.datetime.now(), text_message)
+                    print(f'<{datetime.datetime.now().strftime("%d.%m.%Y %H:%M")}>\n{text_message}')
 
-                    sticker_dej = i[2]
+                    sticker_dej = SQL().get_user_sticker(get_key(name))
 
                     Notification().notification_for(text_message, 'notification', 'yes')
                     Notification().send_sticker_for(sticker_dej, 'notification', 'yes')
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                    # Data.bot.send_sticker(Data.list_admins.get('Никита'), sticker_dej)
                 elif self.difference_date(date) < 0:  # Если событие в прошлом
                     self.clear_old_data()
                 # else:
@@ -1111,15 +1141,12 @@ class Bot_menu:
 class Exchange_with_ERP:
     """Позволяет получить некоторые данные из 1С"""
 
-    def __init__(self, message, params):
+    def __init__(self, params):
         self.url = Data.way_erp
         self.login = Data.login_erp
         self.password = Data.pass_erp
         self.user_agent_val = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                               'Chrome/75.0.3770.142 Safari/537.36 '
-        self.user_id = message.from_user.id
-        self.user_name = message.from_user.first_name
-        self.text_from_user = message.text
         self.params = params
         self.response = self.get_request()
 
@@ -1148,6 +1175,8 @@ class Exchange_with_ERP:
                               'Производится обновление. Повторите попытку позже.'
                 return update_text
         except Exception:
+            # print(self.response.status_code)
+            # print(self.response.text)
             exception_text = 'Не удалось выполнить запрос, возникла ошибка. Сервер 1С недоступен. ' \
                              'Возможно производится обновление. Повторите попытку позже.'
             return exception_text
@@ -1159,9 +1188,6 @@ class Exchange_with_ERP:
         json = self.response.json()
         count_day = int(json[Data.func_name2])
 
-        logging_event('info',
-                      f'Пользователь {self.user_name}({self.user_id}) получил ответ от ERP по кол-ву '
-                      f'накопленных дней отпуска.')
         return count_day
 
     def verification(self):
@@ -1170,8 +1196,7 @@ class Exchange_with_ERP:
 
         json = self.response.json()
         answer_erp = json[Data.func_name3]
-        logging_event('info',
-                      f'Пользователь {self.user_name}({self.user_id}) получил ответ от ERP по верификации.')
+
         return answer_erp
 
     def in_out(self):
@@ -1181,9 +1206,9 @@ class Exchange_with_ERP:
         data_list = []
         for value in json.values():
             for elem in value:
+                time_in = elem['Время']
                 in_out = elem['Вход']
-                time = elem['Время']
-                string_name = f'{time} {in_out}'
+                string_name = f'{time_in} {in_out}'
                 data_list.append(string_name)
 
         return data_list

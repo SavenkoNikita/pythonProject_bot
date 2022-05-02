@@ -1,4 +1,6 @@
+import os
 import random
+import sys
 import time
 
 import datetime as datetime
@@ -924,13 +926,16 @@ def get_number_vacation_days(message):
     """Функция возвращает кол-во накопившихся дней отпуска либо текст с описанием при возникновении ошибки."""
 
     if existence(message) is True:
-        count_day = Functions.Exchange_with_ERP(message, {Data.number: message.from_user.id}).answer_from_ERP()
+        count_day = Functions.Exchange_with_ERP({Data.number: message.from_user.id}).answer_from_ERP()
         if isinstance(count_day, int):
             days = Functions.Counter().declension_day(count_day)
             answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
             types_message(message)
             bot.send_message(chat_id=message.from_user.id, text=answer_message, parse_mode='MarkdownV2')
             print(f'{answer_bot}На данный момент у вас накоплено &&& дней отпуска\n')
+            Functions.logging_event('info',
+                                    f'Пользователь {message.from_user.first_name}({message.from_user.id}) '
+                                    f'получил ответ от ERP по кол-ву накопленных дней отпуска.')
         else:
             answer_message = str(count_day)  # Тут текст ошибки
             types_message(message)
@@ -985,9 +990,12 @@ def verification_step_2(message):
 def verification_step_3(message):
     print(f'{full_name_user(message)} написал:\n{message.text}')
     if len(message.text) == 12:
-        answer_message = Functions.Exchange_with_ERP(message, {Data.number: message.from_user.id}).answer_from_ERP()
+        answer_message = Functions.Exchange_with_ERP({Data.number: message.from_user.id}).answer_from_ERP()
         bot.reply_to(message, answer_message)
         print(f'{answer_bot}{answer_message}\n')
+        Functions.logging_event('info',
+                                f'Пользователь {message.from_user.first_name}({message.from_user.id}) '
+                                f'получил ответ от ERP по верификации.')
     else:
         error_text = 'Не удалось выполнить запрос. Номер ИНН должен состоять из 12 символов и содержать ' \
                      'только цифры. Проверьте корректно ли вы указали данные. Попробуйте снова -> /verification'
@@ -1030,6 +1038,12 @@ if __name__ == '__main__':
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             print(text_message)
             bot.polling(none_stop=True)
+        # except KeyboardInterrupt:
+        #     print('Interrupted')
+        #     try:
+        #         sys.exit(0)
+        #     except SystemExit:
+        #         os._exit(0)
         except Exception as e:
             time.sleep(3)
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'Бот выдал ошибку: {e}')

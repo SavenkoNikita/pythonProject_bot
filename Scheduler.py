@@ -1,11 +1,8 @@
 import datetime
 import time
-import traceback
-
 import schedule
-
-import Data
 import Functions
+import Test_2
 import Tracking_sensor
 from Functions import random_name
 
@@ -23,8 +20,7 @@ def check_event(sheet_name):
 
 # Проверяет и уведомляет есть ли завтра дежурный
 schedule.every().day.at('15:00').do(Functions.File_processing('Дежурный').check_dej_tomorrow)
-# schedule.every().day.at('15:59').do(Functions.File_processing('Дежурный').check_dej_tomorrow)
-# schedule.every(5).seconds.do(Functions.File_processing('Дежурный').check_dej_tomorrow)
+# schedule.every(10).seconds.do(Functions.File_processing('Дежурный').check_dej_tomorrow)
 
 # Если инвент вот-вот начнётся, придёт уведомление
 schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
@@ -43,6 +39,8 @@ schedule.every().day.at('08:02').do(check_event, 'Уведомления для 
 
 # Обновляет информацию о датчиках
 schedule.every(1).minutes.do(check_sensors)
+
+schedule.every(1).minutes.do(Test_2.test)
 
 while True:
     try:
