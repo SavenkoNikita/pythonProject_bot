@@ -69,7 +69,7 @@ def can_do_it(x):
 def can_help(user_id):
     """Формирует список доступных команд для пользователя в зависимости админ он или нет."""
 
-    end_text = 'Вот что я умею:' + '\n'
+    end_text = f'Вот что я умею:\n'
     check_admin = SQL().check_for_admin(user_id)
     if check_admin is True:  # Если пользователь админ
         end_text = end_text + can_do_it(list_command_admin)  # Передать полный список доступных команд
@@ -117,15 +117,6 @@ class SQL:
             else:  # Если пользователь админ
                 return True
 
-    # def check_status_bd(self, user_id, column_bd):
-    #     """Проверяет статус колонки в БД. Возвращает булево."""
-    #     if self.check_for_existence(user_id) is True:
-    #         info = self.cursor.execute(f'SELECT * FROM users WHERE {column_bd}=? and user_id=?', ('yes', user_id))
-    #         if info.fetchone() is None:  # Если пользователь НЕ подписан на рассылку
-    #             return False
-    #         else:  # Если пользователь подписан на рассылку
-    #             return True
-
     def change_status_DB(self, user_id, column_bd):
         """Меняет у {user_id} в БД статус {column_bd} c 'yes' на 'no' и наоборот в зависимости от текущего статуса."""
 
@@ -135,10 +126,6 @@ class SQL:
             self.update_sqlite_table('yes', user_id, column_bd)
         else:
             self.update_sqlite_table('no', user_id, column_bd)
-
-    # def set_unsubscribe(self, user_id):
-    #     """Присваивает статус <отписан> в БД"""
-    #     self.update_sqlite_table('no', user_id, 'notification')
 
     def db_table_val(self, user_id, first_name, last_name, username):
         """Проверка на уникальность и добавление данных о пользователе в SQL"""
@@ -540,15 +527,14 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def update_data_in_table_SQL(self, name_table, set_name_column, set_value_column):#, where_name_column, where_value_column):
+    def update_data_in_table_SQL(self, name_table, set_name_column, set_value_column):
 
         """Обновляет данные в таблице {name_table},
-        устанавливает в колонке {set_name_column} значение {set_value_column}, 
-        где строка {where_name_column} совпадает с {where_value_column}"""
+        устанавливает в колонке {set_name_column} значение {set_value_column}"""
 
         try:
-            sqlite_update_query = f'UPDATE {name_table} set {set_name_column}=?' #WHERE {where_name_column}=?'
-            self.cursor.execute(sqlite_update_query, (set_value_column, ))#, where_value_column,))
+            sqlite_update_query = f'UPDATE {name_table} set {set_name_column}=?'  # WHERE {where_name_column}=?'
+            self.cursor.execute(sqlite_update_query, (set_value_column,))  # , where_value_column,))
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
@@ -558,17 +544,18 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def select_data(self, name_table):#, where_name_column):#, where_value):
+    def select_data(self, name_table):
         """"""
 
         try:
-            self.cursor.execute(f'SELECT * FROM {name_table}')# WHERE {where_name_column}=?')#"{where_value}"')
+            self.cursor.execute(f'SELECT * FROM {name_table}')
             records = self.cursor.fetchall()
             self.cursor.close()
             return records
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite: ", error)
             logging_event('error', str(error))
+
 
 class Notification:
     """Методы уведомлений"""
@@ -735,7 +722,7 @@ class File_processing:
         self.title_second_column = self.sheet.cell(row=1, column=2).value  # Заголовок второй колонки
         self.title_third_column = self.sheet.cell(row=1, column=3).value  # Заголовок третьей колонки
         if (self.title_first_column and self.title_second_column and self.title_third_column) is not None:
-            """Если заполнены 3 колонки, {self.count_meaning} возвращает '3', а если 2, то '2'"""
+            """Если заполнены 3 колонки, {self.count_meaning} возвращает '3', а если 2, то '2'."""
             self.count_meaning = 3  # Количество непустых колонок 3
         else:
             self.count_meaning = 2  # Количество непустых колонок 2
