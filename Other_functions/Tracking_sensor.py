@@ -1,10 +1,10 @@
 import datetime
-import time
 import urllib.request
 import xml.etree.ElementTree as ET
+from pprint import pprint
 
 import Data
-import Functions
+from Other_functions.Functions import SQL, logging_sensors
 
 
 class TrackingSensor:
@@ -47,7 +47,7 @@ class TrackingSensor:
 
         # self.list_observers_defroster = Data.list_observers_defroster
 
-        self.list_observers_defroster = Functions.SQL().create_list_users('def', 'yes')
+        self.list_observers_defroster = SQL().create_list_users('def', 'yes')
 
     @property
     def get_data(self):
@@ -62,12 +62,12 @@ class TrackingSensor:
                 web_file = urllib.request.urlopen(url)
                 root_node = ET.parse(web_file).getroot()
 
-                # device_name = 'Agent/DeviceName'
+                device_name = 'Agent/DeviceName'
                 sensor_name = 'SenSet/Entry/Name'
                 sensor_id = 'SenSet/Entry/ID'
                 sensor_value = 'SenSet/Entry/Value'
 
-                # name_dev = root_node.find(device_name).text
+                name_dev = root_node.find(device_name).text
                 # print(name_dev)
 
                 data_sheets = [
@@ -89,7 +89,7 @@ class TrackingSensor:
                 list_data_sensor = list(chunk_using_generators(list_data_sensor, int(len(list_data_sensor) / 3)))
 
                 list_sensor_name = list_data_sensor[0]
-                # list_sensor_id = list_data_sensor[1]
+                list_sensor_id = list_data_sensor[1]
                 list_sensor_value = list_data_sensor[2]
 
                 count = 0
@@ -103,12 +103,20 @@ class TrackingSensor:
 
                     sensors_with_an_error.append([list_sensor_name[count], list_sensor_value[count]])
 
+                    id_sensor = list_sensor_id[count]
+                    name_sensor = list_sensor_name[count]
+                    last_value = list_sensor_value[count]
+                    now_date = datetime.datetime.now().strftime('%d.%m.%Y %H:%M')
+                    SQL().updating_sensor_data(id_sensor, name_sensor, i, name_dev, 'True', last_value, now_date)
+                    # print(id_sensor, name_sensor, i, name_dev, 'True', last_value, now_date)
+
                     count += 1
             except OSError:
-                # text_error = f'Нет соединения с {i}'
-                print(OSError)
-                Data.bot.send_message(Data.list_admins.get('Никита'), OSError)
-                Functions.logging_event('warning', OSError)
+                text_error = f'Нет соединения с {i}'
+                print(text_error)
+                SQL().host_sensors_error(i)
+                # Data.bot.send_message(Data.list_admins.get('Никита'), OSError)
+                logging_sensors('warning', text_error)
                 pass
 
         return sensors_with_an_error
@@ -162,10 +170,10 @@ class TrackingSensor:
 
         for name, value in self.get_data:
             if int(float(value)) <= int(float(-999.9)):
-                text_message = f'{name}'
+                text_message = name
                 sensors_error.append(text_message)
-                Functions.logging_event('error', f'Неисправен датчик "{name}". '
-                                                 f'Текущее показание температуры: {int(float(value))} ℃')
+                logging_sensors('error', f'Неисправен датчик "{name}". '
+                                         f'Текущее показание температуры: {int(float(value))} ℃')
 
         if len(sensors_error) != 0:
             sensors_error.sort()

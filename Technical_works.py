@@ -1,6 +1,5 @@
 import time
 import Data
-import Functions
 
 bot = Data.bot
 
@@ -16,7 +15,7 @@ def other_functions(message):
     bot.delete_message(message.from_user.id, message_id=mes_id.message_id)
 
 
-    bot.send_poll(id, 'вопрос', options=['1', '2', '3'], )
+    # bot2.choose(id, 'вопрос', options=['1', '2', '3'], )
 
 
 if __name__ == '__main__':
@@ -28,4 +27,5 @@ if __name__ == '__main__':
             text_error = e
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'Бот выдал ошибку: {text_error}')
             print(text_error)
-            Functions.logging_event('error', text_error)
+            Other_functions.logging_event('error', text_error)
+
