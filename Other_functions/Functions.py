@@ -776,10 +776,12 @@ class SQL:
             self.cursor.execute(sql_select_query)
             count = self.cursor.fetchone()
             count = count[0]
-            # print(f'Было {count}')
+            print(f'Было {count}')
 
-            sql_update_query = f'UPDATE users SET activity_counter_today = "{count + 1}" WHERE user_id = "{user_id}"'
-            # print(f'Стало {count + 1}')
+            sql_update_query = f'UPDATE users ' \
+                               f'SET activity_counter_today = activity_counter_today + 1 ' \
+                               f'WHERE user_id = "{user_id}"'
+            print(f'Стало {count + 1}')
             self.cursor.execute(sql_update_query)
             self.sqlite_connection.commit()
             self.cursor.close()
@@ -788,7 +790,9 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def recording_statistics(self):
-        """"""
+        """Находит всех пользователей в таблице users, у кого активность по запросам за день больше нуля.
+        Если пользователь есть в таблице statistic, обновляет ему данные, а если нет, создает новую запись и
+        заполняет колонки."""
 
         try:
             select_user_id = 'SELECT user_id, activity_counter_today FROM users WHERE activity_counter_today > 0'
@@ -802,22 +806,21 @@ class SQL:
                 ids_users = self.cursor.fetchone()
                 user_id = ids[0]
                 count_today = ids[1]
-                count_all_time = 0
 
                 if ids_users is None:
                     insert_query = f'INSERT INTO statistic (user_id, today, all_time) ' \
-                                   f'VALUES ({user_id}, {count_today}, {count_all_time})'
+                                   f'VALUES ({user_id}, {count_today}, {0})'
                     self.cursor.execute(insert_query)
                     self.sqlite_connection.commit()
                 else:
                     # if count_all_time is None:
                     #     count_all_time = 0
                     update_query = f'UPDATE statistic ' \
-                                   f'SET today = {count_today}, all_time = {count_all_time + count_today} ' \
+                                   f'SET today = {count_today} ' \
                                    f'WHERE user_id = {user_id}'
                     self.cursor.execute(update_query)
                     self.sqlite_connection.commit()
-            self.cursor.close()
+            # self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -835,22 +838,22 @@ class SQL:
                 for row in count_today:
                     user_id = row[0]
                     count_request = row[1]
-                    count_month = row[2]
-                    count_all_time = row[3]
+                    # count_month = row[2]
+                    # count_all_time = row[3]
 
-                    if count_month is None:
-                        count_month = 0
-                    else:
-                        count_month = count_month
-
-                    if count_all_time is None:
-                        count_all_time = 0
-                    else:
-                        count_all_time = count_all_time
+                    # if count_month is None:
+                    #     count_month = 0
+                    # else:
+                    #     count_month = count_month
+                    #
+                    # if count_all_time is None:
+                    #     count_all_time = 0
+                    # else:
+                    #     count_all_time = count_all_time
 
                     update_count_month = f'UPDATE statistic ' \
-                                         f'SET month = {count_month + count_request}, ' \
-                                         f'all_time = {count_all_time + count_request} ' \
+                                         f'SET month = month + {count_request}, ' \
+                                         f'all_time = all_time + {count_request} ' \
                                          f'WHERE user_id = {user_id}'
                     self.cursor.execute(update_count_month)
                     self.sqlite_connection.commit()
@@ -872,15 +875,22 @@ class SQL:
         """Обнуляет счетчик ежедневной активности пользователей"""
 
         try:
-            self.calculating_statistics()
-            time.sleep(5)
+            # self.calculating_statistics()
+            # time.sleep(5)
             select_query = f'SELECT * FROM statistic'
             self.cursor.execute(select_query)
             count_today = self.cursor.fetchall()
             for row in count_today:
                 user_id = row[0]
-                update_count_month = f'UPDATE users SET activity_counter_today = 0 WHERE user_id = {user_id}'
-                self.cursor.execute(update_count_month)
+                reset_count_today_users = f'UPDATE users ' \
+                                          f'SET activity_counter_today = 0 ' \
+                                          f'WHERE user_id = {user_id}'
+                reset_count_today_statistic = f'UPDATE statistic ' \
+                                              f'SET today = 0 ' \
+                                              f'WHERE user_id = {user_id}'
+                self.cursor.execute(reset_count_today_users)
+                self.sqlite_connection.commit()
+                self.cursor.execute(reset_count_today_statistic)
                 self.sqlite_connection.commit()
             # self.cursor.close()
         except sqlite3.Error as error:
@@ -888,9 +898,12 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def top_chart(self):
-        """"""
+        """Достаёт из таблицы statistic самых активных пользователей. Возвращает текст с именами этих пользователей и
+        обнуляет счётчики."""
 
         try:
+            self.recording_statistics()
+            self.calculating_statistics()
             select_data = f'SELECT * FROM statistic'
             self.cursor.execute(select_data)
             list_top_user = self.cursor.fetchall()
@@ -923,13 +936,21 @@ class SQL:
             top_user_month = get_name_user(top_user_month)
             top_user_all = get_name_user(top_user_all)
 
+            select_user_id = 'SELECT user_id FROM users WHERE activity_counter_today > 0'
+            self.cursor.execute(select_user_id)
+            ids_users = self.cursor.fetchall()
+            print(ids_users)
+            count_active_users = len(ids_users)
+
             end_text = f'•••Топ лидеров•••\n\n' \
                        f'• {top_user_today} лидер по количеству запросов за сегодня - {max(list_today.values())} ' \
                        f'запрос(а/ов)\n' \
                        f'• Лидер по запросам за месяц {top_user_month} - {max(list_month.values())} запрос(а/ов)\n' \
-                       f'• Лидер за всё время {top_user_all} - {max(list_all.values())} запрос(а/ов)'
+                       f'• Лидер за всё время {top_user_all} - {max(list_all.values())} запрос(а/ов)\n\n' \
+                       f'Количество пользователей которые пользовались ботом за последние сутки - {count_active_users}'
 
-            # print(end_text)
+            print(end_text)
+            self.reset_count_request()
             self.cursor.close()
             return end_text
         except sqlite3.Error as error:

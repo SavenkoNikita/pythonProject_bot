@@ -44,7 +44,6 @@ def check_event(sheet_name):
 
 
 def top_statistic():
-    Other_functions.Functions.SQL().reset_count_request()
     text_top_user = Other_functions.Functions.SQL().top_chart()
     bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_top_user)
 
