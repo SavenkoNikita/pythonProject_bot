@@ -1,4 +1,4 @@
-[](https://zibero.ru/images/brands/Y1477.jpg)
+![](https://zibero.ru/images/brands/Y1477.jpg)
 # Информационный telegram бот IT отдела [IT_Remit_info_bot](https://t.me/IT_Remit_info_bot)
 
 ## Что умеет?
