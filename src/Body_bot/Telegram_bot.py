@@ -1,18 +1,20 @@
 import datetime as datetime
-import os
 import random
-import signal
-import sys
 import time
 
+import requests
 import telebot
+import urllib3.exceptions
 
 import Data
-import Exchange_with_ERP.Exchange_with_ERP
-import Other_functions.File_processing
-from Other_functions import Working_with_notifications
-from Other_functions.Functions import SQL, can_help, number_of_events, declension_day, \
-    logging_telegram_bot
+from src.Exchange_with_ERP.Exchange_with_ERP import Exchange_with_ERP
+from src.Other_functions import Working_with_notifications
+from src.Other_functions.File_processing import Working_with_a_file
+from src.Other_functions.Functions import SQL, can_help, logging_telegram_bot, number_of_events, declension_day, \
+    string_to_dict
+from src.Other_functions.Working_with_notifications import Notification
+
+# from poetry.layouts import src
 
 time_now = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Data.bot
@@ -43,7 +45,8 @@ def existence(message):
     print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if SQL().check_for_existence(user_id) is True:  # Проверка на наличие юзера в БД
         SQL().collect_statistical_information(user_id)  # Счётчик активности пользователя
-        SQL().update_data_user(message)
+        SQL().update_data_user(user_id, message.from_user.first_name, message.from_user.last_name,
+                               message.from_user.username)
         if SQL().check_verify_in_ERP(user_id) is True:
             return True
         else:
@@ -84,6 +87,13 @@ def types_message(message):
 
     bot.send_chat_action(user_id, action='typing')
     time.sleep(count_text_message)
+
+
+# @bot.message_handler(commands=['test'])
+# def test(message):
+#     print(message)
+#     # if bot.message_handler(commands='dezhurnyj'):
+#     #     Bot_commands(message).command_dezhurnyj()
 
 
 @bot.message_handler(commands=['start'])
@@ -163,7 +173,7 @@ def log_out(message):
         print(f'{answer_bot}{end_text}\n')
 
 
-@bot.message_handler(commands=['help'])
+@bot.message_handler(commands=['help'])  # , func=help_command)
 def help_command(message):
     """Список доступных команд"""
 
@@ -180,6 +190,7 @@ def help_command(message):
         types_message(message)
         bot.reply_to(message, end_message)
         print(f'{answer_bot}{end_message}\n')
+    # bot.send_message(message.from_user.id, text='Главное меню', reply_markup=Menu_bot.Bot_menu().main_menu())
 
 
 @bot.message_handler(commands=['invent'])
@@ -189,16 +200,16 @@ def invent(message):
     list_name = 'Инвентаризация'  # Имя страницы
 
     if rights_admin(message) is True:
-        if Other_functions.File_processing.Working_with_a_file(list_name).read_file() is not None:
-            answer_message = Other_functions.File_processing.Working_with_a_file(list_name).next_invent()
-            sticker = Other_functions.File_processing.Working_with_a_file(list_name).sticker_next_dej()
+        if Working_with_a_file(list_name).read_file() is not None:
+            answer_message = Working_with_a_file(list_name).next_invent()
+            sticker = Working_with_a_file(list_name).sticker_next_dej()
             types_message(message)
             bot.reply_to(message, answer_message)
             if sticker is not None:
                 bot.send_sticker(message.chat.id, sticker)
             print(f'{answer_bot}{answer_message}\n')
         else:
-            answer_message = Other_functions.File_processing.Working_with_a_file(list_name).next_invent()
+            answer_message = Working_with_a_file(list_name).next_invent()
             types_message(message)
             bot.reply_to(message, answer_message)
             print(f'{answer_bot}{answer_message}\n')
@@ -431,7 +442,7 @@ def change_sticker_step_2(message):
     print(f'{answer_bot}{end_text}\n')
 
 
-@bot.message_handler(commands=['dezhurnyj'])
+@bot.message_handler(commands=['dezhurnyj'])  # , func=command_dezhurnyj)
 def dej(message):
     """Узнать кто дежурный"""
 
@@ -458,8 +469,8 @@ def dej_step_2(message):
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     try:
         if message.text == 'Имя следующего дежурного':
-            answer_message = Other_functions.File_processing.Working_with_a_file(sheet_name).next_dej()
-            user_sticker = Other_functions.File_processing.Working_with_a_file(sheet_name).sticker_next_dej()
+            answer_message = Working_with_a_file(sheet_name).next_dej()
+            user_sticker = Working_with_a_file(sheet_name).sticker_next_dej()
             # Пришлёт сообщение о дежурном
             types_message(message)
             bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
@@ -468,7 +479,7 @@ def dej_step_2(message):
                 bot.send_sticker(message.chat.id, user_sticker)
             print(f'{answer_bot}{answer_message}\n')
         elif message.text == 'Список дежурных':
-            count_data_list = len(Other_functions.File_processing.Working_with_a_file(sheet_name).list_dej())
+            count_data_list = len(Working_with_a_file(sheet_name).list_dej())
             answer_message = number_of_events(count_data_list)
             types_message(message)
             bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
@@ -490,7 +501,7 @@ def dej_step_3(message, sheet_name, count_data_list):
     count = int(message.text)
     try:
         if count <= count_data_list:
-            data_list = Other_functions.File_processing.Working_with_a_file(sheet_name).list_dej()
+            data_list = Working_with_a_file(sheet_name).list_dej()
             Working_with_notifications.repeat_for_list(data_list, message.from_user.id, count)
         else:
             answer_message = f'Вы запрашиваете {count} записей, а есть только {count_data_list}.\n' \
@@ -647,7 +658,7 @@ def create_record_step_4(message, list_of_answers):
     date = list_of_answers[2]
     text_event = list_of_answers[1]
 
-    answer_message = Other_functions.File_processing.Working_with_a_file(sheet_name).create_event(date, text_event)
+    answer_message = Working_with_a_file(sheet_name).create_event(date, text_event)
     print(answer_message)
     types_message(message)
     bot.reply_to(message, answer_message)
@@ -728,9 +739,9 @@ def games_step_4(message, number, lower, high, count):
         answer_message = f'Я угадал твоё число за {count} ходов'
         types_message(message)
         bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        text_message_2 = 'Сыграем ещё? /games'
-        bot.send_message(message.from_user.id, text_message_2)
-        print(f'{answer_message}\n{text_message_2}\n')
+        # text_message_2 = 'Сыграем ещё? /games'
+        # bot.send_message(message.from_user.id, text_message_2)
+        # print(f'{answer_message}\n{text_message_2}\n')
         exit()
     else:
         print(message.text)
@@ -839,10 +850,11 @@ def check_defroster_step_2(message):
         time.sleep(3)
 
         if SQL().check_status_DB(message.from_user.id, 'def',
-                                 'yes') is True:  # Если пользователь наблюдатель
+                                 'yes') is True:  # Если пользователь не наблюдатель
             SQL().add_user_by_table(message.from_user.id, 'def', 'yes', 'tracking_sensor_defroster')
 
-            message_id = bot.send_message(message.from_user.id, 'Start tracking sensor in defroster').message_id
+            message_id = bot.send_message(message.from_user.id, 'Через некоторое время, на месте этого сообщения, '
+                                                                'появятся показания датчиков').message_id
             SQL().update_mess_id_by_table(message.from_user.id, message_id, 'tracking_sensor_defroster',
                                           'def')
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
@@ -989,8 +1001,7 @@ def get_number_vacation_days(message):
     """Функция возвращает кол-во накопившихся дней отпуска либо текст с описанием при возникновении ошибки."""
 
     if existence(message) is True:
-        count_day = Exchange_with_ERP.Exchange_with_ERP.Exchange_with_ERP(
-            {Data.number: message.from_user.id}).answer_from_ERP()
+        count_day = Exchange_with_ERP({Data.number: message.from_user.id}).answer_from_ERP()
         if isinstance(count_day, int):
             days = declension_day(count_day)
             answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
@@ -1017,7 +1028,8 @@ def verification(message):
     """Предлагает пользователю обновить ID Telegram в 1С с указанным ИНН. Либо возвращает str(ошибку)."""
 
     if SQL().check_for_existence(message.from_user.id) is True:  # Проверка на наличие юзера в БД
-        SQL().update_data_user(message)
+        SQL().update_data_user(message.from_user.id, message.from_user.first_name, message.from_user.last_name,
+                               message.from_user.username)
         answer_message = 'Для верификации необходим номер вашего ИНН (физ. лицо). ' \
                          'Эти данные нужны для проверки личности пользователя в 1С. ' \
                          'Если вы готовы предоставить их прямо сейчас - нажмите "Ок"'
@@ -1049,13 +1061,13 @@ def verification_step_2(message):
         types_message(message)
         bot.reply_to(message, end_text)
         print(f'{answer_bot}{end_text}\n')
-        exit()
+        # exit()
 
 
 def verification_step_3(message):
     print(f'{full_name_user(message)} написал:\n{message.text}')
     if len(message.text) == 12:
-        answer_message = Exchange_with_ERP.Exchange_with_ERP.Exchange_with_ERP(
+        answer_message = Exchange_with_ERP(
             {Data.number: message.from_user.id, Data.verification: message.text}).answer_from_ERP()
         bot.reply_to(message, answer_message)
         print(f'{answer_bot}{answer_message}\n')
@@ -1068,6 +1080,193 @@ def verification_step_3(message):
                      'только цифры. Проверьте корректно ли вы указали данные. Попробуйте снова -> /verification'
         bot.reply_to(message, error_text)
         print(f'{answer_bot}{error_text}\n')
+
+
+@bot.message_handler(commands=['baraholka'])
+def baraholka(message):
+    user_id = message.from_user.id
+    if existence(message) is True:
+        status = ''
+        if SQL().check_status_bar(user_id) is True:
+            status = 'вы подписаны на уведомления'
+        elif SQL().check_status_bar(user_id) is False:
+            status = 'вы не подписаны на уведомления'
+
+        text_to_user = f'Давно не виделись {message.from_user.first_name}! В данный момент {status}!'
+        bot.reply_to(message, text=text_to_user)
+        time.sleep(2)
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Изменить', 'Оставить как есть']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.send_message(chat_id=user_id, text='Если хотите изменить статус подписки, нажмите на кнопку ниже',
+                         reply_markup=keyboard)
+        bot.register_next_step_handler(message, baraholka_step_2)
+    else:
+        answer_message = existence(message)
+        types_message(message)
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
+
+
+def baraholka_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Изменить':
+        SQL().change_status_bar(message.from_user.id)
+        bot.send_message(chat_id=message.from_user.id,
+                         text='Статус успешно изменён!',
+                         reply_markup=hide_keyboard)
+    elif message.text == 'Оставить как есть':
+        bot.send_message(chat_id=message.from_user.id,
+                         text='Хорошо. До новых сообщений! ;)',
+                         reply_markup=hide_keyboard)
+
+
+@bot.message_handler(commands=['place_a_lot'])
+def place_a_lot(message):
+    user_id = message.from_user.id
+    if rights_admin(message) is True:
+        text_answer = 'Для создания лота, необходимо\n' \
+                      '• Дать ему название\n' \
+                      '• Прикрепить фото\n' \
+                      '• Краткое описание\n\n' \
+                      'Выбери действие'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Создать лот', 'Возможно позже']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.send_message(chat_id=user_id, text=text_answer, reply_markup=keyboard)
+        bot.register_next_step_handler(message, place_a_lot_step_2)
+    else:
+        answer_message = existence(message)
+        types_message(message)
+        bot.reply_to(message, answer_message)
+        print(f'{answer_bot}{answer_message}\n')
+
+
+def place_a_lot_step_2(message):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    user_id = message.from_user.id
+    name_lot = None
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Создать лот':
+        bot.send_message(chat_id=user_id, text='Как будет называться лот?', reply_markup=hide_keyboard)
+        bot.register_next_step_handler(message, place_a_lot_step_3, name_lot)
+    elif message.text == 'Возможно позже':
+        bot.send_message(chat_id=user_id, text='Создание лота отменено.', reply_markup=hide_keyboard)
+
+
+def place_a_lot_step_3(message, name_lot):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    user_id = message.from_user.id
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if name_lot is None:
+        name_lot = message.text
+    else:
+        name_lot = name_lot
+    bot.send_message(chat_id=user_id,
+                     text='Теперь отправь мне фотографию лота.\n'
+                          '*Примечание: при отправке нескольких фото, будет использоваться первая прикреплённая!',
+                     reply_markup=hide_keyboard)
+    bot.register_next_step_handler(message, place_a_lot_step_4, name_lot)
+
+
+def place_a_lot_step_4(message, name_lot):
+    name_lot = name_lot
+    # print(message)
+    if message.photo is not None:
+        photo_id = message.photo[0].file_id
+        bot.send_message(message.chat.id,
+                         text='Теперь нужно добавить описание к лоту '
+                              '(что это, рабочее ли состояние, возможные дефекты)')
+        bot.register_next_step_handler(message, place_a_lot_step_5, name_lot, photo_id)
+    else:
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Ещё попытка']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.send_message(message.chat.id,
+                         text='Не спеши! На данном этапе мне нужна фотография. Попробуем ещё раз. Нажми на кнопку ниже',
+                         reply_markup=keyboard)
+        bot.register_next_step_handler(message, place_a_lot_step_3, name_lot)
+
+
+def place_a_lot_step_5(message, name_lot, photo_id):
+    lot_number = Working_with_notifications.Notification().get_last_record_lots() + 1
+    name_lot = name_lot
+    photo_id = photo_id
+    description_lot = message.text
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = ['Разместить', 'Создать заново', 'Удалить пост']
+    keyboard.add(*buttons)
+    types_message(message)
+    bot.send_message(message.chat.id, text='Вот так пользователи будут видеть созданный лот. Разместить его?',
+                     reply_markup=keyboard)
+    bot.send_photo(message.chat.id,
+                   caption=f'Лот №{lot_number}\n\n' \
+                           f'Название: {name_lot}\n\n' \
+                           f'Описание: {description_lot}\n\n',
+                   photo=photo_id)
+    bot.register_next_step_handler(message, place_a_lot_step_6, name_lot, photo_id, description_lot)
+
+
+def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    user_id = message.from_user.id
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Разместить':
+        SQL().record_lot_to_DB(name_lot, photo_id, description_lot)  # Помещаем имя, id фото и описание в БД
+        Notification().notification_for_subs_lots(name_lot, photo_id, description_lot)  # Рассылка подписчикам
+        id_callback_data = Notification().get_last_record_lots()  # Получаем id последнего лота из БД
+        keyboard = telebot.types.InlineKeyboardMarkup()  # Инициализация клавиатуры
+        button = telebot.types.InlineKeyboardButton(text='Забронировать лот', callback_data=id_callback_data)
+        keyboard.add(button)
+        bot.send_message(chat_id=user_id,
+                         text='Лот успешно разослан подписчикам барахолки!',
+                         reply_markup=hide_keyboard)
+        # bot.answer_callback_query(chat_id=user_id,
+        #                           text='Лот успешно разослан подписчикам барахолки!',
+        #                           reply_markup=hide_keyboard)
+    elif message.text == 'Создать заново':
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Начать']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.send_message(message.chat.id, text='Для того чтобы продолжить нажмите кнопку ниже', reply_markup=keyboard)
+        # bot.send_message(chat_id=user_id, text='Хорошо, попробуем ещё раз!', reply_markup=hide_keyboard)
+        bot.register_next_step_handler(message, place_a_lot)
+    elif message.text == 'Удалить пост':
+        bot.send_message(chat_id=user_id, text='Публикация поста отменена', reply_markup=hide_keyboard)
+
+
+@bot.callback_query_handler(func=lambda c: True)
+def inline(c):
+    user_id = c.from_user.id  # Получаем user_id
+    dict_data = string_to_dict(c.data)  # Получаем dict(словарь) из входных данных
+    key = [key for key in dict_data.keys()][0]  # Достаём ключ из словаря
+    number_lot = dict_data.get(key)  # Достаём значение из словаря
+
+    if key == 'lot':
+        answer_sql = SQL().booked_lots(number_lot, user_id)  # Попытка юзером забронировать лот
+        if answer_sql != 'Success':  # Если лот забронирован
+            bot.answer_callback_query(c.id, text=answer_sql)  # Вызывает у юзера всплывающее окно с текстом ошибки
+        elif answer_sql == 'Success':  # Если лот не забронирован
+            SQL().edit_message_lots(number_lot)  # Пользователь бронирует лот за собой и у всех подписчиков в этом
+    elif key == 'cancel':
+        SQL().cancel_lot(number_lot)  # Пользователь отменяет бронь на лот
+    elif key == 'sold':
+        SQL().sold_lot(id_lot=number_lot, user_id=user_id)  # Пользователь подтверждает что забрал лот
+    elif key == 'confirm':
+        SQL().confirm_the_issue(id_lot=number_lot)
+    elif key == 'refute':
+        SQL().refute_the_issue(id_lot=number_lot)
+    # elif key == 'test':
+    #     answer_sql = SQL().booked_lots(number_lot, user_id)  # Попытка юзером забронировать лот
+    #     if answer_sql != 'Success':  # Если лот забронирован
+    #         bot.answer_callback_query(c.id, text=answer_sql)  # Вызывает у юзера всплывающее окно с текстом ошибки
+    #     elif answer_sql == 'Success':  # Если лот не забронирован
+    #         SQL().edit_message_lots(number_lot)  # Пользователь бронирует лот за собой и у всех подписчиков в этом
 
 
 @bot.message_handler(content_types=['text'])
@@ -1099,30 +1298,35 @@ def speak(message):
 #     bot.reply_to(message, answer_message)
 #     print(f'{answer_bot}{answer_message}\n')
 
+# @bot.message_handler(content_types=['photo'])
+# def get_id_photo(message):
+#     photo_id = message.photo[0].file_id
+#     answer_message = f'photo_id изображения - {photo_id}'
+#     bot.reply_to(message, text=answer_message)
+
 
 if __name__ == '__main__':
     while True:
         try:
-            text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nTelegram_bot.py начал работу'
-            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
+            text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nTelegram_bot.py начал работу\n\n'
+            # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             print(text_message)
             bot.polling(none_stop=True)
-        # except telebot.ReadTimeout:
-        #     time.sleep(3)
-        #     text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса'
-        #     bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
-        #     print(str(text))
-        #     logging_telegram_bot('error', str(text))
-        # except KeyboardInterrupt:
-        #     print(sys.stderr, '\nExiting by user request\n')
-        #     bot.stop_polling()
-        #     sys.exit(0)
-        #     break
+        except requests.exceptions.ReadTimeout:
+            time.sleep(3)
+            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса\n\n'
+            # bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
+            print(text)
+            logging_telegram_bot('error', text)
+        except requests.ConnectionError:
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nНет соединения с сервером\n\n')
+            time.sleep(60)
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПопытка соединения\n\n')
         except Exception as e:
             time.sleep(3)
-            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nВ Telegram_bot.py возникла ошибка: {e} '
+            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
+                   f'В Telegram_bot.py возникла ошибка: {e}\n\n'
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
             print(str(e))
             logging_telegram_bot('error', str(e))
             # os.kill(os.getpid(), 9)
-

@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from pprint import pprint
 
 import Data
-from Other_functions.Functions import SQL, logging_sensors
+from src.Other_functions.Functions import SQL, logging_sensors
 
 
 class TrackingSensor:
@@ -198,3 +198,60 @@ class TrackingSensor:
     #         id_mes = Data.bot.send_message(user, 'Start tracking all error sensor')
     #         list_id_mes[user] = id_mes  # Добавить в словарь пару id_user: id_message
     #         Data.bot.pin_chat_message(user, message_id=id_mes.message_id)  # Закрепляет сообщение у пользователя
+
+    def get_all_data(self):
+        """Получить имя контроллера, имя датчика, id датчика и текущие показания температуры. Результат - список с
+        вложенными списками [name, value] """
+
+        list_data_all = []
+        for i in self.list_controllers:
+            try:
+                url = f'http://{i}/values.xml'
+                web_file = urllib.request.urlopen(url)
+                root_node = ET.parse(web_file).getroot()
+
+                device_name = 'Agent/DeviceName'
+
+                name_dev = root_node.find(device_name).text
+
+                obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']
+
+                sensor = {}
+                data_dict = {name_dev: sensor}
+
+                for entry in root_node.findall('SenSet/Entry'):
+                    list_data = []
+                    for elem in entry:
+                        if elem.tag == 'Name':
+                            name_sensor = elem.text
+                            sensor[name_sensor] = list_data
+                        elif elem.tag == 'SenId':
+                            list_data.append({elem.tag: elem.text[1:]})
+                        elif elem.tag in obs:
+                            list_data.append({elem.tag: elem.text})
+
+                list_data_all.append(data_dict)
+            except OSError:
+                text_error = f'Нет соединения с {i}'
+                print(text_error)
+        return list_data_all
+
+    def test(self):
+        list_data = self.get_all_data()
+        # pprint(list_data)
+
+        obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']
+
+        for controller in list_data:
+            name_controller = list(controller.keys())[0]
+            # pprint(list_data)
+            # pprint(name_controller)
+            for sensor in controller:
+                data_sensor = controller.get(name_controller)
+                name_sensor = list(data_sensor.keys())[0]
+                # pprint(data_sensor)
+                # pprint(name_sensor)
+                for elem in data_sensor:
+                    list_elem = data_sensor.get(elem)
+
+                    # pprint(list_elem)

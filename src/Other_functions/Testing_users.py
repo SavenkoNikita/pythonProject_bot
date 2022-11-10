@@ -1,8 +1,6 @@
 import time
 
 import Data
-import Exchange_with_ERP.Exchange_with_ERP
-import Functions
 
 bot2 = Data.bot2
 
@@ -23,7 +21,7 @@ def send_poll(message):
                         message_id=first_message)
 
     # Получить json с вопросами и ответами
-    json = Exchange_with_ERP.Exchange_with_ERP.Exchange_with_ERP(
+    json = src.Exchange_with_ERP.Exchange_with_ERP.Exchange_with_ERP(
         {Data.number: message.from_user.id, Data.func_name4: '000000002'}).answer_from_ERP()
 
     if 'TEST_CODE' in json:

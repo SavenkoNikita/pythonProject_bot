@@ -6,13 +6,13 @@ import traceback
 import schedule
 
 import Data
-import Other_functions.Functions
+# import Other_functions.Functions
 import Test_2
 from Data import bot
-from Other_functions import Functions, Working_with_notifications
-from Other_functions.File_processing import Working_with_a_file
-from Other_functions.Functions import logging_scheduler
-from Other_functions.Tracking_sensor import TrackingSensor
+from src.Other_functions import Working_with_notifications, Functions
+from src.Other_functions.File_processing import Working_with_a_file
+from src.Other_functions.Functions import logging_scheduler
+from src.Other_functions.Tracking_sensor import TrackingSensor
 
 
 def random_time():
@@ -44,8 +44,12 @@ def check_event(sheet_name):
 
 
 def top_statistic():
-    text_top_user = Other_functions.Functions.SQL().top_chart()
+    text_top_user = Functions.SQL().top_chart()
     bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_top_user)
+
+
+def update_the_reservation_status_of_lots():
+    Functions.SQL().schedule_cancel_booking()
 
 
 # Проверяет и уведомляет есть ли завтра дежурный
@@ -55,7 +59,7 @@ schedule.every().day.at('15:00').do(check_dej)
 schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
 
 # Присылает случайное имя кто идёт в цех
-schedule.every().day.at('07:01').do(Functions.random_name)
+# schedule.every().day.at('07:01').do(Functions.random_name)
 
 # Проверяет есть ли сегодня уведомления для подписчиков и отправляет их
 schedule.every().day.at('08:00').do(check_event, 'Уведомления для подписчиков')
@@ -68,12 +72,11 @@ schedule.every().day.at('08:02').do(check_event, 'Уведомления для 
 
 # Обновляет информацию о датчиках
 schedule.every(1).minutes.do(check_sensors)
-# schedule.every(10).seconds.do(Working_with_notifications.Notification().update_mess('observers_for_faulty_sensors',
-#                                                                                     TrackingSensor().check_all))
-# schedule.every(10).seconds.do(Working_with_notifications.Notification().update_mess('tracking_sensor_defroster',
-#                                                                                     TrackingSensor().check_defroster))
 
-schedule.every().day.at('00:01').do(top_statistic)
+# Обновить статус брони лотов
+schedule.every(1).minutes.do(update_the_reservation_status_of_lots)
+
+# schedule.every().day.at('00:01').do(top_statistic)
 
 while True:
     try:

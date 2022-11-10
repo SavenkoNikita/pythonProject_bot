@@ -8,8 +8,8 @@ from openpyxl import load_workbook
 from smb.SMBHandler import SMBHandler
 
 import Data
-from Other_functions.Functions import SQL, get_key, days_before_inventory, logging_file_processing
-from Other_functions.Working_with_notifications import Notification
+from src.Other_functions.Functions import SQL, get_key, days_before_inventory, logging_file_processing
+from src.Other_functions.Working_with_notifications import Notification
 from urllib.request import urlopen
 
 
