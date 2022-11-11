@@ -1177,7 +1177,8 @@ class SQL:
             elif status_lot == 'yes' and on_the_hands == 'yes':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
-                        if user_id == Data.list_admins.get('Никита') and confirm == 'no':
+                        # if user_id == Data.list_admins.get('Никита') and confirm == 'no':
+                        if user_id in Data.list_admins.values() and confirm == 'no':
                             str_dict_confirm = str({'confirm': number_lot})
                             str_dict_refute = str({'refute': number_lot})
 
