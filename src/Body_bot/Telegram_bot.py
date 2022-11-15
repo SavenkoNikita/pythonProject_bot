@@ -4,7 +4,6 @@ import time
 
 import requests
 import telebot
-import urllib3.exceptions
 
 import Data
 from src.Exchange_with_ERP.Exchange_with_ERP import Exchange_with_ERP
@@ -1204,8 +1203,8 @@ def place_a_lot_step_5(message, name_lot, photo_id):
     bot.send_message(message.chat.id, text='Вот так пользователи будут видеть созданный лот. Разместить его?',
                      reply_markup=keyboard)
     bot.send_photo(message.chat.id,
-                   caption=f'Лот №{lot_number}\n\n' \
-                           f'Название: {name_lot}\n\n' \
+                   caption=f'Лот №{lot_number}\n\n'
+                           f'Название: {name_lot}\n\n'
                            f'Описание: {description_lot}\n\n',
                    photo=photo_id)
     bot.register_next_step_handler(message, place_a_lot_step_6, name_lot, photo_id, description_lot)
@@ -1308,25 +1307,23 @@ def speak(message):
 if __name__ == '__main__':
     while True:
         try:
-            text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nTelegram_bot.py начал работу\n\n'
+            text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nTelegram_bot.py начал работу'
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             print(text_message)
             bot.polling(none_stop=True)
         except requests.exceptions.ReadTimeout:
             time.sleep(3)
-            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса\n\n'
+            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса'
             # bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
             print(text)
             logging_telegram_bot('error', text)
         except requests.ConnectionError:
-            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nНет соединения с сервером\n\n')
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nНет соединения с сервером')
             time.sleep(60)
-            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПопытка соединения\n\n')
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПопытка соединения')
         except Exception as e:
             time.sleep(3)
-            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
-                   f'В Telegram_bot.py возникла ошибка: {e}\n\n'
+            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nВ Telegram_bot.py возникла ошибка: {e} '
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
             print(str(e))
             logging_telegram_bot('error', str(e))
-            # os.kill(os.getpid(), 9)
