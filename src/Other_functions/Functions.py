@@ -1152,7 +1152,10 @@ class SQL:
                                                                   f'Описание: {description_lot}\n\n'
                                                                   f'### Этот лот забронирован вами '
                                                                   f'до {date_of_cancel_format}. '
-                                                                  f'Если забрать не успеваете, бронь аннулируется! ###',
+                                                                  f'Если забрать не успеваете, бронь аннулируется!\n'
+                                                                  f'При получении лота покажите это сообщение, оно '
+                                                                  f'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не '
+                                                                  f'кем-то другим. ###',
                                                           reply_markup=keyboard)
                         else:
                             str_dict_cancel = str({'cancel': number_lot})
@@ -1177,7 +1180,7 @@ class SQL:
             elif status_lot == 'yes' and on_the_hands == 'yes':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
-                        if user_id == Data.list_admins.values() and confirm == 'no':
+                        if user_id in Data.list_admins.values() and confirm == 'no':
                             str_dict_confirm = str({'confirm': number_lot})
                             str_dict_refute = str({'refute': number_lot})
 
@@ -1191,7 +1194,7 @@ class SQL:
                                           f'Название: {name_lot}\n\n' \
                                           f'Описание: {description_lot}\n\n' \
                                           f'### Ожидает подтверждения выдачи. ###'
-                            Data.bot.edit_message_caption(chat_id=Data.list_admins.get('Никита'),
+                            Data.bot.edit_message_caption(chat_id=user_id,
                                                           message_id=message_id,
                                                           caption=description,
                                                           reply_markup=keyboard)
@@ -1201,7 +1204,7 @@ class SQL:
                                               f'Название: {name_lot}\n\n' \
                                               f'Описание: {description_lot}\n\n' \
                                               f'### Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
-                                              f'лот снова станет доступен. Следите за обновлениями. ###'
+                                              f'лот снова станет доступен. Следите за обновлениями! ###'
                                 Data.bot.edit_message_caption(chat_id=user_id,
                                                               message_id=message_id,
                                                               caption=description)
@@ -1213,17 +1216,34 @@ class SQL:
                                 Data.bot.edit_message_caption(chat_id=user_id,
                                                               message_id=message_id,
                                                               caption=description)
+
                                 Data.bot.unpin_chat_message(chat_id=user_id,
                                                             message_id=message_id)
                     else:
-                        Data.bot.edit_message_caption(chat_id=user_id,
-                                                      message_id=message_id,
-                                                      caption=f'Лот №{number_lot}\n\n'
-                                                              f'Название: {name_lot}\n\n'
-                                                              f'Описание: {description_lot}\n\n'
-                                                              f'### Вы подтвердили, что забрали этот лот! ###')
+                        if confirm == 'no':
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'### Вы указали, что забрали этот лот! Если выдача не подтвердится, ' \
+                                          f'статус сменится на "Этот лот забронирован вами". ###'
+
+                            Data.bot.edit_message_caption(chat_id=user_id,
+                                                          message_id=message_id,
+                                                          caption=description)
+                        elif confirm == 'yes':
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'### Выдача лота подтверждена.\n' \
+                                          f'Поздравляем с приобретением! ###'
+                            Data.bot.edit_message_caption(chat_id=user_id,
+                                                          message_id=message_id,
+                                                          caption=description)
+
+                            Data.bot.unpin_chat_message(chat_id=user_id,
+                                                        message_id=message_id)
             elif status_lot == 'no':
-                print('status lot no')
+                # print('status lot no')
                 str_dict_lot = str({'lot': number_lot})
                 keyboard = telebot.types.InlineKeyboardMarkup()
                 button = telebot.types.InlineKeyboardButton(text='Забронировать лот',
@@ -1429,6 +1449,7 @@ class SQL:
     #         print("Ошибка при работе с SQLite", error)
     #         logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
+
 def days_before_inventory(number):
     """Принимает на вход число и склоняет его.
     Результат - str<До предстоящей инвентаризации остался/осталось день/дня/дней>"""
@@ -1490,6 +1511,7 @@ def pack_in_callback_data(key, value):
     dict_callback = {key: value}
     string_dict = str(dict_callback)
     return string_dict
+
 
 # def pack_in_callback_data(type_button, key, value):
 #     dict_callback = {type_button: {key: value}}
