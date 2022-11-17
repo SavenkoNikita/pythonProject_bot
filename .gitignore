@@ -6,5 +6,5 @@
 /src/Other_functions/Testing_users.py
 /Test_5.py
 /Test_6.py
-venv
-.idea
+venv/
+.idea/
