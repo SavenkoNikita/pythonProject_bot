@@ -539,7 +539,7 @@ def feed_back(message):
     # if existence(message) is True:  # Проверка на наличие юзера в БД
     answer_message = 'Выберите тип обращения'
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    buttons = ['Что-то не работает', 'Есть идея новой функции', 'Другое']
+    buttons = ['Что-то не работает', 'Есть идея новой функции', 'Другое', 'Отмена']
     keyboard.add(*buttons)
     types_message(message)
     bot.reply_to(message, answer_message, reply_markup=keyboard)
@@ -554,16 +554,24 @@ def feed_back(message):
 
 def feed_back_step_2(message):
     print(f'{full_name_user(message)} написал:\n{message.text}')
-    text_answer = 'Опишите суть обращения. Чем подробнее тем лучше.\n'
-    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    buttons = ['Отмена']
-    keyboard.add(*buttons)
-    types_message(message)
-    bot.reply_to(message, text_answer, reply_markup=keyboard)
-    contacting_technical_support = f'{message.text}\n'
-    bot.register_next_step_handler(message, feed_back_step_3,
-                                   contacting_technical_support)  # Регистрация следующего действия
-    print(f'{answer_bot}{text_answer}\n')
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Отмена':
+        answer_message = 'Обращение отменено.'
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        print(f'{full_name_user(message)} написал:\n{message.text}')
+        text_answer = 'Опишите суть обращения. Чем подробнее тем лучше.\n'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Отмена']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.reply_to(message, text_answer, reply_markup=keyboard)
+        contacting_technical_support = f'{message.text}\n'
+        bot.register_next_step_handler(message, feed_back_step_3,
+                                       contacting_technical_support)  # Регистрация следующего действия
+        print(f'{answer_bot}{text_answer}\n')
 
 
 def feed_back_step_3(message, text_problem):
@@ -572,7 +580,7 @@ def feed_back_step_3(message, text_problem):
     if message.text == 'Отмена':
         answer_message = 'Обращение отменено.'
         types_message(message)
-        bot.reply_to(message, answer_message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
         print(f'{answer_bot}{answer_message}\n')
     else:
         problem = f'FEED_BACK:\n{text_problem}{message.text}'
