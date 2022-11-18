@@ -1112,9 +1112,9 @@ def baraholka_step_2(message):
     print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Изменить':
-        SQL().change_status_bar(message.from_user.id)
+        answer_SQL = SQL().change_status_bar(message.from_user.id)
         bot.send_message(chat_id=message.from_user.id,
-                         text='Статус успешно изменён!',
+                         text=f'Статус успешно изменён!\n{answer_SQL}',
                          reply_markup=hide_keyboard)
     elif message.text == 'Оставить как есть':
         bot.send_message(chat_id=message.from_user.id,

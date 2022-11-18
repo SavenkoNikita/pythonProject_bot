@@ -14,6 +14,7 @@ import Data
 #
 # from Other_functions.Working_with_notifications import Notification
 # from  import Notification
+import src.Other_functions.Functions
 from src.Other_functions import Working_with_notifications
 
 
@@ -1027,11 +1028,13 @@ class SQL:
                 self.cursor.execute(update_query)
                 self.sqlite_connection.commit()
                 # print('status no change to yes')
-                text = 'Теперь вы подписаны на обновления барахолки.'
+                text = 'Теперь вы подписаны на обновления барахолки. Прямо сейчас Вам станут доступны лоты, ' \
+                       'которые еще не забрали.'
                 count_subs_users = self.count_users()
                 text_message = f'На обновления барахолки подписался ещё один ' \
                                f'пользователь. Теперь нас {count_subs_users}'
                 Working_with_notifications.Notification().notification_for_sub_baraholka(text_message)
+                self.send_lots_new_sub_bar(user_id)
                 return text
             elif user == 'yes':
                 update_query = f'UPDATE users SET sub_bar = "no" WHERE user_id = "{user_id}"'
@@ -1137,46 +1140,25 @@ class SQL:
                                                       message_id=message_id,
                                                       caption=description)
                     else:
-                        if number_lot == 1:
-                            str_dict_cancel = str({'cancel': number_lot})
+                        str_dict_cancel = str({'cancel': number_lot})
+                        str_dict_sold = str({'sold': number_lot})
 
-                            keyboard = telebot.types.InlineKeyboardMarkup()
-                            button = telebot.types.InlineKeyboardButton(text='Отменить бронь',
-                                                                        callback_data=str_dict_cancel)
-                            keyboard.add(button)
+                        keyboard = telebot.types.InlineKeyboardMarkup()
+                        button = telebot.types.InlineKeyboardButton(text='Отменить бронь',
+                                                                    callback_data=str_dict_cancel)
+                        button_2 = telebot.types.InlineKeyboardButton(text='Лот уже у меня',
+                                                                      callback_data=str_dict_sold)
+                        keyboard.add(button, button_2)
 
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=f'Лот №{number_lot}\n\n'
-                                                                  f'Название: {name_lot}\n\n'
-                                                                  f'Описание: {description_lot}\n\n'
-                                                                  f'### Этот лот забронирован вами '
-                                                                  f'до {date_of_cancel_format}. '
-                                                                  f'Если забрать не успеваете, бронь аннулируется!\n'
-                                                                  f'При получении лота покажите это сообщение, оно '
-                                                                  f'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не '
-                                                                  f'кем-то другим. ###',
-                                                          reply_markup=keyboard)
-                        else:
-                            str_dict_cancel = str({'cancel': number_lot})
-                            str_dict_sold = str({'sold': number_lot})
-
-                            keyboard = telebot.types.InlineKeyboardMarkup()
-                            button = telebot.types.InlineKeyboardButton(text='Отменить бронь',
-                                                                        callback_data=str_dict_cancel)
-                            button_2 = telebot.types.InlineKeyboardButton(text='Лот уже у меня',
-                                                                          callback_data=str_dict_sold)
-                            keyboard.add(button, button_2)
-
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=f'Лот №{number_lot}\n\n'
-                                                                  f'Название: {name_lot}\n\n'
-                                                                  f'Описание: {description_lot}\n\n'
-                                                                  f'### Этот лот забронирован вами '
-                                                                  f'до {date_of_cancel_format}. '
-                                                                  f'Если забрать не успеваете, бронь аннулируется! ###',
-                                                          reply_markup=keyboard)
+                        Data.bot.edit_message_caption(chat_id=user_id,
+                                                      message_id=message_id,
+                                                      caption=f'Лот №{number_lot}\n\n'
+                                                              f'Название: {name_lot}\n\n'
+                                                              f'Описание: {description_lot}\n\n'
+                                                              f'### Этот лот забронирован вами '
+                                                              f'до {date_of_cancel_format}. '
+                                                              f'Если забрать не успеваете, бронь аннулируется! ###',
+                                                      reply_markup=keyboard)
             elif status_lot == 'yes' and on_the_hands == 'yes':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
@@ -1225,7 +1207,10 @@ class SQL:
                                           f'Название: {name_lot}\n\n' \
                                           f'Описание: {description_lot}\n\n' \
                                           f'### Вы указали, что забрали этот лот! Если выдача не подтвердится, ' \
-                                          f'статус сменится на "Этот лот забронирован вами". ###'
+                                          f'статус сменится на "Этот лот забронирован вами".\n' \
+                                          f'При получении лота покажите это сообщение, оно ' \
+                                          f'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не ' \
+                                          f'кем-то другим. ###'
 
                             Data.bot.edit_message_caption(chat_id=user_id,
                                                           message_id=message_id,
@@ -1361,7 +1346,8 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def count_users(self):
-        """"""
+        """Подсчитывает кол-во подписчиков барахолки"""
+
         try:
             select_query = f'SELECT user_id ' \
                            f'FROM users ' \
@@ -1369,38 +1355,6 @@ class SQL:
             self.cursor.execute(select_query)
             list_booking_date = self.cursor.fetchall()
             count_sub = len(list_booking_date)
-            ###
-            # # Удалить после уведомления
-            # if count_sub == 10:
-            #     time.sleep(10)
-            #     text_message = 'Вот и набралось 10 подписчиков в барахолке и как мы и обещали публикуем первый лот, ' \
-            #                    'но это не совсем то, что вы хотели увидеть :). Для лучшего понимания, рекомендуем ' \
-            #                    'дочитать это огромное сообщение до конца. Вам через пару минут придёт ' \
-            #                    'ознакомительный пост, чтобы вы успели понять как это работает. ' \
-            #                    'Здесь пока одна кнопка, но какая! Итак, вкратце. Каждый ' \
-            #                    'пост будет выглядеть идентично этому и содержать следующие кнопки:' \
-            #                    '\n• "Забронировать". Из названия понятно что она делает, но есть нюансы. ' \
-            #                    'Кто окажется самым быстрым на диком западе, тот и забронирует лот. ' \
-            #                    'Для всех остальных он станет недоступным для бронирования на сутки, ' \
-            #                    'либо пока пользователь не отменит бронь, а если заберёт его, то кто успел тот и съел.' \
-            #                    ' Помимо этого, каждый пользователь может бронировать не более 3х лотов одновременно!' \
-            #                    '\n• "Отменить бронь". Если вы всё же успели забронировать лот, но по какой-то ' \
-            #                    'причине передумали его забирать, эта кнопка вернёт остальным подписчикам возможность ' \
-            #                    'забронировать лот для себя. Напомним, бронь сохраняется за вами не более суток!' \
-            #                    '\n• "Лот уже у меня". Эта кнопка подтверждает, что лот находится у вас на руках, ' \
-            #                    'а так же все подписчики видят, что он более не доступен для брони.' \
-            #                    '\n\n Всем удачи :)'
-            #     from src.Other_functions.Working_with_notifications import Notification
-            #     Notification().notification_for_sub_baraholka(text_message)
-            #     time.sleep(120)
-            #     name_lot = 'Тестовый лот'
-            #     description_lot = 'Как и описывалось выше, он нужен для того, чтобы испытать функционал. ' \
-            #                       'Не держите долго бронь, дайте другим возможность испытать кнопки!'
-            #     photo_id = 'AgACAgIAAxkBAAIRBmL7MENsS_gepDk2kfKe0OYGzrnAAAIivzEbeOrZSzQDjy0zIP2FAQADAgADcwADKQQ'
-            #     SQL().record_lot_to_DB(name_lot, photo_id, description_lot)
-            #     Notification().notification_for_subs_lots(name_lot, photo_id, description_lot,
-            #                                               name_key_callback_data='test')
-            # ###
             return count_sub
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
@@ -1448,6 +1402,97 @@ class SQL:
     #     except sqlite3.Error as error:
     #         print("Ошибка при работе с SQLite", error)
     #         logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+
+    def send_lots_new_sub_bar(self, user_id):
+        """Доставляет новым подписчикам барахолки лоты которые ещё не забрали"""
+
+        try:
+            select_query = f'SELECT * ' \
+                           f'FROM lots ' \
+                           f'WHERE confirm = "no"'
+            self.cursor.execute(select_query)
+            lots_not_hand = self.cursor.fetchall()
+            for lots in lots_not_hand:
+                number_lot = lots[0]
+                name_lot = lots[1]
+                description_lot = lots[2]
+                id_photo = lots[3]
+                booked = lots[4]
+                booked_by_whom = lots[5]
+                booking_date = lots[6]
+                on_the_hands = lots[7]
+                who_took_it = lots[8]
+                date_of_issue = lots[9]
+                ids_message = eval(lots[10])
+                confirm = lots[11]
+
+                # data_lot = [number_lot, name_lot, description_lot, id_photo, booked, booked_by_whom, booking_date,
+                #             on_the_hands, who_took_it, date_of_issue, ids_message, confirm]
+
+                if user_id not in ids_message.keys():  # Если у пользователя отсутствует лот
+                    # print('user not found')
+                    if booked == 'no':  # Если лот не забронирован
+                        callback_data = src.Other_functions.Functions.pack_in_callback_data('lot', number_lot)
+                        keyboard = telebot.types.InlineKeyboardMarkup()
+                        button = telebot.types.InlineKeyboardButton(text='Забронировать лот',
+                                                                    callback_data=callback_data)
+                        keyboard.add(button)
+
+                        caption = f'Лот №{number_lot}\n\n' \
+                                  f'Название: {name_lot}\n\n' \
+                                  f'Описание: {description_lot}\n\n'
+
+                        message_id = Data.bot.send_photo(chat_id=user_id,
+                                                         caption=caption,
+                                                         photo=id_photo,
+                                                         reply_markup=keyboard).message_id
+
+                        Data.bot.pin_chat_message(chat_id=user_id,
+                                                  message_id=message_id)  # Закрепляет сообщение у пользователя
+
+                        ids_message[user_id] = message_id
+                    elif booked == 'yes':  # Если лот забронирован
+                        if on_the_hands == 'no':  # Если лот не на руках
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'### Лот зарезервирован. Бронирование недоступно. ' \
+                                          f'Если до {booking_date} его не заберут, ' \
+                                          f'бронь аннулируется и вы сможете отложить его для себя. ###'
+                            message_id = Data.bot.send_photo(chat_id=user_id,
+                                                             caption=description,
+                                                             photo=id_photo).message_id
+
+                            Data.bot.pin_chat_message(chat_id=user_id,
+                                                      message_id=message_id)  # Закрепляет сообщение у пользователя
+
+                            ids_message[user_id] = message_id
+                        elif on_the_hands == 'yes':  # Если лот на руках
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'### Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
+                                          f'лот снова станет доступен. Следите за обновлениями! ###'
+                            message_id = Data.bot.send_photo(chat_id=user_id,
+                                                             caption=description,
+                                                             photo=id_photo).message_id
+
+                            Data.bot.pin_chat_message(chat_id=user_id,
+                                                      message_id=message_id)  # Закрепляет сообщение у пользователя
+
+                            ids_message[user_id] = message_id
+
+                    update_query = f'UPDATE lots ' \
+                                   f'SET ids_message = "{ids_message}" ' \
+                                   f'WHERE ID = {number_lot}'
+                    self.cursor.execute(update_query)
+                    self.sqlite_connection.commit()
+                else:
+                    # print('user in dict')
+                    pass
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
 
 def days_before_inventory(number):
