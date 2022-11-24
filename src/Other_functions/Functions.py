@@ -1130,15 +1130,43 @@ class SQL:
             if status_lot == 'yes' and on_the_hands == 'no':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
-                        description = f'Лот №{number_lot}\n\n' \
-                                      f'Название: {name_lot}\n\n' \
-                                      f'Описание: {description_lot}\n\n' \
-                                      f'### Лот зарезервирован. Бронирование недоступно. ' \
-                                      f'Если до {date_of_cancel_format} его не заберут, ' \
-                                      f'бронь аннулируется и вы сможете отложить его для себя. ###'
-                        Data.bot.edit_message_caption(chat_id=user_id,
-                                                      message_id=message_id,
-                                                      caption=description)
+                        if self.check_for_admin(user_id) is True:
+                            select_query = f'SELECT user_first_name, user_last_name ' \
+                                           f'FROM users ' \
+                                           f'WHERE user_id = {booked_by_whom}'
+                            self.cursor.execute(select_query)
+                            data_of_user = self.cursor.fetchone()  # Получаем данные о пользователе
+                            temp_list = []
+                            for elem in data_of_user:
+                                if elem is not None:
+                                    temp_list.append(elem)
+
+                            full_name_user = ' '.join(temp_list)
+
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'#####\n' \
+                                          f'Лот зарезервирован пользователем <{full_name_user}>. ' \
+                                          f'Бронирование недоступно. ' \
+                                          f'Если до {date_of_cancel_format} его не заберут, ' \
+                                          f'бронь аннулируется и вы сможете отложить его для себя.\n' \
+                                          f'#####'
+                            Data.bot.edit_message_caption(chat_id=user_id,
+                                                          message_id=message_id,
+                                                          caption=description)
+                        else:
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'#####\n' \
+                                          f'Лот зарезервирован. Бронирование недоступно. ' \
+                                          f'Если до {date_of_cancel_format} его не заберут, ' \
+                                          f'бронь аннулируется и вы сможете отложить его для себя.\n' \
+                                          f'#####'
+                            Data.bot.edit_message_caption(chat_id=user_id,
+                                                          message_id=message_id,
+                                                          caption=description)
                     else:
                         str_dict_cancel = str({'cancel': number_lot})
                         str_dict_sold = str({'sold': number_lot})
@@ -1155,14 +1183,15 @@ class SQL:
                                                       caption=f'Лот №{number_lot}\n\n'
                                                               f'Название: {name_lot}\n\n'
                                                               f'Описание: {description_lot}\n\n'
-                                                              f'### Этот лот забронирован вами '
+                                                              f'#####\n'
+                                                              f'Этот лот забронирован вами '
                                                               f'до {date_of_cancel_format}. '
-                                                              f'Если забрать не успеваете, бронь аннулируется! ###',
+                                                              f'Если забрать не успеваете, бронь аннулируется!\n'
+                                                              f'#####',
                                                       reply_markup=keyboard)
             elif status_lot == 'yes' and on_the_hands == 'yes':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
-                        # if user_id in Data.list_admins.values() and confirm == 'no':
                         if self.check_for_admin(user_id) is True and confirm == 'no':
                             str_dict_confirm = str({'confirm': number_lot})
                             str_dict_refute = str({'refute': number_lot})
@@ -1176,7 +1205,9 @@ class SQL:
                             description = f'Лот №{number_lot}\n\n' \
                                           f'Название: {name_lot}\n\n' \
                                           f'Описание: {description_lot}\n\n' \
-                                          f'### Ожидает подтверждения выдачи. ###'
+                                          f'#####\n' \
+                                          f'Ожидает подтверждения выдачи\n' \
+                                          f'#####'
                             Data.bot.edit_message_caption(chat_id=user_id,
                                                           message_id=message_id,
                                                           caption=description,
@@ -1186,8 +1217,10 @@ class SQL:
                                 description = f'Лот №{number_lot}\n\n' \
                                               f'Название: {name_lot}\n\n' \
                                               f'Описание: {description_lot}\n\n' \
-                                              f'### Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
-                                              f'лот снова станет доступен. Следите за обновлениями! ###'
+                                              f'#####\n' \
+                                              f'Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
+                                              f'лот снова станет доступен. Следите за обновлениями!\n' \
+                                              f'#####'
                                 Data.bot.edit_message_caption(chat_id=user_id,
                                                               message_id=message_id,
                                                               caption=description)
@@ -1195,7 +1228,9 @@ class SQL:
                                 description = f'Лот №{number_lot}\n\n' \
                                               f'Название: {name_lot}\n\n' \
                                               f'Описание: {description_lot}\n\n' \
-                                              f'### Лот забрали. Он более недоступен. ###'
+                                              f'#####\n' \
+                                              f'Лот забрали. Он более недоступен.\n' \
+                                              f'#####'
                                 Data.bot.edit_message_caption(chat_id=user_id,
                                                               message_id=message_id,
                                                               caption=description)
@@ -1207,11 +1242,16 @@ class SQL:
                             description = f'Лот №{number_lot}\n\n' \
                                           f'Название: {name_lot}\n\n' \
                                           f'Описание: {description_lot}\n\n' \
-                                          f'### Вы указали, что забрали этот лот! Если выдача не подтвердится, ' \
+                                          f'#####\n' \
+                                          f'Вы указали, что забрали этот лот! Если выдача не подтвердится, ' \
                                           f'статус сменится на "Этот лот забронирован вами".\n' \
                                           f'При получении лота покажите это сообщение, оно ' \
                                           f'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не ' \
-                                          f'кем-то другим. ###'
+                                          f'кем-то другим.\n' \
+                                          f'ВАЖНО!\n' \
+                                          f'После того как лот окажется у вас на руках, обязательно подтвердите ' \
+                                          f'получение нажав кнопку "Лот уже у меня"!' \
+                                          f'#####'
 
                             Data.bot.edit_message_caption(chat_id=user_id,
                                                           message_id=message_id,
@@ -1220,8 +1260,10 @@ class SQL:
                             description = f'Лот №{number_lot}\n\n' \
                                           f'Название: {name_lot}\n\n' \
                                           f'Описание: {description_lot}\n\n' \
-                                          f'### Выдача лота подтверждена.\n' \
-                                          f'Поздравляем с приобретением! ###'
+                                          f'#####\n' \
+                                          f'Выдача лота подтверждена.\n' \
+                                          f'Поздравляем с приобретением!\n' \
+                                          f'#####'
                             Data.bot.edit_message_caption(chat_id=user_id,
                                                           message_id=message_id,
                                                           caption=description)
