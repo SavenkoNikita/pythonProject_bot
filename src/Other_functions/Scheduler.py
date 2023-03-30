@@ -8,11 +8,16 @@ import schedule
 import Data
 # import Other_functions.Functions
 import Test_2
+import src.Other_functions.Functions
 from Data import bot
 from src.Other_functions import Working_with_notifications, Functions
 from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Functions import logging_scheduler
 from src.Other_functions.Tracking_sensor import TrackingSensor
+
+
+def update_lots():
+    src.Other_functions.Functions.SQL().schedule_updating_data_on_lots()
 
 
 def random_time():
@@ -52,6 +57,18 @@ def update_the_reservation_status_of_lots():
     Functions.SQL().schedule_cancel_booking()
 
 
+def check_top_byers():
+    if datetime.date.today().day == 1:  # Если сегодня 1-е число месяца
+        top = Functions.SQL().create_string_top_byers_all_time()
+        Working_with_notifications.Notification().send_notification_to_administrators(top)
+        print(top)
+
+
+def the_most_active_user():
+    if datetime.date.today().day == 1:  # Если сегодня 1-е число месяца
+        Working_with_notifications.Notification().notification_for_top_user()
+
+
 # Проверяет и уведомляет есть ли завтра дежурный
 schedule.every().day.at('15:00').do(check_dej)
 
@@ -60,6 +77,12 @@ schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
 
 # Присылает случайное имя кто идёт в цех
 # schedule.every().day.at('07:01').do(Functions.random_name)
+
+# Присылает админам топ самых жадных барахольщиков
+schedule.every().day.at('07:02').do(check_top_byers)
+
+# Рассылает всем причастным, топ самых активных пользователей
+schedule.every().day.at('07:03').do(the_most_active_user)
 
 # Проверяет есть ли сегодня уведомления для подписчиков и отправляет их
 schedule.every().day.at('08:00').do(check_event, 'Уведомления для подписчиков')
@@ -70,13 +93,20 @@ schedule.every().day.at('08:01').do(check_event, 'Уведомления для 
 # Проверяет есть ли сегодня уведомления для админов и отправляет их
 schedule.every().day.at('08:02').do(check_event, 'Уведомления для админов')
 
+# Проверяет есть ли сегодня уведомления для подписчиков барахолки и отправляет их
+schedule.every().day.at('08:03').do(check_event, 'Уведомления для барахолки')
+
 # Обновляет информацию о датчиках
 schedule.every(1).minutes.do(check_sensors)
 
 # Обновить статус брони лотов
 schedule.every(1).minutes.do(update_the_reservation_status_of_lots)
 
-# schedule.every().day.at('00:01').do(top_statistic)
+# Присылает топ чарт лидеров по кол-ву запросов к боту
+schedule.every().day.at('00:01').do(top_statistic)
+
+# schedule.every().day.at('00:01').do(update_lots)
+# schedule.every(1).minutes.do(update_lots)
 
 while True:
     try:

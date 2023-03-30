@@ -107,6 +107,11 @@ class Notification:
 
         self.notification_for(text_message, 'status', 'admin')
 
+    # def send_notification_to_sub_bar(self, text_message):
+    #     """Отправляет уведомление подписчикам барахолки"""
+    #
+    #     self.notification_for(text_message, 'sub_bar', 'yes')
+
     def send_sticker_for(self, column, column_meaning, user_sticker):
         """Уведомления для юзеров с указанными параметрами"""
         try:
@@ -177,7 +182,8 @@ class Notification:
                 self.sqlite_connection.close()
 
     def notification_for_subs_lots(self, name_lot, photo_id, description, name_key_callback_data='lot'):
-        f"""Отправляет уведомление всем пользователям подписчикам барахолки"""
+        """Отправляет уведомление всем пользователям подписчикам барахолки. В случае если пользователь заблокировал
+        бота, статус подписки меняется на 'no'."""
 
         try:
             self.cursor.execute('SELECT user_id FROM users WHERE sub_bar = "yes"')
@@ -212,8 +218,8 @@ class Notification:
                     ids_message[ids] = message_id
                 except telebot.apihelper.ApiException as error:
                     Functions.SQL().change_status_bar(ids)
-                    text = f'При рассылке лота пользователю {ids} возникла ошибка: \n{error}\n' \
-                           f'Статус подписки, этого пользователя на барахолку, изменён на "no"'
+                    text = f'При рассылке лота пользователю {ids} возникла ошибка:\n<{error}>\n\n' \
+                           f'Статус подписки пользователя на барахолку изменён на "no"'
                     message_id = Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
                                                        text=text).message_id
                     Data.bot.pin_chat_message(chat_id=Data.list_admins.get('Никита'),
@@ -258,14 +264,57 @@ class Notification:
             print("Ошибка при работе с SQLite", error)
             Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
-    def notif_test_message(self, text_message, id_photo):
-        """"""
+    def notification_for_top_user(self):
+        """Присылает уведомление трём самым активным пользователям и разработчику о том, какое место в рейтинге
+        они заняли"""
+
         try:
-            self.cursor.execute('SELECT user_id FROM users WHERE sub_bar = "yes"')
-            records = self.cursor.fetchall()
-            for ids in records:
-                ids = ids[0]
-                Data.bot.send_photo(chat_id=ids, text=text_message)
-        except sqlite3.Error as error:
-            print("Ошибка при работе с SQLite", error)
-            Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            list_top = Functions.SQL().top_user()
+
+            id_first = list_top[0][1]
+            rating_first = list_top[0][0]
+            name_first = Functions.SQL().get_name_user(id_first)
+
+            id_second = list_top[1][1]
+            rating_second = list_top[1][0]
+            name_second = Functions.SQL().get_name_user(id_second)
+
+            id_third = list_top[2][1]
+            rating_third = list_top[2][0]
+            name_third = Functions.SQL().get_name_user(id_third)
+
+            end_text = f'1е место {name_first} рейтинг - {rating_first}\n' \
+                       f'2е место {name_second} рейтинг - {rating_second}\n' \
+                       f'3е место {name_third} рейтинг - {rating_third}\n'
+
+            title = '••• Самый активный пользователь •••\n'
+
+            message_for_leader = f'{title}' \
+                                 f'{name_first}, поздравляем! На сегодняшний день вы возглавляете рейтинг ' \
+                                 f'самых активных пользователей нашего бота! :)'
+
+            message_for_second = f'{title}' \
+                                 f'{name_second}, поздравляем! В рейтинге самых активных пользователей, вы ' \
+                                 f'занимаете вторую позицию! :)'
+
+            message_for_third = f'{title}' \
+                                f'{name_third}, поздравляем! В рейтинге самых активных пользователей, ' \
+                                f'бронзовая медаль ваша! :)'
+
+            message_for_admin = f'{title}{end_text}'
+
+            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=message_for_admin)
+            print(message_for_admin)
+
+            Data.bot.send_message(chat_id=id_first, text=message_for_leader)
+            print(message_for_leader)
+
+            Data.bot.send_message(chat_id=id_second, text=message_for_second)
+            print(message_for_second)
+
+            Data.bot.send_message(chat_id=id_third, text=message_for_third)
+            print(message_for_third)
+        except telebot.apihelper.ApiException as error:
+            text = f'При рассылке уведомлений о самом активном пользователе, возникла ошибка:\n<{error}>\n'
+            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
+

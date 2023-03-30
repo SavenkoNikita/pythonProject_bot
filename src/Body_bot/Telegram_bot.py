@@ -46,12 +46,13 @@ def existence(message):
         SQL().collect_statistical_information(user_id)  # Счётчик активности пользователя
         SQL().update_data_user(user_id, message.from_user.first_name, message.from_user.last_name,
                                message.from_user.username)
-        if SQL().check_verify_in_ERP(user_id) is True:
-            return True
-        else:
-            verify_error = 'Чтобы воспользоваться функцией необходимо пройти верификацию в 1С -> /verification'
-            print(f'{answer_bot}{verify_error}\n')
-            return verify_error
+        return True
+        # if SQL().check_verify_in_ERP(user_id) is True:
+        #     return True
+        # else:
+        #     verify_error = 'Чтобы воспользоваться функцией необходимо пройти верификацию в 1С -> /verification'
+        #     print(f'{answer_bot}{verify_error}\n')
+        #     return verify_error
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться -> /start'
         print(f'{answer_bot}{end_text}\n')
@@ -94,7 +95,6 @@ def types_message(message):
 #     # if bot.message_handler(commands='dezhurnyj'):
 #     #     Bot_commands(message).command_dezhurnyj()
 
-
 @bot.message_handler(commands=['start'])
 def start_command(message):
     """Приветственное сообщение"""
@@ -131,12 +131,16 @@ def register(message):
     if SQL().check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         SQL().db_table_val(message.from_user.id, message.from_user.first_name, message.from_user.last_name,
                            message.from_user.username)
+        # bot.send_message(chat_id=message.from_user.id,
+        #                  text='Подождите. Сохраняю данные о вас...')
+        # time.sleep(5)  # Подождать указанное кол-во секунд
         bot.send_message(chat_id=message.from_user.id,
-                         text='Подождите. Сохраняю данные о вас...')
-        time.sleep(5)  # Подождать указанное кол-во секунд
-        register_message = f'Добро пожаловать {message.from_user.first_name}!\n' \
-                           f'Остался последний шаг. Необходимо пройти верификацию в 1С. ' \
-                           f'Для этого нажмите сюда -> /verification.'
+                         text='Регистрация выполнена успешно!')
+        register_message = f'Добро пожаловать {message.from_user.first_name}!\n\n' \
+                           f'• Чтобы подписаться на барахолку нажмите сюда -> /baraholka и следуйте инструкции\n' \
+                           f'• Получить полный список доступных команд -> /help\n'
+        # f'Остался последний шаг. Необходимо пройти верификацию в 1С. ' \
+        # f'Для этого нажмите сюда -> /verification.'
         # f'Чтобы узнать, что умеет бот, жми /help.\n' \
         # f'Не забудь подписаться на рассылку, чтобы быть в курсе последних событий, жми /subscribe'
         types_message(message)
@@ -369,8 +373,14 @@ def set_subscribe(message):
         if SQL().check_status_DB(message.from_user.id, 'notification',
                                  'yes') is False:  # Если пользователь не подписчик
             SQL().change_status_DB(message.from_user.id, 'notification')  # Присвоить статус <подписан>
-            end_text = 'Вы подписаны на уведомления. Теперь вам будут приходить уведомления о том кто дежурит в ' \
-                       'выходные, кто в отпуске и прочая информация.\n Чтобы отписаться жми /unsubscribe '
+            end_text = 'Подписка на уведомления активирована. Теперь вам будут приходить уведомления о том, ' \
+                       'кто из системных администраторов дежурит в ближайшие выходные или праздничные дни, ' \
+                       'кто в отпуске и прочая информация.\n\n' \
+                       '#####\n' \
+                       'В эту подписку не входят уведомления из барахолки! Внимательно ознакомьтесь со списком ' \
+                       'доступных команд -> /help\n' \
+                       '#####\n\n' \
+                       'Чтобы отказаться от рассылки, жми /unsubscribe '
             types_message(message)
             bot.reply_to(message, end_text)  # Отправка текста выше
             #  Отсылка уведомлений о действии разработчику
@@ -1008,21 +1018,27 @@ def get_number_vacation_days(message):
     """Функция возвращает кол-во накопившихся дней отпуска либо текст с описанием при возникновении ошибки."""
 
     if existence(message) is True:
-        count_day = Exchange_with_ERP({Data.number: message.from_user.id}).answer_from_ERP()
-        if isinstance(count_day, int):
-            days = declension_day(count_day)
-            answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
-            types_message(message)
-            bot.send_message(chat_id=message.from_user.id, text=answer_message, parse_mode='MarkdownV2')
-            print(f'{answer_bot}На данный момент у вас накоплено &&& дней отпуска\n')
-            logging_telegram_bot('info',
-                                 f'Пользователь {message.from_user.first_name}({message.from_user.id}) '
-                                 f'получил ответ от ERP по кол-ву накопленных дней отпуска.')
+        if SQL().check_verify_in_ERP(message.from_user.id) is True:
+            count_day = Exchange_with_ERP({Data.number: message.from_user.id}).answer_from_ERP()
+            if isinstance(count_day, int):
+                days = declension_day(count_day)
+                answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
+                types_message(message)
+                bot.send_message(chat_id=message.from_user.id, text=answer_message, parse_mode='MarkdownV2')
+                print(f'{answer_bot}На данный момент у вас накоплено &&& дней отпуска\n')
+                logging_telegram_bot('info',
+                                     f'Пользователь {message.from_user.first_name}({message.from_user.id}) '
+                                     f'получил ответ от ERP по кол-ву накопленных дней отпуска.')
+            else:
+                answer_message = str(count_day)  # Тут текст ошибки
+                types_message(message)
+                bot.send_message(chat_id=message.from_user.id, text=answer_message)
+                print(f'{answer_bot}{answer_message}\n')
         else:
-            answer_message = str(count_day)  # Тут текст ошибки
+            verify_error = 'Чтобы воспользоваться функцией необходимо пройти верификацию в 1С -> /verification'
             types_message(message)
-            bot.send_message(chat_id=message.from_user.id, text=answer_message)
-            print(f'{answer_bot}{answer_message}\n')
+            bot.send_message(chat_id=message.from_user.id, text=verify_error)
+            print(f'{answer_bot}{verify_error}\n')
     else:
         answer_message = existence(message)
         types_message(message)
@@ -1095,19 +1111,28 @@ def baraholka(message):
     if existence(message) is True:
         status = ''
         if SQL().check_status_bar(user_id) is True:
-            status = 'вы подписаны на уведомления'
+            status = 'вы подписаны на уведомления!'
         elif SQL().check_status_bar(user_id) is False:
-            status = 'вы не подписаны на уведомления'
+            status = 'вы не подписаны на уведомления\n' \
+                     'Как только вы активируете подписку, вам будут присланы все те лоты которые ещё не забрали.\n' \
+                     'Не пугайтесь, их может быть много!\n' \
+                     'Чтобы понять как работает барахолка, настоятельно рекомендуем ознакомиться с описанием!'
 
-        text_to_user = f'Давно не виделись {message.from_user.first_name}! В данный момент {status}!'
+        text_to_user = f'Давно не виделись {message.from_user.first_name}! В данный момент {status}'
         bot.reply_to(message, text=text_to_user)
-        time.sleep(2)
+        print(f'{answer_bot}{text_to_user}\n')
+        time.sleep(3)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        buttons = ['Изменить', 'Оставить как есть']
+        buttons = ['Изменить статус', 'Оставить как есть']
+        manual = ['Как это работает?']
         keyboard.add(*buttons)
+        keyboard.add(*manual)
         types_message(message)
-        bot.send_message(chat_id=user_id, text='Если хотите изменить статус подписки, нажмите на кнопку ниже',
+        text_to_user = 'Выберите действие:'
+        bot.send_message(chat_id=user_id,
+                         text=text_to_user,
                          reply_markup=keyboard)
+        print(f'{answer_bot}{text_to_user}\n')
         bot.register_next_step_handler(message, baraholka_step_2)
     else:
         answer_message = existence(message)
@@ -1119,15 +1144,43 @@ def baraholka(message):
 def baraholka_step_2(message):
     print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
-    if message.text == 'Изменить':
+    if message.text == 'Изменить статус':
         answer_SQL = SQL().change_status_bar(message.from_user.id)
+        text_to_user = 'Статус успешно изменён!'
         bot.send_message(chat_id=message.from_user.id,
-                         text=f'Статус успешно изменён!\n{answer_SQL}',
+                         text=f'{text_to_user}\n{answer_SQL}',
                          reply_markup=hide_keyboard)
+        print(f'{answer_bot}{text_to_user}\n')
     elif message.text == 'Оставить как есть':
+        text_to_user = 'Хорошо. До новых сообщений! ;)'
         bot.send_message(chat_id=message.from_user.id,
-                         text='Хорошо. До новых сообщений! ;)',
+                         text=text_to_user,
                          reply_markup=hide_keyboard)
+        print(f'{answer_bot}{text_to_user}\n')
+    elif message.text == 'Как это работает?':
+        manual = 'IT - отдел периодически списывает оборудование и комплектующие. С помощью барахолки мы ' \
+                 'реализовали возможность выдавать это на руки тем, кто в них заинтересован.\n' \
+                 'Каждое такое списание будет выглядеть здесь в виде постов.\n' \
+                 'Такие сообщения будут содержать кнопки управления:\n' \
+                 '• "Забронировать". Из названия понятно что она делает, но есть нюансы. Кто окажется самым ' \
+                 'быстрым на диком западе, тот и забронирует лот. Для всех остальных он станет недоступным для ' \
+                 'бронирования на сутки, либо пока пользователь не отменит бронь, а если заберёт его, то кто ' \
+                 'успел тот и съел. Помимо этого, каждый пользователь может бронировать не более 3х лотов ' \
+                 'одновременно!\n' \
+                 '• "Отменить бронь". Если вы всё же успели забронировать лот, но по какой-то причине ' \
+                 'передумали его забирать, эта кнопка вернёт остальным подписчикам возможность забронировать ' \
+                 'лот для себя. Напомним, бронь сохраняется за вами не более суток!\n' \
+                 '• "Лот уже у меня". Эта кнопка подтверждает, что лот находится у вас на руках, а так же все ' \
+                 'подписчики увидят, что он более не доступен.\n\n' \
+                 'Все лоты можно получить в IT - отделе, при условии, что они забронированы вами. Некоторые ценные ' \
+                 'лоты могут быть платными, но цена, как правило символичная.\n' \
+                 'Если готовы приступить нажмите сюда -> /baraholka и далее на кнопку "Изменить статус"'
+
+        bot.send_message(chat_id=message.from_user.id,
+                         text=manual,
+                         reply_markup=hide_keyboard)
+
+        print(f'{answer_bot}{manual}\n')
 
 
 @bot.message_handler(commands=['place_a_lot'])
@@ -1144,6 +1197,7 @@ def place_a_lot(message):
         keyboard.add(*buttons)
         types_message(message)
         bot.send_message(chat_id=user_id, text=text_answer, reply_markup=keyboard)
+        print(f'{answer_bot}{text_answer}\n')
         bot.register_next_step_handler(message, place_a_lot_step_2)
     else:
         answer_message = existence(message)
@@ -1158,10 +1212,14 @@ def place_a_lot_step_2(message):
     name_lot = None
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Создать лот':
-        bot.send_message(chat_id=user_id, text='Как будет называться лот?', reply_markup=hide_keyboard)
+        answer_text = 'Как будет называться лот?'
+        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_text}\n')
         bot.register_next_step_handler(message, place_a_lot_step_3, name_lot)
     elif message.text == 'Возможно позже':
-        bot.send_message(chat_id=user_id, text='Создание лота отменено.', reply_markup=hide_keyboard)
+        answer_text = 'Создание лота отменено.'
+        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_text}\n')
 
 
 def place_a_lot_step_3(message, name_lot):
@@ -1172,10 +1230,14 @@ def place_a_lot_step_3(message, name_lot):
         name_lot = message.text
     else:
         name_lot = name_lot
+
+    answer_text = 'Теперь отправь мне фотографию лота.\n' \
+                  '*Примечание: при отправке нескольких фото, будет использоваться первая прикреплённая!'
+
     bot.send_message(chat_id=user_id,
-                     text='Теперь отправь мне фотографию лота.\n'
-                          '*Примечание: при отправке нескольких фото, будет использоваться первая прикреплённая!',
+                     text=answer_text,
                      reply_markup=hide_keyboard)
+    print(f'{answer_bot}{answer_text}\n')
     bot.register_next_step_handler(message, place_a_lot_step_4, name_lot)
 
 
@@ -1183,19 +1245,27 @@ def place_a_lot_step_4(message, name_lot):
     name_lot = name_lot
     # print(message)
     if message.photo is not None:
+        print(f'{full_name_user(message)} прикрепил фото.')
         photo_id = message.photo[0].file_id
-        bot.send_message(message.chat.id,
-                         text='Теперь нужно добавить описание к лоту '
-                              '(что это, рабочее ли состояние, возможные дефекты)')
+
+        answer_text = 'Теперь нужно добавить описание к лоту (что это, рабочее ли состояние, возможные дефекты)'
+
+        bot.send_message(message.chat.id, text=answer_text)
+        print(f'{answer_bot}{answer_text}\n')
         bot.register_next_step_handler(message, place_a_lot_step_5, name_lot, photo_id)
     else:
+        print(f'{full_name_user(message)} прикрепил не фото а что-то другое.')
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Ещё попытка']
         keyboard.add(*buttons)
         types_message(message)
+
+        answer_text = 'Не спеши! На данном этапе мне нужна фотография. Попробуем ещё раз. Нажми на кнопку ниже'
+
         bot.send_message(message.chat.id,
-                         text='Не спеши! На данном этапе мне нужна фотография. Попробуем ещё раз. Нажми на кнопку ниже',
+                         text=answer_text,
                          reply_markup=keyboard)
+        print(f'{answer_bot}{answer_text}\n')
         bot.register_next_step_handler(message, place_a_lot_step_3, name_lot)
 
 
@@ -1208,8 +1278,11 @@ def place_a_lot_step_5(message, name_lot, photo_id):
     buttons = ['Разместить', 'Создать заново', 'Удалить пост']
     keyboard.add(*buttons)
     types_message(message)
-    bot.send_message(message.chat.id, text='Вот так пользователи будут видеть созданный лот. Разместить его?',
-                     reply_markup=keyboard)
+
+    answer_text = 'Вот так пользователи будут видеть созданный лот. Выбери действие:'
+
+    bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
+    print(f'{answer_bot}{answer_text}\n')
     bot.send_photo(message.chat.id,
                    caption=f'Лот №{lot_number}\n\n'
                            f'Название: {name_lot}\n\n'
@@ -1229,9 +1302,13 @@ def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
         keyboard = telebot.types.InlineKeyboardMarkup()  # Инициализация клавиатуры
         button = telebot.types.InlineKeyboardButton(text='Забронировать лот', callback_data=id_callback_data)
         keyboard.add(button)
+
+        answer_text = 'Лот успешно разослан подписчикам барахолки!'
+
         bot.send_message(chat_id=user_id,
-                         text='Лот успешно разослан подписчикам барахолки!',
+                         text=answer_text,
                          reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_text}\n')
         # bot.answer_callback_query(chat_id=user_id,
         #                           text='Лот успешно разослан подписчикам барахолки!',
         #                           reply_markup=hide_keyboard)
@@ -1240,40 +1317,57 @@ def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
         buttons = ['Начать']
         keyboard.add(*buttons)
         types_message(message)
-        bot.send_message(message.chat.id, text='Для того чтобы продолжить нажмите кнопку ниже', reply_markup=keyboard)
-        # bot.send_message(chat_id=user_id, text='Хорошо, попробуем ещё раз!', reply_markup=hide_keyboard)
+
+        answer_text = 'Для того чтобы продолжить нажмите кнопку ниже'
+
+        bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
+        print(f'{answer_bot}{answer_text}\n')
         bot.register_next_step_handler(message, place_a_lot)
     elif message.text == 'Удалить пост':
-        bot.send_message(chat_id=user_id, text='Публикация поста отменена', reply_markup=hide_keyboard)
+        answer_text = 'Публикация поста отменена'
+        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_text}\n')
 
 
 @bot.callback_query_handler(func=lambda c: True)
 def inline(c):
     user_id = c.from_user.id  # Получаем user_id
+    user_name = c.from_user.first_name  # Получаем имя пользователя
     dict_data = string_to_dict(c.data)  # Получаем dict(словарь) из входных данных
     key = [key for key in dict_data.keys()][0]  # Достаём ключ из словаря
     number_lot = dict_data.get(key)  # Достаём значение из словаря
+
+    SQL().collect_statistical_information(user_id)
 
     if key == 'lot':
         answer_sql = SQL().booked_lots(number_lot, user_id)  # Попытка юзером забронировать лот
         if answer_sql != 'Success':  # Если лот забронирован
             bot.answer_callback_query(c.id, text=answer_sql)  # Вызывает у юзера всплывающее окно с текстом ошибки
         elif answer_sql == 'Success':  # Если лот не забронирован
-            SQL().edit_message_lots(number_lot)  # Пользователь бронирует лот за собой и у всех подписчиков в этом
+            count_booked_lot = SQL().count_booked_lot(user_id)
+            answer_text = f'Использовано {count_booked_lot} из 3 броней'
+            bot.answer_callback_query(c.id, text=answer_text)
+            # SQL().edit_message_lots(number_lot)  # Пользователь бронирует лот за собой и у всех подписчиков в этом
+            SQL().booked_lots(number_lot, user_id)
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                  f'Пользователь {user_name} забронировал лот №{number_lot}.\n'
+                  f'Осталось доступных броней - {3 - count_booked_lot}.\n')
     elif key == 'cancel':
         SQL().cancel_lot(number_lot)  # Пользователь отменяет бронь на лот
+        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+              f'Пользователь {user_name} отменил бронь на лот №{number_lot}.\n')
     elif key == 'sold':
         SQL().sold_lot(id_lot=number_lot, user_id=user_id)  # Пользователь подтверждает что забрал лот
+        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+              f'Пользователь {user_name} подтвердил, что забрал лот №{number_lot}.\n')
     elif key == 'confirm':
-        SQL().confirm_the_issue(id_lot=number_lot)
+        SQL().confirm_the_issue(id_lot=number_lot)  # Админ подтверждает выдачу
+        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+              f'Администратор {user_name} подтвердил выдачу лота №{number_lot}.\n')
     elif key == 'refute':
-        SQL().refute_the_issue(id_lot=number_lot)
-    # elif key == 'test':
-    #     answer_sql = SQL().booked_lots(number_lot, user_id)  # Попытка юзером забронировать лот
-    #     if answer_sql != 'Success':  # Если лот забронирован
-    #         bot.answer_callback_query(c.id, text=answer_sql)  # Вызывает у юзера всплывающее окно с текстом ошибки
-    #     elif answer_sql == 'Success':  # Если лот не забронирован
-    #         SQL().edit_message_lots(number_lot)  # Пользователь бронирует лот за собой и у всех подписчиков в этом
+        SQL().refute_the_issue(id_lot=number_lot)  # Админ опровергает выдачу
+        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+              f'Администратор {user_name} опроверг выдачу лота №{number_lot}.\n')
 
 
 @bot.message_handler(content_types=['text'])

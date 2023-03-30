@@ -101,6 +101,7 @@ class Working_with_a_file:
             print(error)
         finally:
             date_list.sort()  # Сортируем лист по дате
+            # print(date_list)
 
             if len(date_list) == 0:  # Если список пуст
                 no_data_available = f'read_file(): Список <{self.sheet_name}> пуст'
@@ -110,6 +111,7 @@ class Working_with_a_file:
             else:
                 read_file = f'read_file(): Прочитаны и возвращены данные листа <{self.sheet_name}>'
                 logging_file_processing('info', read_file)
+                # print(date_list)
                 return date_list
 
     def clear_old_data(self):
@@ -167,6 +169,10 @@ class Working_with_a_file:
                 logging_file_processing('info', text_message)
 
                 return text_message
+            else:
+                text_message = 'Нет данных о предстоящих дежурствах :('
+
+                return text_message
 
     def sticker_next_dej(self):
         """Сравнивает имя из файла с БД, и если есть совпадение и в БД содержится стикер то вернёт его."""
@@ -197,6 +203,10 @@ class Working_with_a_file:
                     name_from_SQL = SQL().get_user_info(get_key(i[2]))
                     text_message = f'В период с {date_one} по {date_two} будет дежурить {name_from_SQL}.'
                     list_dej.append(text_message)
+                else:
+                    text_message = 'Нет данных о предстоящих дежурствах :('
+
+                    return text_message
 
         text_log = f'list_dej(): {list_dej}'
         logging_file_processing('info', text_log)
@@ -229,11 +239,14 @@ class Working_with_a_file:
 
         data_list = self.read_file()
 
-        if data_list is not None:
-            if self.sheet_name in Data.sheets_file:
+        if data_list is not None:  # Если лист не пуст
+            # print(f'data_list not None')
+            if self.sheet_name in Data.sheets_file:  # Если название листа есть в списке известных
                 for i in data_list:
                     date = i[0]
+                    # print(date)
                     meaning = i[1]
+                    # print(meaning)
                     if len(i) == 2:
                         if self.difference_date(date) == 0:
                             if self.sheet_name == 'Уведомления для всех':
@@ -259,6 +272,14 @@ class Working_with_a_file:
                                 logging_file_processing('info', text_log)
                                 print(text_message)
                                 Notification().send_notification_to_administrators(text_message)
+                                # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
+                            elif self.sheet_name == 'Уведомления для барахолки':
+                                text_message = f'• Уведомление для подписчиков барахолки •\n\n' \
+                                               f'{meaning}'
+                                text_log = f'check_event_today(): {text_message}'
+                                logging_file_processing('info', text_log)
+                                print(text_message)
+                                Notification().notification_for_sub_baraholka(text_message)
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif 0 <= self.difference_date(date) <= 2:
                             if self.sheet_name == 'Инвентаризация':

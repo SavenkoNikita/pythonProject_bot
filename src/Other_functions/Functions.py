@@ -218,7 +218,7 @@ class SQL:
                                 '?, ?)',
                                 (user_id, first_name, last_name, username))
             self.sqlite_connection.commit()
-            self.cursor.close()
+            # self.cursor.close()
             end_text = f'К боту подключился новый пользователь!\n{data_user()}\n'
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
             print(end_text)
@@ -229,7 +229,7 @@ class SQL:
             column_values = (first_name, last_name, username)
             self.cursor.execute(sqlite_update_query, column_values)
             self.sqlite_connection.commit()
-            self.cursor.close()
+            # self.cursor.close()
             end_text = f'Обновлены данные пользователя\n{data_user()}\n'
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
             print(end_text)
@@ -248,13 +248,13 @@ class SQL:
                 # self.cursor.execute(f"Update users set {column_name} = {status} where user_id = {user_id}")
                 self.sqlite_connection.commit()
                 print("Запись успешно обновлена")
-                self.cursor.close()
+                # self.cursor.close()
             except sqlite3.Error as error:
                 print("Ошибка при работе с SQLite", error)
                 logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-            finally:
-                if self.sqlite_connection:
-                    self.sqlite_connection.close()
+            # finally:
+            #     if self.sqlite_connection:
+            #         self.sqlite_connection.close()
 
     def log_out(self, user_id, table_name_DB='users'):
         """Стереть все данные о пользователе из БД"""
@@ -266,7 +266,8 @@ class SQL:
                 logging_event(Data.way_to_log_telegram_bot, 'info', try_message)
                 self.cursor.execute(f'DELETE from {table_name_DB} where user_id = ?', (user_id,))
                 self.sqlite_connection.commit()
-                self.cursor.close()
+                # self.cursor.close()  # Вероятно из-за этой строки появлялась ошибка при регистрации новых
+                # пользователей: Cannot operate on a closed cursor.
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -781,19 +782,22 @@ class SQL:
          в колонку activity_counter_today"""
 
         try:
-            sql_select_query = f'SELECT activity_counter_today FROM users WHERE user_id = "{user_id}"'
-            self.cursor.execute(sql_select_query)
-            count = self.cursor.fetchone()
-            count = count[0]
-            # print(f'Было {count}')
-
-            sql_update_query = f'UPDATE users ' \
-                               f'SET activity_counter_today = activity_counter_today + 1 ' \
-                               f'WHERE user_id = "{user_id}"'
-            # print(f'Стало {count + 1}')
-            self.cursor.execute(sql_update_query)
-            self.sqlite_connection.commit()
-            self.cursor.close()
+            if user_id != Data.list_admins.get('Никита'):
+                sql_select_query = f'SELECT activity_counter_today FROM users WHERE user_id = "{user_id}"'
+                self.cursor.execute(sql_select_query)
+                count = self.cursor.fetchone()[0]
+                if count is None:  # Если значение счётчика пустое, заменить на "1"
+                    sql_update_query = f'UPDATE users ' \
+                                       f'SET activity_counter_today = 1 ' \
+                                       f'WHERE user_id = "{user_id}"'
+                    self.cursor.execute(sql_update_query)
+                    self.sqlite_connection.commit()
+                else:  # Иначе прибавить 1
+                    sql_update_query = f'UPDATE users ' \
+                                       f'SET activity_counter_today = activity_counter_today + 1 ' \
+                                       f'WHERE user_id = "{user_id}"'
+                    self.cursor.execute(sql_update_query)
+                    self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -801,29 +805,34 @@ class SQL:
     def recording_statistics(self):
         """Находит всех пользователей в таблице users, у кого активность по запросам за день больше нуля.
         Если пользователь есть в таблице statistic, обновляет ему данные, а если нет, создает новую запись и
-        заполняет колонки."""
+        заполняет колонки today и all_time в таблице statistic."""
 
         try:
-            select_user_id = 'SELECT user_id, activity_counter_today FROM users WHERE activity_counter_today > 0'
+            select_user_id = 'SELECT user_id, activity_counter_today ' \
+                             'FROM users ' \
+                             'WHERE activity_counter_today > 0'
             self.cursor.execute(select_user_id)
-            ids_users = self.cursor.fetchall()
+            ids_users = self.cursor.fetchall()  # Список id пользователей у которых кол-во запросов больше 0
             # print(ids_users)
 
             for ids in ids_users:
-                select_query = f'SELECT user_id FROM statistic WHERE user_id = {ids[0]}'
+                user_id = ids[0]
+
+                select_query = f'SELECT user_id ' \
+                               f'FROM statistic ' \
+                               f'WHERE user_id = {user_id}'
                 self.cursor.execute(select_query)
                 ids_users = self.cursor.fetchone()
+
                 user_id = ids[0]
                 count_today = ids[1]
 
                 if ids_users is None:
-                    insert_query = f'INSERT INTO statistic (user_id, today, all_time) ' \
-                                   f'VALUES ({user_id}, {count_today}, {0})'
+                    insert_query = f'INSERT INTO statistic (user_id, today, month, all_time) ' \
+                                   f'VALUES ({user_id}, {count_today}, {0}, {0})'
                     self.cursor.execute(insert_query)
                     self.sqlite_connection.commit()
                 else:
-                    # if count_all_time is None:
-                    #     count_all_time = 0
                     update_query = f'UPDATE statistic ' \
                                    f'SET today = {count_today} ' \
                                    f'WHERE user_id = {user_id}'
@@ -835,7 +844,8 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def calculating_statistics(self):
-        """Подсчитывает активность пользователей"""
+        """Подсчитывает активность пользователей. Если сегодня тот же месяц, что вчера, количество запросов за день
+        прибавляются к количеству запросов за месяц и к количеству запросов за всё время для текущего пользователя"""
 
         try:
             current_month = datetime.date.today().month  # Текущий месяц
@@ -844,28 +854,33 @@ class SQL:
                 select_query = f'SELECT * FROM statistic'  # Получаем все строки в таблице statistic
                 self.cursor.execute(select_query)
                 count_today = self.cursor.fetchall()
-                for row in count_today:  # Повторить для каждой строки
-                    user_id = row[0]  # id пользователя
-                    count_request_day = row[1]  # Количество запросов за день
-                    count_request_month = row[2] + count_request_day  # Количество запросов за месяц
-                    count_request_all_time = row[3] + count_request_day  # Количество запросов за всё время
+                # print(count_today)
+                # print(len(count_today))
+                # print(len(count_today[0]))
+                for elem in count_today:  # Повторить для каждого элемента списка
+                    user_id = elem[0]  # id пользователя
+                    count_request_day = elem[1]  # Количество запросов за день
+                    count_request_month = elem[2] + count_request_day  # Количество запросов за месяц
+                    count_request_all_time = elem[3] + count_request_day  # Количество запросов за всё время
 
                     update_count_month = f'UPDATE statistic ' \
-                                         f'SET month = {count_request_month}, ' \
-                                         f'all_time = {count_request_all_time} ' \
+                                         f'SET month = {count_request_month}, all_time = {count_request_all_time} ' \
                                          f'WHERE user_id = {user_id}'
+                    # print(update_count_month)
                     self.cursor.execute(update_count_month)
                     self.sqlite_connection.commit()
+                    # self.cursor.close()
             else:
                 select_query = f'SELECT * FROM statistic'
                 self.cursor.execute(select_query)
                 count_today = self.cursor.fetchall()
-                for row in count_today:
-                    user_id = row[0]
-                    update_count_month = f'UPDATE statistic SET month = 0 WHERE user_id = {user_id}'
+                for elem in count_today:
+                    user_id = elem[0]
+                    update_count_month = f'UPDATE statistic ' \
+                                         f'SET month = 0 ' \
+                                         f'WHERE user_id = {user_id}'
                     self.cursor.execute(update_count_month)
                     self.sqlite_connection.commit()
-            # self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -901,58 +916,80 @@ class SQL:
         обнуляет счётчики."""
 
         try:
-            self.recording_statistics()
-            self.calculating_statistics()
+            self.recording_statistics()  # Заполнение таблицы statistic или ее дополнение
+            self.calculating_statistics()  # Подсчет активности
+
             select_data = f'SELECT * FROM statistic'
             self.cursor.execute(select_data)
             list_top_user = self.cursor.fetchall()
-            list_today = {}
-            list_month = {}
-            list_all = {}
+
+            test_dict = {}
+
             for row in list_top_user:
                 user_id = row[0]
                 today = row[1]
                 month = row[2]
-                all = row[3]
-                list_today[user_id] = today
-                list_month[user_id] = month
-                list_all[user_id] = all
+                alltime = row[3]
+                test_dict[user_id] = {'today': today, 'month': month, 'alltime': alltime}
 
-            top_user_today = max(list_today)
-            top_user_month = max(list_month)
-            top_user_all = max(list_all)
+            list_today = []
+            list_month = []
+            list_alltime = []
 
-            def get_name_user(user_id):  # noqa
-                select_name = f'SELECT user_first_name, user_last_name FROM users WHERE user_id = "{user_id}"'
-                self.cursor.execute(select_name)
-                name_top_user = self.cursor.fetchone()
-                name_top_user = ' '.join(name_top_user)
-                return name_top_user
+            for key, value in test_dict.items():
+                list_today.append([value.get('today'), key])
+                list_month.append([value.get('month'), key])
+                list_alltime.append([value.get('alltime'), key])
 
-            top_user_today = get_name_user(top_user_today)
-            top_user_month = get_name_user(top_user_month)
-            top_user_all = get_name_user(top_user_all)
+            list_top_user_today = max(list_today)
+            list_top_user_month = max(list_month)
+            list_top_user_all = max(list_alltime)
+
+            name_top_user_today = self.get_name_user(list_top_user_today[1])
+            name_top_user_month = self.get_name_user(list_top_user_month[1])
+            name_top_user_all = self.get_name_user(list_top_user_all[1])
+
+            today_leader_name = name_top_user_today
+            today_count = list_top_user_today[0]
+            today_count_name = f'{today_count} {declension(today_count, "запрос", "запроса", "запросов")}'
+
+            month_leader_name = name_top_user_month
+            month_count = list_top_user_month[0]
+            month_count_name = f'{month_count} {declension(month_count, "запрос", "запроса", "запросов")}'
+
+            all_leader_name = name_top_user_all
+            all_count = list_top_user_all[0]
+            all_count_name = f'{all_count} {declension(all_count, "запрос", "запроса", "запросов")}'
 
             select_user_id = 'SELECT user_id FROM users WHERE activity_counter_today > 0'
             self.cursor.execute(select_user_id)
             ids_users = self.cursor.fetchall()
-            print(ids_users)
+
             count_active_users = len(ids_users)
             average = self.average_values_active_users()
 
-            end_text = f'•••Топ лидеров•••\n\n' \
-                       f'• {top_user_today} лидер по количеству запросов за сегодня - {max(list_today.values())} ' \
-                       f'запрос(а/ов)\n' \
-                       f'• Лидер по запросам за месяц {top_user_month} - {max(list_month.values())} запрос(а/ов)\n' \
-                       f'• Лидер за всё время {top_user_all} - {max(list_all.values())} запрос(а/ов)\n\n' \
-                       f'Количество пользователей которые пользовались ботом ' \
-                       f'за последние сутки - {count_active_users}\n' \
-                       f'В среднем, за день, бота используют {average} пользовател(я/ей)'
+            today_count_active = f'{count_active_users} ' \
+                                 f'{declension(count_active_users, "пользователь", "пользователя", "пользователей")}'
+
+            on_average_per_day = f'{average} ' \
+                                 f'{declension(average, "пользователь", "пользователя", "пользователей")}'
+
+            if today_count == 0:
+                leader_today = '• Лидера за прошедшие сутки нет :('
+            else:
+                leader_today = f'• Лидер за прошедшие сутки {today_leader_name} - {today_count_name}'
+
+            end_text = f'••• Ежедневная статистика активности •••\n\n' \
+                       f'{leader_today}\n' \
+                       f'• Лидер за текущий месяц {month_leader_name} - {month_count_name}\n' \
+                       f'• Лидер за всё время {all_leader_name} - {all_count_name}\n\n' \
+                       f'За прошедшие сутки - {today_count_active}\n' \
+                       f'В среднем, за день - {on_average_per_day}\n'
 
             print(end_text)
             self.calculating_the_average_number_of_active_users()
             self.reset_count_request()
-            self.cursor.close()
+            # self.cursor.close()
             return end_text
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
@@ -980,7 +1017,8 @@ class SQL:
 
     def average_values_active_users(self):
         try:
-            select_query = 'SELECT count FROM user_activity_counter'
+            select_query = 'SELECT count ' \
+                           'FROM user_activity_counter'
             self.cursor.execute(select_query)
             data = self.cursor.fetchall()
 
@@ -995,7 +1033,7 @@ class SQL:
                 count_elem = count_elem
 
             average = the_amount / count_elem
-            average = math.floor(average)
+            average = math.ceil(average)  # Округление до ближайшего большего числа
             return average
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
@@ -1059,12 +1097,13 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def booked_lots(self, number_lot, user_id):
-        """"""
+        """Проверяет кол-во забронированных лотов. Если их меньше чем 3, бронирует лот, записывает в БД, обновляет
+        сообщение у пользователей и возвращает 'Success', иначе возвращает текст с ошибкой."""
+
         try:
-            select_query = f'SELECT booked_by_whom FROM lots WHERE booked_by_whom = {user_id}'
-            self.cursor.execute(select_query)
-            count_booked = len(self.cursor.fetchall())
-            if count_booked <= 3:
+            count_booked = self.count_booked_lot(user_id)
+
+            if count_booked < 3:
                 select_query = f'SELECT booked FROM lots WHERE ID = {number_lot}'
                 self.cursor.execute(select_query)
                 status_booked = self.cursor.fetchone()[0]
@@ -1077,10 +1116,21 @@ class SQL:
                     self.sqlite_connection.commit()
                     self.edit_message_lots(number_lot)
                     return 'Success'
-                # else:
-                #     return 'Данный лот уже зарезервирован'
-            else:
+            elif count_booked >= 3:
                 return 'Вы можете забронировать не более 3 лотов!'
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+
+    def count_booked_lot(self, user_id):
+        """"""
+        try:
+            select_query = f'SELECT ID ' \
+                           f'FROM lots ' \
+                           f'WHERE booked_by_whom = {user_id} and confirm = "no"'
+            self.cursor.execute(select_query)
+            count_booked = len(self.cursor.fetchall())
+            return count_booked
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -1113,7 +1163,7 @@ class SQL:
 
             select_query = f'SELECT booking_date FROM lots WHERE ID = {number_lot}'
             self.cursor.execute(select_query)
-            str_booking_date = self.cursor.fetchone()[0]  # Получаем user_id пользователя кто забронировал лот
+            str_booking_date = self.cursor.fetchone()[0]  # Получаем дату брони
             if str_booking_date != '':
                 booking_date = datetime.datetime.strptime(str_booking_date, '%Y-%m-%d %H:%M:%S.%f')
                 date_of_cancel = booking_date + datetime.timedelta(days=1)
@@ -1287,6 +1337,10 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+        except Data.telebot.apihelper.ApiTelegramException as error:
+            text_error = f'Не удаётся обновить лот {number_lot} у пользователя {user_id}\n' \
+                         f'{error}\n\n'
+            print(text_error)
 
     def get_id_mes_lot(self, id_lot, user_id):
         """"""
@@ -1328,7 +1382,7 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def confirm_the_issue(self, id_lot):
-        """"""
+        """Подтверждение выдачи лота. В БД обновляются данные и у всех пользователей обновляет сообщение."""
 
         try:
             update_query = f'UPDATE lots ' \
@@ -1356,34 +1410,50 @@ class SQL:
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def schedule_cancel_booking(self):
-        """"""
+        """Находит все даты броней в БД и если находит лот у которого истёк срок брони, обнуляет его и меняет текст
+        сообщения у тех, кто отслеживает лот."""
+
         try:
             today = datetime.datetime.today()
 
             select_query = f'SELECT booking_date, ID ' \
                            f'FROM lots ' \
-                           f'WHERE on_the_hands = "no"'
+                           f'WHERE on_the_hands = "no"'  #
             self.cursor.execute(select_query)
             list_booking_date = self.cursor.fetchall()  # Список дат забронированных лотов
-            # print(list_booking_date)
             for elem in list_booking_date:
                 date = elem[0]
                 id_lot = elem[1]
-                # print(date)
-                # print(id_lot)
                 if date != '' and date is not None:
                     dates = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
                     date_of_cancel = dates + datetime.timedelta(days=1)
+                    # print(date_of_cancel)
                     if today > date_of_cancel:
-                        # print(f'today {today} > date_of_cancel {date_of_cancel}')
                         update_query = f'UPDATE lots ' \
                                        f'SET booked = "no", booked_by_whom = 0, booking_date = "" ' \
                                        f'WHERE ID = {id_lot}'
                         self.cursor.execute(update_query)
                         self.sqlite_connection.commit()
+
                         self.edit_message_lots(id_lot)
-                    else:
-                        pass
+                        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                              f'Бронь на лот №{id_lot} аннулирована, т.к. истёк срок брони.')
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+
+    def schedule_updating_data_on_lots(self):
+        """Актуализирует лоты у всех пользователей отталкиваясь от данных из БД"""
+
+        try:
+            select_query = f'SELECT ID ' \
+                           f'FROM lots'
+            self.cursor.execute(select_query)
+            list_id_lots = self.cursor.fetchall()  # Полный список ID лотов
+            for elem in list_id_lots:
+                id_lot = elem[0]
+                self.edit_message_lots(id_lot)
+                time.sleep(1)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -1537,6 +1607,156 @@ class SQL:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
+    def check_top_byers(self):
+        """Возвращает строку с топ 3 самыми жадными пользователями барахолки"""
+
+        select_query = f'SELECT who_took_it ' \
+                       f'FROM lots ' \
+                       f'WHERE confirm = "yes"'
+        self.cursor.execute(select_query)
+        list_byers = self.cursor.fetchall()
+
+        temp_list = []
+
+        for user_ids in list_byers:
+            if user_ids[0] is not None:
+                temp_list.append(user_ids[0])
+
+        temp_dict = {}
+
+        for i in temp_list:
+            if i not in temp_dict.keys():
+                temp_dict[i] = 1
+            else:
+                temp_dict[i] += 1
+
+        sorted_dict = {}
+        sorted_keys = sorted(temp_dict, key=temp_dict.get, reverse=True)
+
+        for w in sorted_keys:
+            sorted_dict[w] = temp_dict[w]
+
+        while len(sorted_dict) > 3:
+            numb_elem = len(sorted_dict) - 1
+            sorted_dict.pop(list(sorted_dict)[numb_elem])
+
+        temp_list_2 = []
+
+        for i in sorted_dict.keys():
+            select_query = f'SELECT user_first_name, user_last_name ' \
+                           f'FROM users ' \
+                           f'WHERE user_id = {i}'
+            self.cursor.execute(select_query)
+            tuple_data_user = self.cursor.fetchall()
+
+            list_data_user = []
+
+            for u in tuple_data_user[0]:
+                if u is not None:
+                    list_data_user.append(u)
+
+            temp_list_data_user = [sorted_dict.get(i), ' '.join(list_data_user), i]
+            temp_list_2.append(temp_list_data_user)
+
+        return temp_list_2
+
+    def create_string_top_byers_all_time(self):
+        """Формирует строку с топ 3 пользователей барахолки по кол-ву лотов на руках"""
+
+        top_list = self.check_top_byers()
+
+        first_place_name = top_list[0][1]
+        first_place_count = f'{top_list[0][0]} {declension(top_list[0][0], "лот", "лота", "лотов")}'
+
+        second_place_name = top_list[1][1]
+        second_place_count = f'{top_list[1][0]} {declension(top_list[1][0], "лот", "лота", "лотов")}'
+
+        third_place_name = top_list[2][1]
+        third_place_count = f'{top_list[2][0]} {declension(top_list[2][0], "лот", "лота", "лотов")}'
+
+        title_text = f'••• Рейтинг пользователей барахолки •••\n' \
+                     f'За всё время, у этих пользователей на руках оказалось больше всего лотов:\n' \
+                     f'1е место: {first_place_name} - {first_place_count}\n' \
+                     f'2е место: {second_place_name} - {second_place_count}\n' \
+                     f'3е место: {third_place_name} - {third_place_count}\n\n' \
+                     f'Данный рейтинг формируется каждый месяц.'
+
+        return title_text
+
+    def top_user(self):
+        """Вычисляет топ 3 самых активных пользователей по запросам к боту, далее формирует топ 3 подписчика
+        барахолки у которых больше всего лотов на руках. Если в списках есть совпадения по user_id, объединяет
+        показатели по следующей формуле: {кол-во запросов}+{кол-во лотов на руках * 10}, а если совпадения нет -
+        просто добавляет в общий список ТОПов. Далее этот общий список сортируется по рейтингу и отсекаются
+        все пользователи после 3 элемента. Итог - список списков [рейтинг, user_id]"""
+
+        try:
+            top_list_byers = self.check_top_byers()
+            for byers in top_list_byers:
+                byers.pop(1)
+
+            select_user_id = 'SELECT user_id, all_time FROM statistic'
+            self.cursor.execute(select_user_id)
+            ids_users = self.cursor.fetchall()
+
+            top_list_active_users = []
+
+            for row in ids_users:
+                top_list_active_users.append([row[1], row[0]])
+
+            top_list_active_users.sort(reverse=True)
+
+            while len(top_list_active_users) > 3:
+                top_list_active_users.pop(-1)
+
+
+            list_top = []
+
+            for active in top_list_active_users:
+                for byers in top_list_byers:
+                    if active[1] in byers:
+                        print(f'{byers[1]} - {active[0]}+{byers[0]}*10={active[0] + (byers[0] * 10)}')
+                        list_top.append([active[0] + (byers[0] * 10), active[1]])
+                        top_list_active_users.pop(top_list_active_users.index(active))
+                        top_list_byers.pop(top_list_byers.index(byers))
+
+            for elem in top_list_active_users:
+                list_top.append(elem)
+
+            for i in top_list_byers:
+                list_top.append([i[0] * 10, i[1]])
+
+            list_top.sort(reverse=True)
+
+            while len(list_top) > 3:
+                list_top.pop(-1)
+
+            print(list_top)
+
+            return list_top
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+
+
+    def get_name_user(self, user_id):  # noqa
+        select_name = f'SELECT user_first_name, user_last_name ' \
+                      f'FROM users ' \
+                      f'WHERE user_id = "{user_id}"'
+        self.cursor.execute(select_name)
+        name_top_user = self.cursor.fetchone()
+        # print(name_top_user)
+        full_name = []
+        for elem in name_top_user:
+            if elem is not None:
+                full_name.append(elem)
+
+        if len(full_name) > 1:
+            name_top_user = ' '.join(full_name)
+            return name_top_user
+        else:
+            return name_top_user[0]
+
 
 def days_before_inventory(number):
     """Принимает на вход число и склоняет его.
@@ -1595,6 +1815,20 @@ def declension_day(number):
         return days[2]
 
 
+def declension(number, one, two, five):
+    """Принимает на вход число, название объекта с численностью 1, 2 и 5.
+    Например, при входных данных <21, 'день', 'дня', 'дней'> результатом будет являться <день>"""
+
+    if number == 0:
+        return five
+    elif number % 10 == 1 and number % 100 != 11:
+        return one
+    elif 2 <= number % 10 <= 4 and (number % 100 < 10 or number % 100 >= 20):
+        return two
+    else:
+        return five
+
+
 def pack_in_callback_data(key, value):
     dict_callback = {key: value}
     string_dict = str(dict_callback)
@@ -1610,3 +1844,6 @@ def pack_in_callback_data(key, value):
 def string_to_dict(string_dict):
     my_dict = eval(string_dict)
     return my_dict
+
+# for i in range(0, 101):
+#     print(f"{i} {declension(i, 'лот', 'лота', 'лотов')}")

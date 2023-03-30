@@ -18,6 +18,7 @@ class TrackingSensor:
         self.list_names_def_sensor = [
             'Дефростер 1',
             'Дефростер 2',
+            'Дефростер 2 низ',
             'Дефростер 3',
             'Деф 1 внутри',
             'Деф 2 внутри',
@@ -35,6 +36,7 @@ class TrackingSensor:
 
         self.list_names_def_two = [
             'Дефростер 2',
+            'Дефростер 2 низ',
             'Деф 2 внутри',
             'Деф 2 поверхность'
         ]
@@ -131,7 +133,7 @@ class TrackingSensor:
         for name, value in self.get_data:
             if name in self.list_names_def_sensor:
                 if int(float(value)) <= int(float(-999.9)):
-                    text_message = f'"{name}": неисправен'
+                    text_message = f'"{name}" : неисправен'
                     if name in self.list_names_def_one:
                         def_one.append(text_message)
                     elif name in self.list_names_def_two:
@@ -139,7 +141,7 @@ class TrackingSensor:
                     elif name in self.list_names_def_three:
                         def_three.append(text_message)
                 else:
-                    text_message = f'"{name}": {value} ℃'
+                    text_message = f'"{name}" : {value} ℃'
                     if name in self.list_names_def_one:
                         def_one.append(text_message)
                     elif name in self.list_names_def_two:
