@@ -50,12 +50,12 @@ class Notification:
                 except Data.telebot.apihelper.ApiTelegramException:
                     text_error = 'Пользователь <' + username + '> заблокировал бота!'
                     print(text_error)
-                    Functions.logging_event('error', str(text_error))
+                    Functions.logging_file_processing('error', str(text_error))
                     Functions.SQL().log_out(all_user_sql[i])
                 i += 1
         except sqlite3.Error as error:
             print('Ошибка при работе с SQLite', error)
-            Functions.logging_event('error', error)
+            Functions.logging_file_processing('error', error)
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -86,12 +86,12 @@ class Notification:
                 except Data.telebot.apihelper.ApiTelegramException:
                     text_error = f'Пользователь <{username}> заблокировал бота!'
                     print(text_error)
-                    Functions.logging_event('error', str(text_error))
+                    Functions.logging_file_processing('error', str(text_error))
                     Functions.SQL().log_out(all_id_sql[i])
                 i += 1
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            Functions.logging_event('error', error)
+            Functions.logging_file_processing('error', error)
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -140,11 +140,11 @@ class Notification:
                     time.sleep(3)
                     Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'Бот выдал ошибку: {str(e)}')
                     print(str(e))
-                    Functions.logging_event('error', str(e))
+                    Functions.logging_file_processing('error', str(e))
                 i += 1
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            Functions.logging_event('error', str(error))
+            Functions.logging_file_processing('error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -317,4 +317,3 @@ class Notification:
         except telebot.apihelper.ApiException as error:
             text = f'При рассылке уведомлений о самом активном пользователе, возникла ошибка:\n<{error}>\n'
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
-

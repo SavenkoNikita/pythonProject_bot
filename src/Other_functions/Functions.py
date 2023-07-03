@@ -43,7 +43,8 @@ def get_data_user_SQL(user_name):
 
 
 def logging_event(way_log, condition, text):
-    """Возможные варианты записи логов - 'debug', 'info', 'warning', 'error', 'critical'"""
+    """Возможные варианты записи логов - 'debug', 'info', 'warning', 'error', 'critical'.
+    Пример запроса logging_event('error', str(text_error))"""
 
     if text is not None:
         logging.basicConfig(filename=way_log, level=logging.INFO,
