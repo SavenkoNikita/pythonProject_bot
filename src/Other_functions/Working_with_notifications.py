@@ -317,3 +317,8 @@ class Notification:
         except telebot.apihelper.ApiException as error:
             text = f'При рассылке уведомлений о самом активном пользователе, возникла ошибка:\n<{error}>\n'
             Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
+
+    def send_light_news(self):
+        """Тут же отправляет переданное уведомление указанной группе людей"""
+
+

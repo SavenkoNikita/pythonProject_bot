@@ -132,7 +132,7 @@ class TrackingSensor:
 
         for name, value in self.get_data:
             if name in self.list_names_def_sensor:
-                if int(float(value)) <= int(float(-999.9)):
+                if int(float(value)) <= int(float(-100)):
                     text_message = f'"{name}" : неисправен'
                     if name in self.list_names_def_one:
                         def_one.append(text_message)
@@ -171,7 +171,7 @@ class TrackingSensor:
         sensors_error = []
 
         for name, value in self.get_data:
-            if int(float(value)) <= int(float(-999.9)):
+            if int(float(value)) <= int(float(-100)):
                 text_message = name
                 sensors_error.append(text_message)
                 logging_sensors('error', f'Неисправен датчик "{name}". '

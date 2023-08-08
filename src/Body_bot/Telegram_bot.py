@@ -6,6 +6,7 @@ import requests
 import telebot
 
 import Data
+import src.Other_functions.Working_with_notifications
 from src.Exchange_with_ERP.Exchange_with_ERP import Exchange_with_ERP
 from src.Other_functions import Working_with_notifications
 from src.Other_functions.File_processing import Working_with_a_file
@@ -82,8 +83,8 @@ def types_message(message):
     else:
         user_id = message.from_user.id
 
-    # count_text_message = random.randint(3, 7)  # Случайное кол-во секунд будет имитироваться набор текста
-    count_text_message = float(int(0.1))
+    count_text_message = random.randint(1, 3)  # Случайное кол-во секунд будет имитироваться набор текста
+    # count_text_message = float(int(0.1))
 
     bot.send_chat_action(user_id, action='typing')
     time.sleep(count_text_message)
@@ -1327,6 +1328,131 @@ def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
         answer_text = 'Публикация поста отменена'
         bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
         print(f'{answer_bot}{answer_text}\n')
+
+
+@bot.message_handler(commands=['urgent_message'])
+def urgent_message(message):
+    if rights_admin(message) is True:
+        answer_message = 'Кому вы собираетесь разослать сообщение?'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Всем пользователям', 'Подписчикам', 'Админам', 'Барахольщикам', 'Отмена']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, urgent_message_step_2, buttons)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        end_text = rights_admin(message)
+        types_message(message)
+        bot.reply_to(message, end_text)
+        print(f'{answer_bot}{end_text}\n')
+
+
+def urgent_message_step_2(message, list_sheet):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Отмена':
+        answer_message = 'Операция прервана.'
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_message}\n')
+    elif message.text not in list_sheet:
+        answer_message = f'<{message.text}> не подходит.. Необходимо выбрать из списка!'
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Ок']
+        keyboard.add(*buttons)
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        bot.register_next_step_handler(message, create_record)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+    else:
+        list_of_answers = [message.text]
+        answer_message = 'Введи текст уведомления'
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        bot.register_next_step_handler(message, urgent_message_step_3,
+                                       list_of_answers)  # Регистрация следующего действия
+        print(f'{answer_bot}{answer_message}\n')
+
+
+def urgent_message_step_3(message, list_of_answers):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+
+    list_of_answers.append(message.text)
+
+    sheet_name = list_of_answers[0]
+    text_event = list_of_answers[1]
+
+    if sheet_name == 'Всем пользователям':
+        end_message = f'• Уведомление для зарегистрированных пользователей •\n\n' \
+                      f'{text_event}'
+    elif sheet_name == 'Подписчикам':
+        end_message = f'• Уведомление для подписчиков •\n\n' \
+                      f'{text_event}'
+    elif sheet_name == 'Админам':
+        end_message = f'• Уведомление для администраторов •\n\n' \
+                      f'{text_event}'
+    elif sheet_name == 'Барахольщикам':
+        end_message = f'• Уведомление для подписчиков барахолки •\n\n' \
+                      f'{text_event}'
+    else:
+        keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
+        keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
+        error_message = 'Что-то пошло не так. Обратитесь к разработчику.'
+        types_message(message)
+        bot.reply_to(message, error_message, reply_markup=keyboard)
+
+    confirm_message = f'Уведомление будет выглядеть вот так: \n•••••\n' \
+                      f'{end_message}\n•••••\n' \
+                      f'Отправить его?\n' \
+                      f'*Выберите действие*'
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = ['Да', 'Отмена']
+    keyboard.add(*buttons)
+    types_message(message)
+    bot.reply_to(message, confirm_message, reply_markup=keyboard)
+    bot.register_next_step_handler(message, urgent_message_step_4, list_of_answers)  # Регистрация следующего действия
+    print(f'{answer_bot}{confirm_message}\n')
+
+
+def urgent_message_step_4(message, list_of_answers):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+
+    sheet_name = list_of_answers[0]
+    text_event = list_of_answers[1]
+
+    if message.text == 'Да':
+        if sheet_name == 'Всем пользователям':
+            end_message = f'• Уведомление для зарегистрированных пользователей •\n\n' \
+                          f'{text_event}'
+            src.Other_functions.Working_with_notifications.Notification().send_a_notification_to_all_users(end_message)
+        elif sheet_name == 'Подписчикам':
+            end_message = f'• Уведомление для подписчиков •\n\n' \
+                          f'{text_event}'
+            src.Other_functions.Working_with_notifications.Notification().send_notification_to_subscribers(end_message)
+        elif sheet_name == 'Админам':
+            end_message = f'• Уведомление для администраторов •\n\n' \
+                          f'{text_event}'
+            src.Other_functions.Working_with_notifications.Notification().send_notification_to_administrators(
+                end_message)
+        elif sheet_name == 'Барахольщикам':
+            end_message = f'• Уведомление для подписчиков барахолки •\n\n' \
+                          f'{text_event}'
+            src.Other_functions.Working_with_notifications.Notification().notification_for_sub_baraholka(end_message)
+        else:
+            keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
+            keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
+            error_message = 'Что-то пошло не так. Обратитесь к разработчику.'
+            types_message(message)
+            bot.reply_to(message, error_message, reply_markup=keyboard)
+    elif message.text == 'Отмена':
+        hide_keyboard = telebot.types.ReplyKeyboardRemove()
+        answer_message = 'Операция прервана.'
+        types_message(message)
+        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_message}\n')
+
+    exit()
 
 
 @bot.callback_query_handler(func=lambda c: True)

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+import os
 import random
 import sqlite3
 import time
@@ -15,7 +16,7 @@ import Data
 # from Other_functions.Working_with_notifications import Notification
 # from  import Notification
 import src.Other_functions.Functions
-from src.Other_functions import Working_with_notifications
+from src.Other_functions import Working_with_notifications, Exchange_with_yougile
 
 
 def get_key(user_name):
@@ -113,9 +114,28 @@ def random_name():
     if datetime.datetime.today().isoweekday() <= 5:
         list_name = ['Паша', 'Дима', 'Никита']
         rand_name = random.choice(list_name)
-        end_text = f'Случайным образом определено, что в цеху сегодня работает {rand_name}'
+
+        phrase_list = [
+            f'Случайным образом определено, что в цеху сегодня работает {rand_name}',
+            f'Монетка подброшена. {rand_name} сегодня выполняет сигналы!',
+            f'Беспощадный рандом определил, что сегодня {rand_name} занимается сигналами',
+            f'Кручу-верчу сегодня {rand_name} главный по сигналам!',
+            f'Сегодня {rand_name} повелитель сигналов',
+            f'Сегодня только {rand_name} нажимамет на кнопку "принять сигнал"!',
+            f'Вжух, и сигналами сегодня занимается {rand_name}',
+            f'Если бы на Ремите был конкурс на лучшего супергероя, то победил бы {rand_name} как лучший человек-сигнал!',
+            f'Сегодня лучший системный администратор {rand_name} спасает завод от нерешённых сигналов',
+            f'Говорят, что за каждый сигнал будут давать премию! Но это не точно... '
+            f'{rand_name} и рубанёт сегодня бабла!',
+            f'Хочешь изменить мир? Начни с завода! {rand_name} сегодня твой день! Сделай это!',
+            f'Есть сигналы дискретные, есть аналоговые, есть квантованные, а есть ремит-сигнал. В Википедии написано, '
+            f'что {rand_name} имеет степень профессора в этой области! Сегодня будет мастер-класс. '
+            f'Посмотрим на что он способен!'
+        ]
+        rand_phrase = random.choice(phrase_list)
+
         for i in list_name:
-            Data.bot.send_message(chat_id=Data.list_admins.get(i), text=end_text)
+            Data.bot.send_message(chat_id=Data.list_admins.get(i), text=rand_phrase)
 
 
 class SQL:
@@ -748,24 +768,37 @@ class SQL:
     def updating_sensor_data(self, id_sensor, name_sensor, ip_host, name_host, online, last_value, last_update):
         """Обновление данных о датчиках"""
 
+        # online_telegram = check_online_api_telegram()
+        # if online_telegram is True:
         try:
-            status = self.cursor.execute(f'SELECT * FROM sensors WHERE id_sensor={id_sensor}')
+            status = self.cursor.execute(f'SELECT * FROM sensors WHERE name_sensor="{name_sensor}"')
             if status.fetchone() is None:  # Если датчика нет в БД
+                # print(f'Датчика "{name_sensor}" нет в таблице')
                 data = (id_sensor, name_sensor, ip_host, name_host, online, last_value, last_update)
                 self.cursor.execute(f'INSERT INTO sensors(id_sensor, name_sensor, ip_host, name_host, online, '
                                     f'last_value, last_update) VALUES(?, ?, ?, ?, ?, ?, ?);', data)
                 self.sqlite_connection.commit()
                 self.cursor.close()
             else:  # Иначе обновляем данные
+                # print(f'Датчик "{name_sensor}" есть в таблице')
                 data2 = ('True', last_value, last_update, id_sensor)
-                sql_update_query = 'UPDATE sensors SET online = ?, last_value = ?, last_update = ? ' \
-                                   'WHERE id_sensor = ?'
+                # 0.5 из-за задвоения get_data()
+                if int(float(last_value)) < int(float(-100)):
+                    sql_update_query = 'UPDATE sensors ' \
+                                       'SET online = ?, last_value = ?, last_update = ?, ' \
+                                       'detect_count = detect_count + 0.5 ' \
+                                       'WHERE id_sensor = ?'
+                else:
+                    sql_update_query = 'UPDATE sensors ' \
+                                       'SET online = ?, last_value = ?, last_update = ?, ' \
+                                       'detect_count = 0 ' \
+                                       'WHERE id_sensor = ?'
                 self.cursor.execute(sql_update_query, data2)
                 self.sqlite_connection.commit()
                 self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            # logging_event('error', str(error))
+            logging_event(Data.way_to_log_sensors, 'error', str(error))
 
     def host_sensors_error(self, ip_host):
         try:
@@ -1710,7 +1743,6 @@ class SQL:
             while len(top_list_active_users) > 3:
                 top_list_active_users.pop(-1)
 
-
             list_top = []
 
             for active in top_list_active_users:
@@ -1739,7 +1771,6 @@ class SQL:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
-
     def get_name_user(self, user_id):  # noqa
         select_name = f'SELECT user_first_name, user_last_name ' \
                       f'FROM users ' \
@@ -1757,6 +1788,40 @@ class SQL:
             return name_top_user
         else:
             return name_top_user[0]
+
+    def get_list_faulty_sensors(self):
+        """Проверяет в БД таблицу sensors, колонку detect_count.
+        Если счётчик равен 60, присылает уведомление разработчику."""
+        try:
+            select_query = f'SELECT name_sensor ' \
+                           f'FROM sensors ' \
+                           f'WHERE detect_count = 60'
+            self.cursor.execute(select_query)
+            list_sensors = self.cursor.fetchall()
+
+            detected_list = []
+            for elem in list_sensors:
+                detected_list.append(elem[0])
+            # print(detected_list)
+
+            nl = '\n'
+            end_text = f'Более часа нет ответа от этих датчиков:\n\n' \
+                       f'{nl.join(detected_list)}'
+            # print(end_text)
+
+            if len(detected_list) != 0:
+                # print(detected_list)
+                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                                      text=end_text)
+
+                for elem in detected_list:
+                    title = f'Неисправен датчик <{elem}>'
+                    # print(title)
+                    Exchange_with_yougile.post_task_to_column_sensors(title_text=title)
+                    time.sleep(1)
+
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
 
 
 def days_before_inventory(number):
@@ -1846,5 +1911,21 @@ def string_to_dict(string_dict):
     my_dict = eval(string_dict)
     return my_dict
 
+
 # for i in range(0, 101):
 #     print(f"{i} {declension(i, 'лот', 'лота', 'лотов')}")
+
+
+def check_online_api_telegram():
+    """Проверяет на доступность api.telegram.org. Если доступен, вернёт True, иначе - False."""
+
+    hostname = "api.telegram.org"  # example
+    response = os.system("ping -c 1 " + hostname)
+
+    # and then check the response...
+    if response == 0:
+        # print(hostname, 'is up!')
+        return True
+    else:
+        # print(hostname, 'is down!')
+        return False

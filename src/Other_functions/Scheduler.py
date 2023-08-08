@@ -3,6 +3,7 @@ import random
 import time
 import traceback
 
+import requests
 import schedule
 
 import Data
@@ -40,6 +41,7 @@ def check_sensors():
     Working_with_notifications.Notification().update_mess('tracking_sensor_defroster',
                                                           TrackingSensor().check_defroster())
     Test_2.test()
+    src.Other_functions.Functions.SQL().get_list_faulty_sensors()
 
 
 def check_event(sheet_name):
@@ -76,7 +78,7 @@ schedule.every().day.at('15:00').do(check_dej)
 schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
 
 # Присылает случайное имя кто идёт в цех
-# schedule.every().day.at('07:01').do(Functions.random_name)
+schedule.every().day.at('07:01').do(Functions.random_name)
 
 # Присылает админам топ самых жадных барахольщиков
 schedule.every().day.at('07:02').do(check_top_byers)
@@ -112,6 +114,15 @@ while True:
     try:
         schedule.run_pending()
         time.sleep(1)
+    except requests.exceptions.ReadTimeout:
+        time.sleep(3)
+        text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса'
+        # bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
+        print(text)
+    except requests.ConnectionError:
+        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nНет соединения с сервером')
+        time.sleep(60)
+        print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПопытка соединения')
     except Exception as e:
         text_error = traceback.format_exc()
         # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Scheduler: сработало исключение.')
