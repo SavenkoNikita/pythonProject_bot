@@ -690,6 +690,7 @@ def create_record_step_4(message, list_of_answers):
     exit()
 
 
+
 @bot.message_handler(commands=['games'])
 def games(message):
     """Игры"""
@@ -1535,23 +1536,31 @@ def speak(message):
 if __name__ == '__main__':
     while True:
         try:
-            text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nTelegram_bot.py начал работу'
+            text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
+                           f'Telegram_bot.py начал работу'
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             print(text_message)
             bot.polling(none_stop=True)
         except requests.exceptions.ReadTimeout:
             time.sleep(3)
-            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса'
+            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
+                   f'Превышено время ожидания запроса'
             # bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
             print(text)
             logging_telegram_bot('error', text)
         except requests.ConnectionError:
-            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nНет соединения с сервером')
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                  f'Нет соединения с сервером')
             time.sleep(60)
-            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПопытка соединения')
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                  f'Попытка соединения')
+        except BaseException:
+            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                  f'Возникла ошибка типа передаваемых данных')
         except Exception as e:
             time.sleep(3)
-            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nВ Telegram_bot.py возникла ошибка: {e} '
+            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
+                   f'В Telegram_bot.py возникла ошибка: {e} '
             bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
             print(str(e))
             logging_telegram_bot('error', str(e))

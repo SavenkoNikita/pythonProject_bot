@@ -121,16 +121,15 @@ def random_name():
             f'Беспощадный рандом определил, что сегодня {rand_name} занимается сигналами',
             f'Кручу-верчу сегодня {rand_name} главный по сигналам!',
             f'Сегодня {rand_name} повелитель сигналов',
-            f'Сегодня только {rand_name} нажимамет на кнопку "принять сигнал"!',
+            f'Сегодня только {rand_name} нажимает на кнопку "принять сигнал"!',
             f'Вжух, и сигналами сегодня занимается {rand_name}',
-            f'Если бы на Ремите был конкурс на лучшего супергероя, то победил бы {rand_name} как лучший человек-сигнал!',
+            f'Если бы на Ремите был конкурс на лучшего супер героя, то победил бы {rand_name} как '
+            f'лучший человек-сигнал!',
             f'Сегодня лучший системный администратор {rand_name} спасает завод от нерешённых сигналов',
-            f'Говорят, что за каждый сигнал будут давать премию! Но это не точно... '
-            f'{rand_name} и рубанёт сегодня бабла!',
+            f'Говорят, что за каждый сигнал будут давать премию! '
+            f'{rand_name} рубанёт сегодня бабла! Но это не точно...',
             f'Хочешь изменить мир? Начни с завода! {rand_name} сегодня твой день! Сделай это!',
-            f'Есть сигналы дискретные, есть аналоговые, есть квантованные, а есть ремит-сигнал. В Википедии написано, '
-            f'что {rand_name} имеет степень профессора в этой области! Сегодня будет мастер-класс. '
-            f'Посмотрим на что он способен!'
+            f'Кому сегодня не фартануло тот {rand_name}. Сигналы сегодня на тебе!'
         ]
         rand_phrase = random.choice(phrase_list)
 
@@ -1103,8 +1102,14 @@ class SQL:
                 text = 'Теперь вы подписаны на обновления барахолки. Прямо сейчас Вам станут доступны лоты, ' \
                        'которые еще не забрали.'
                 count_subs_users = self.count_users()
-                text_message = f'На обновления барахолки подписался ещё один ' \
-                               f'пользователь. Теперь нас {count_subs_users}'
+                random_notification = [
+                    f'На обновления барахолки подписался ещё один пользователь. Теперь нас {count_subs_users}!',
+                    f'У нас тут пополнение. В барахолке уже {count_subs_users} '
+                    f'{declension(count_subs_users, "пользователь", "пользователя", "пользователей")}!',
+                    f'Барахолка пополнилась ещё на 1го пользователя. Итого {count_subs_users}.'
+                ]
+                rand_phrase = random.choice(random_notification)
+                text_message = rand_phrase
                 Working_with_notifications.Notification().notification_for_sub_baraholka(text_message)
                 self.send_lots_new_sub_bar(user_id)
                 return text
@@ -1122,8 +1127,11 @@ class SQL:
     def record_lot_to_DB(self, name_lot, photo_id, description):
         """Записывает данные о новых лотах"""
         try:
-            insert_query = f'INSERT INTO lots (name, description, id_photo) ' \
-                           f'VALUES ("{name_lot}", "{description}", "{photo_id}")'
+            today = datetime.datetime.now()
+            today = today.date()
+
+            insert_query = f'INSERT INTO lots (name, description, id_photo, date_of_public) ' \
+                           f'VALUES ("{name_lot}", "{description}", "{photo_id}", "{today}")'
             self.cursor.execute(insert_query)
             self.sqlite_connection.commit()
         except sqlite3.Error as error:
@@ -1210,6 +1218,50 @@ class SQL:
             select_query = f'SELECT confirm FROM lots WHERE ID = {number_lot}'
             self.cursor.execute(select_query)
             confirm = self.cursor.fetchone()[0]  # Получаем статус подтверждения выдачи
+
+            select_query = f'SELECT date_of_public FROM lots WHERE ID = {number_lot}'
+            self.cursor.execute(select_query)
+            date_public = self.cursor.fetchone()[0]  # Получаем дату поста
+            date = datetime.datetime.strptime(date_public, "%Y-%m-%d")
+            date = date.date()
+            date_public_format = date.strftime('%d.%m.%Y')
+
+            select_query = f'SELECT status FROM lots WHERE ID = {number_lot}'
+            self.cursor.execute(select_query)
+            status_active_lot = self.cursor.fetchone()[0]  # Получаем статус активности лота
+
+            ### В этом блоке проверяются посты статус которых "active". Если пост размещён более 30 дней назад, он
+            ### становится неактивным у всех, в БД меняется статус на "cancel" и впредь не попадает под проверку
+            if status_active_lot == 'active':
+                # date_format = date.strftime('%d.%m.%Y')
+                # print(date_format)
+                date_today = datetime.datetime.now()
+                date_today = date_today.date()
+                date_today_format = date_today.strftime('%d.%m.%Y')
+
+                dif_day = date_today - date
+                dif_day = dif_day.days
+                # print(dif_day)
+                if dif_day > 30:
+                    update_query = f'UPDATE lots ' \
+                                   f'SET status = "cancel" ' \
+                                   f'WHERE ID = {number_lot}'
+                    self.cursor.execute(update_query)
+                    self.sqlite_connection.commit()
+                    for user_id, message_id in dict_user_mess.items():
+                            description = f'Лот №{number_lot}\n\n' \
+                                          f'Название: {name_lot}\n\n' \
+                                          f'Описание: {description_lot}\n\n' \
+                                          f'#####\n' \
+                                          f'Пост аннулирован {date_today_format} из-за срока давности\n' \
+                                          f'#####'
+                            Data.bot.edit_message_caption(chat_id=user_id,
+                                                          message_id=message_id,
+                                                          caption=description)
+
+                            Data.bot.unpin_chat_message(chat_id=user_id,
+                                                        message_id=message_id)
+            ###
 
             if status_lot == 'yes' and on_the_hands == 'no':
                 for user_id, message_id in dict_user_mess.items():
@@ -1472,6 +1524,41 @@ class SQL:
                         self.edit_message_lots(id_lot)
                         print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
                               f'Бронь на лот №{id_lot} аннулирована, т.к. истёк срок брони.')
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+
+    def schedule_cancel_lot(self):
+        """Проверяет дату размещения поста. Если пост висит более 30 дней, лот аннулируется"""
+
+        try:
+            today = datetime.datetime.today()
+            today = today.date()
+
+            select_query = f'SELECT date_of_public, ID ' \
+                           f'FROM lots ' \
+                           f'WHERE status = "active"'
+            self.cursor.execute(select_query)
+            list_date = self.cursor.fetchall()
+            for element in list_date:
+                date_str = element[0]  # Дата поста str из DB
+                date = datetime.datetime.strptime(date_str, "%Y-%m-%d")  # Дата поста datetime в формате
+                date = date.date()  # Дата поста без времени
+
+                date_today = datetime.datetime.now()  # Текущая дата
+                date_today = date_today.date()  # Текущая дата без времени
+
+                dif_day = date_today - date  # Разница между датами
+                dif_day = dif_day.days  # Разница между датами без времени
+                # print(dif_day)
+
+                id_lot = element[1]  # ID лота
+                if dif_day > 30:
+                # print(f'{dif_day} > 30')
+
+                    self.edit_message_lots(id_lot)
+                    print(f'{date_today}\n'
+                          f'Лот №{id_lot} аннулирован, т.к. истёк срок.')
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
@@ -1804,10 +1891,13 @@ class SQL:
                 detected_list.append(elem[0])
             # print(detected_list)
 
-            nl = '\n'
-            end_text = f'Более часа нет ответа от этих датчиков:\n\n' \
-                       f'{nl.join(detected_list)}'
-            # print(end_text)
+            if len(detected_list) > 1:
+                nl = '\n'
+                end_text = f'Более часа нет ответа от этих датчиков:\n\n' \
+                           f'{nl.join(detected_list)}'
+                # print(end_text)
+            elif len(detected_list) == 1:
+                end_text = f'Более часа нет ответа от датчика <{detected_list}>'
 
             if len(detected_list) != 0:
                 # print(detected_list)

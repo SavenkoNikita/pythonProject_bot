@@ -57,6 +57,7 @@ def top_statistic():
 
 def update_the_reservation_status_of_lots():
     Functions.SQL().schedule_cancel_booking()
+    Functions.SQL().schedule_cancel_lot()
 
 
 def check_top_byers():
