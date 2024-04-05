@@ -1203,7 +1203,7 @@ def place_a_lot(message):
                       '• Дать ему название\n' \
                       '• Прикрепить фото\n' \
                       '• Краткое описание\n\n' \
-                      'Выбери действие'
+                      '*Выбери действие*'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Создать лот', 'Возможно позже']
         keyboard.add(*buttons)
@@ -1254,7 +1254,7 @@ def place_a_lot_step_3(message, name_lot):
 
 
 def place_a_lot_step_4(message, name_lot):
-    name_lot = name_lot
+    # name_lot = name_lot
     # print(message)
     if message.photo is not None:
         print(f'{full_name_user(message)} прикрепил фото.')
@@ -1282,34 +1282,102 @@ def place_a_lot_step_4(message, name_lot):
 
 
 def place_a_lot_step_5(message, name_lot, photo_id):
-    lot_number = Working_with_notifications.Notification().get_last_record_lots() + 1
-    name_lot = name_lot
-    photo_id = photo_id
+    print(f'{full_name_user(message)} прикрепил фото.')
+    user_id = message.from_user.id
     description_lot = message.text
+
+    answer_text = 'Указать стоимость лота?\n' \
+                  '*Выберите действие*'
+
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    buttons = ['Разместить', 'Создать заново', 'Удалить пост']
+    buttons = ['Указать цену', 'Бесплатно']
     keyboard.add(*buttons)
     types_message(message)
+    bot.send_message(chat_id=user_id, text=answer_text, reply_markup=keyboard)
 
-    answer_text = 'Вот так пользователи будут видеть созданный лот. Выбери действие:'
-
-    bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
     print(f'{answer_bot}{answer_text}\n')
-    bot.send_photo(message.chat.id,
-                   caption=f'Лот №{lot_number}\n\n'
-                           f'Название: {name_lot}\n\n'
-                           f'Описание: {description_lot}\n\n',
-                   photo=photo_id)
     bot.register_next_step_handler(message, place_a_lot_step_6, name_lot, photo_id, description_lot)
 
 
 def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
     print(f'{full_name_user(message)} написал:\n{message.text}')
     user_id = message.from_user.id
+
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    if message.text == 'Указать цену':
+        answer_text = 'Сколько будет стоить лот?'
+        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
+        print(f'{answer_bot}{answer_text}\n')
+        bot.register_next_step_handler(message, place_a_lot_step_7, name_lot, photo_id, description_lot)
+    elif message.text == 'Бесплатно':
+        # answer_text = 'Записано'
+        # bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
+        # print(f'{answer_bot}{answer_text}\n')
+        price = "бесплатно"
+
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Продолжить']
+        keyboard.add(*buttons)
+        types_message(message)
+
+        answer_text = 'Для того чтобы продолжить нажмите кнопку ниже'
+
+        bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
+        print(f'{answer_bot}{answer_text}\n')
+        bot.register_next_step_handler(message, place_a_lot_step_8, name_lot, photo_id, description_lot, price)
+
+
+def place_a_lot_step_7(message, name_lot, photo_id, description_lot):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    price = f'{message.text}₽'
+    if message.text is not None:
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Продолжить']
+        keyboard.add(*buttons)
+        types_message(message)
+
+        answer_text = 'Для того чтобы продолжить нажмите кнопку ниже'
+
+        bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
+        print(f'{answer_bot}{answer_text}\n')
+        bot.register_next_step_handler(message, place_a_lot_step_8, name_lot, photo_id, description_lot, price)
+    else:
+        answer_text = "Кажется вы забыли указать цену! Укажите её прямо сейчас:"
+        bot.reply_to(text=answer_text)
+        bot.register_next_step_handler(message, place_a_lot_step_7, name_lot, photo_id, description_lot)
+
+
+def place_a_lot_step_8(message, name_lot, photo_id, description_lot, price):
+    lot_number = Working_with_notifications.Notification().get_last_record_lots() + 1
+    # name_lot = name_lot
+    # photo_id = photo_id
+    # description_lot = message.text
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = ['Разместить', 'Создать заново', 'Удалить пост']
+    keyboard.add(*buttons)
+    types_message(message)
+
+    answer_text = 'Вот так пользователи будут видеть созданный лот:\n' \
+                  '*Выбери действие*'
+
+    bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
+    print(f'{answer_bot}{answer_text}\n')
+    bot.send_photo(message.chat.id,
+                   caption=f'Лот №{lot_number}\n\n'
+                           f'Название: {name_lot}\n\n'
+                           f'Описание: {description_lot}\n\n'
+                           f'Стоимость: {price}\n\n',
+                   photo=photo_id)
+    bot.register_next_step_handler(message, place_a_lot_step_9, name_lot, photo_id, description_lot, price)
+
+
+def place_a_lot_step_9(message, name_lot, photo_id, description_lot, price):
+    print(f'{full_name_user(message)} написал:\n{message.text}')
+    user_id = message.from_user.id
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Разместить':
         SQL().record_lot_to_DB(name_lot, photo_id, description_lot)  # Помещаем имя, id фото и описание в БД
-        Notification().notification_for_subs_lots(name_lot, photo_id, description_lot)  # Рассылка подписчикам
+        Notification().notification_for_subs_lots(name_lot, photo_id, description_lot, price)  # Рассылка подписчикам
         id_callback_data = Notification().get_last_record_lots()  # Получаем id последнего лота из БД
         keyboard = telebot.types.InlineKeyboardMarkup()  # Инициализация клавиатуры
         button = telebot.types.InlineKeyboardButton(text='Забронировать лот', callback_data=id_callback_data)

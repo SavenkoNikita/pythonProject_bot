@@ -181,7 +181,7 @@ class Notification:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def notification_for_subs_lots(self, name_lot, photo_id, description, name_key_callback_data='lot'):
+    def notification_for_subs_lots(self, name_lot, photo_id, description, price, name_key_callback_data='lot'):
         """Отправляет уведомление всем пользователям подписчикам барахолки. В случае если пользователь заблокировал
         бота, статус подписки меняется на 'no'."""
 
@@ -209,7 +209,8 @@ class Notification:
                     message_id = Data.bot.send_photo(chat_id=ids,
                                                      caption=f'Лот №{id_callback_data}\n\n' \
                                                              f'Название: {name_lot}\n\n' \
-                                                             f'Описание: {description}\n\n',
+                                                             f'Описание: {description}\n\n'
+                                                             f'Стоимость: {price}\n\n',
                                                      photo=photo_id,
                                                      reply_markup=keyboard).message_id
                     Data.bot.pin_chat_message(chat_id=ids,
