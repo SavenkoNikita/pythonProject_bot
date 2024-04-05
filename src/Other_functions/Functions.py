@@ -770,7 +770,9 @@ class SQL:
         # online_telegram = check_online_api_telegram()
         # if online_telegram is True:
         try:
-            status = self.cursor.execute(f'SELECT * FROM sensors WHERE name_sensor="{name_sensor}"')
+            status = self.cursor.execute(f'SELECT * '
+                                         f'FROM sensors '
+                                         f'WHERE id_sensor="{id_sensor}" AND ip_host="{ip_host}"')
             if status.fetchone() is None:  # Если датчика нет в БД
                 # print(f'Датчика "{name_sensor}" нет в таблице')
                 data = (id_sensor, name_sensor, ip_host, name_host, online, last_value, last_update)
@@ -780,18 +782,18 @@ class SQL:
                 self.cursor.close()
             else:  # Иначе обновляем данные
                 # print(f'Датчик "{name_sensor}" есть в таблице')
-                data2 = ('True', last_value, last_update, id_sensor)
+                data2 = ('True', last_value, last_update, name_sensor, id_sensor, ip_host)
                 # 0.5 из-за задвоения get_data()
                 if int(float(last_value)) < int(float(-100)):
                     sql_update_query = 'UPDATE sensors ' \
                                        'SET online = ?, last_value = ?, last_update = ?, ' \
-                                       'detect_count = detect_count + 0.5 ' \
-                                       'WHERE id_sensor = ?'
+                                       'detect_count = detect_count + 0.5, name_sensor = ? ' \
+                                       'WHERE id_sensor = ? AND ip_host = ?'
                 else:
                     sql_update_query = 'UPDATE sensors ' \
                                        'SET online = ?, last_value = ?, last_update = ?, ' \
-                                       'detect_count = 0 ' \
-                                       'WHERE id_sensor = ?'
+                                       'detect_count = 0, name_sensor = ? ' \
+                                       'WHERE id_sensor = ? AND ip_host = ?'
                 self.cursor.execute(sql_update_query, data2)
                 self.sqlite_connection.commit()
                 self.cursor.close()
@@ -1248,7 +1250,8 @@ class SQL:
                                    f'WHERE ID = {number_lot}'
                     self.cursor.execute(update_query)
                     self.sqlite_connection.commit()
-                    for user_id, message_id in dict_user_mess.items():
+                    if confirm == 'no':
+                        for user_id, message_id in dict_user_mess.items():
                             description = f'Лот №{number_lot}\n\n' \
                                           f'Название: {name_lot}\n\n' \
                                           f'Описание: {description_lot}\n\n' \
@@ -1554,7 +1557,7 @@ class SQL:
 
                 id_lot = element[1]  # ID лота
                 if dif_day > 30:
-                # print(f'{dif_day} > 30')
+                    # print(f'{dif_day} > 30')
 
                     self.edit_message_lots(id_lot)
                     print(f'{date_today}\n'
@@ -1807,7 +1810,7 @@ class SQL:
     def top_user(self):
         """Вычисляет топ 3 самых активных пользователей по запросам к боту, далее формирует топ 3 подписчика
         барахолки у которых больше всего лотов на руках. Если в списках есть совпадения по user_id, объединяет
-        показатели по следующей формуле: {кол-во запросов}+{кол-во лотов на руках * 10}, а если совпадения нет -
+        показатели по следующей формуле: {активность за месяц} * {количество забранных лотов}, а если совпадения нет -
         просто добавляет в общий список ТОПов. Далее этот общий список сортируется по рейтингу и отсекаются
         все пользователи после 3 элемента. Итог - список списков [рейтинг, user_id]"""
 
@@ -1835,8 +1838,23 @@ class SQL:
             for active in top_list_active_users:
                 for byers in top_list_byers:
                     if active[1] in byers:
-                        print(f'{byers[1]} - {active[0]}+{byers[0]}*10={active[0] + (byers[0] * 10)}')
-                        list_top.append([active[0] + (byers[0] * 10), active[1]])
+                        """Коэффициент считается по формуле:
+                        {активность за месяц} * {количество забранных лотов}"""
+                        if active[0] > 0:
+                            count_active = active[0]
+                        else:
+                            count_active = 1
+
+                        name_user = byers[1]
+                        user_id = active[1]
+                        counter_purchased_lots = byers[0]
+
+                        rating = count_active * counter_purchased_lots
+
+                        print(f'{name_user}:\n'
+                              f'{count_active}*{counter_purchased_lots}={rating}')
+
+                        list_top.append([rating, user_id])
                         top_list_active_users.pop(top_list_active_users.index(active))
                         top_list_byers.pop(top_list_byers.index(byers))
 
@@ -1844,7 +1862,7 @@ class SQL:
                 list_top.append(elem)
 
             for i in top_list_byers:
-                list_top.append([i[0] * 10, i[1]])
+                list_top.append([i[0], i[1]])
 
             list_top.sort(reverse=True)
 
@@ -1897,12 +1915,18 @@ class SQL:
                            f'{nl.join(detected_list)}'
                 # print(end_text)
             elif len(detected_list) == 1:
-                end_text = f'Более часа нет ответа от датчика <{detected_list}>'
+                end_text = f'Более часа нет ответа от датчика <{detected_list[0]}>'
 
             if len(detected_list) != 0:
                 # print(detected_list)
-                Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
-                                      text=end_text)
+                # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                #                       text=end_text)
+                data_list = SQL().get_dict('observers_for_faulty_sensors')
+                if len(data_list) != 0:
+                    for users in data_list:
+                        user_id = users[0]
+                        Data.bot.send_message(chat_id=user_id,
+                                              text=end_text)
 
                 for elem in detected_list:
                     title = f'Неисправен датчик <{elem}>'
@@ -1912,6 +1936,35 @@ class SQL:
 
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
+
+
+class Decorators:
+    """
+
+    """
+
+    def __init__(self, message):
+        self.message = message
+        self.time_now = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Дата в читабельном виде
+        self.check_admin = SQL().check_for_admin(self.message.from_user.id)  # Проверка является ли пользователь админом
+
+    def _full_name_user(self, func):
+        """
+        Печатает в консоль имя пользователя: Администратор/Пользователь + Имя + ID
+        :param func:
+        :return: {time_now}\n{Администратор/Пользователь} {Имя} {ID} отправил команду:\n{message.text}
+        """
+
+        if self.check_admin is True:
+            status_user = 'Администратор'
+        else:
+            status_user = 'Пользователь'
+        name_user = f'{self.message.from_user.first_name} (ID: {self.message.from_user.id})'  # Получаем имя и id
+        pattern = f'{self.time_now(self.message.date)}\n' \
+                  f'{status_user} {name_user} отправил команду:\n' \
+                  f'{self.message.text}'  # Итог дата, \n, статус и ID пользователя
+        print(f'Сработал декоратор {Decorators._full_name_user.__name__}\n{pattern}')
+        return func
 
 
 def days_before_inventory(number):

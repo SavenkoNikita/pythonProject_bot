@@ -160,11 +160,11 @@ class Notification:
 
         self.send_sticker_for('status', 'admin', sticker)
 
-    def update_mess(self, name_table_DB, func):
+    def update_mess(self, name_table_DB, text_message):
         """Обновляет сообщение у пользователей."""
 
         try:
-            text_message = func
+            # text_message = func
             data_list = Functions.SQL().get_dict(name_table_DB)
             if len(data_list) != 0:
                 for elem in data_list:

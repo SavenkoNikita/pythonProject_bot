@@ -13,6 +13,7 @@ from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Functions import SQL, can_help, logging_telegram_bot, number_of_events, declension_day, \
     string_to_dict
 from src.Other_functions.Working_with_notifications import Notification
+from src.Other_functions.Functions import Decorators
 
 # from poetry.layouts import src
 
@@ -21,7 +22,6 @@ bot = Data.bot
 answer_bot = 'Бот ответил:\n'
 
 log_file = Data.way_to_log_telegram_bot
-
 
 def full_name_user(message):
     """Принимает на вход сообщение. Возвращает имя пользователя: Администратор/Пользователь + Имя + ID"""
@@ -138,8 +138,13 @@ def register(message):
         bot.send_message(chat_id=message.from_user.id,
                          text='Регистрация выполнена успешно!')
         register_message = f'Добро пожаловать {message.from_user.first_name}!\n\n' \
+                           f'Вот самые популярные функции:\n' \
                            f'• Чтобы подписаться на барахолку нажмите сюда -> /baraholka и следуйте инструкции\n' \
-                           f'• Получить полный список доступных команд -> /help\n'
+                           f'• Для того чтобы быть в курсе о дежурном из IT-отдела в ближайшие выходные, ' \
+                           f'необходимо подписаться на уведомления -> /subscribe\n' \
+                           f'• Узнать количество накопившихся дней отпуска -> /vacation\n\n' \
+                           f'Со списком команд можно ознакомиться открыв меню, расположенное слева от ' \
+                           f'поля ввода текста, или получить полный, доступный вам список тут -> /help\n'
         # f'Остался последний шаг. Необходимо пройти верификацию в 1С. ' \
         # f'Для этого нажмите сюда -> /verification.'
         # f'Чтобы узнать, что умеет бот, жми /help.\n' \
@@ -914,24 +919,29 @@ def check_defroster_step_2(message):
 
 @bot.message_handler(commands=['all_sensors'])
 def check_error_sensor(message):
-    if rights_admin(message) is True:  # Проверка на наличие юзера в БД и является ли он админом
-        # Если пользователь не наблюдатель
-        if SQL().check_status_DB(message.from_user.id, 'observer_all_sensor', 'yes') is False:
-            answer_message = 'На данный момент вы не отслеживаете неисправные датчики. Хотите начать?'
-        else:
-            answer_message = 'На данный момент вы отслеживаете неисправные датчики. Прекратить отслеживать?'
-        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        buttons = ['Да', 'Отмена']
-        keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
-        bot.register_next_step_handler(message, check_error_sensor_step_2)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
+    # if rights_admin(message) is True:  # Проверка на наличие юзера в БД и является ли он админом
+    #     Если пользователь не наблюдатель
+    if SQL().check_status_DB(message.from_user.id, 'observer_all_sensor', 'yes') is False:
+        answer_message = 'Инструмент позволяет отслеживать неисправные термодатчики. Вам придёт автообновляемое ' \
+                         'сообщение со списком. А так же будут поступать сообщения как только обнаружится ' \
+                         'неисправность. На данный момент вы не подписаны на уведомления. Хотите начать?\n' \
+                         '*** выберите действие ниже ***'
     else:
-        answer_message = existence(message)
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_message = 'На данный момент вы подписаны на уведомления о неисправных датчиках. ' \
+                         'Прекратить отслеживать?\n' \
+                         '*** выберите действие ниже ***'
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    buttons = ['Да', 'Отмена']
+    keyboard.add(*buttons)
+    types_message(message)
+    bot.reply_to(message, answer_message, reply_markup=keyboard)
+    bot.register_next_step_handler(message, check_error_sensor_step_2)  # Регистрация следующего действия
+    print(f'{answer_bot}{answer_message}\n')
+    # else:
+    #     answer_message = existence(message)
+    #     types_message(message)
+    #     bot.reply_to(message, answer_message)
+    #     print(f'{answer_bot}{answer_message}\n')
 
 
 def check_error_sensor_step_2(message):
@@ -1541,6 +1551,11 @@ if __name__ == '__main__':
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             print(text_message)
             bot.polling(none_stop=True)
+            # bot.polling()
+        except KeyboardInterrupt:
+            print('job stop with keyboard')
+            bot.stop_polling()
+            # bot.stop_bot()
         except requests.exceptions.ReadTimeout:
             time.sleep(3)
             text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \

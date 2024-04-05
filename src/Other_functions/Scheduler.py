@@ -40,8 +40,11 @@ def check_sensors():
                                                           TrackingSensor().check_all())
     Working_with_notifications.Notification().update_mess('tracking_sensor_defroster',
                                                           TrackingSensor().check_defroster())
-    Test_2.test()
     src.Other_functions.Functions.SQL().get_list_faulty_sensors()
+
+
+def check_bird():
+    Test_2.test()
 
 
 def check_event(sheet_name):
@@ -79,7 +82,7 @@ schedule.every().day.at('15:00').do(check_dej)
 schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
 
 # Присылает случайное имя кто идёт в цех
-schedule.every().day.at('07:01').do(Functions.random_name)
+# schedule.every().day.at('07:01').do(Functions.random_name)
 
 # Присылает админам топ самых жадных барахольщиков
 schedule.every().day.at('07:02').do(check_top_byers)
@@ -107,6 +110,9 @@ schedule.every(1).minutes.do(update_the_reservation_status_of_lots)
 
 # Присылает топ чарт лидеров по кол-ву запросов к боту
 schedule.every().day.at('00:01').do(top_statistic)
+
+# Мониторинг пользователей
+schedule.every(10).seconds.do(check_bird)
 
 # schedule.every().day.at('00:01').do(update_lots)
 # schedule.every(1).minutes.do(update_lots)
