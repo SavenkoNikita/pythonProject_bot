@@ -47,15 +47,15 @@ def check_bird():
     Test_2.test()
 
 
-def check_event(sheet_name):
+def check_event(sheet_name, silent=False):
     text_log_info = f'Сработала функция check_event()'
     logging_scheduler('info', text_log_info)
-    Working_with_a_file(sheet_name).check_event_today()
+    Working_with_a_file(sheet_name).check_event_today(silent)
 
 
 def top_statistic():
     text_top_user = Functions.SQL().top_chart()
-    bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_top_user)
+    bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_top_user, disable_notification=True)
 
 
 def update_the_reservation_status_of_lots():
@@ -63,10 +63,10 @@ def update_the_reservation_status_of_lots():
     Functions.SQL().schedule_cancel_lot()
 
 
-def check_top_byers():
+def check_top_byers(silent=False):
     if datetime.date.today().day == 1:  # Если сегодня 1-е число месяца
         top = Functions.SQL().create_string_top_byers_all_time()
-        Working_with_notifications.Notification().send_notification_to_administrators(top)
+        Working_with_notifications.Notification().send_notification_to_administrators(top, silent)
         print(top)
 
 
@@ -79,13 +79,13 @@ def the_most_active_user():
 schedule.every().day.at('15:00').do(check_dej)
 
 # Если инвент вот-вот начнётся, придёт уведомление
-schedule.every().day.at('07:00').do(check_event, 'Инвентаризация')
+schedule.every().day.at('07:00').do(check_event, 'Инвентаризация', silent=True)
 
 # Присылает случайное имя кто идёт в цех
 # schedule.every().day.at('07:01').do(Functions.random_name)
 
 # Присылает админам топ самых жадных барахольщиков
-schedule.every().day.at('07:02').do(check_top_byers)
+schedule.every().day.at('07:02').do(check_top_byers, silent=True)
 
 # Рассылает всем причастным, топ самых активных пользователей
 schedule.every().day.at('07:03').do(the_most_active_user)

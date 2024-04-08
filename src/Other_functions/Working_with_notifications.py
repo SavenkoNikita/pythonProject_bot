@@ -29,7 +29,7 @@ class Notification:
         self.sqlite_connection = sqlite3.connect(Data.way_sql)
         self.cursor = self.sqlite_connection.cursor()
 
-    def send_a_notification_to_all_users(self, text_message):
+    def send_a_notification_to_all_users(self, text_message, silent=False):
         f"""Принимает {text_message} и отправляет его всем пользователям находящимся в БД."""
 
         try:
@@ -45,7 +45,7 @@ class Notification:
                 username = Functions.SQL().get_user_info(all_user_sql[i])
                 try:
                     print(username)
-                    Data.bot.send_message(all_user_sql[i], text=text_message)
+                    Data.bot.send_message(all_user_sql[i], text=text_message, disable_notification=silent)
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
                 except Data.telebot.apihelper.ApiTelegramException:
                     text_error = 'Пользователь <' + username + '> заблокировал бота!'
@@ -61,9 +61,10 @@ class Notification:
                 self.sqlite_connection.close()
                 print('Соединение с SQLite закрыто')
 
-    def notification_for(self, text_message, column, column_meaning):
+    def notification_for(self, text_message, column, column_meaning, silent=False):
         f"""Уведомления для юзеров с указанными параметрами. Принимает {text_message}, название столбца в БД {column}, 
-        и искомое значение этой колонки {column_meaning}. Например - я хочу уведомить подписчиков о событии, 
+        и искомое значение этой колонки {column_meaning}, если необходимо сделать уведомление тихим, необходимо 
+        значению {silent} присвоить значение True. Например - я хочу уведомить подписчиков о событии, 
         это будет выглядеть так: notification_for('Сообщение, которое хочу передать', 'notification', 'yes')."""
 
         try:
@@ -81,7 +82,7 @@ class Notification:
                 username = Functions.SQL().get_user_info(all_id_sql[i])
                 try:
                     print(username)
-                    Data.bot.send_message(all_id_sql[i], text=text_message)
+                    Data.bot.send_message(all_id_sql[i], text=text_message, disable_notification=silent)
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
                 except Data.telebot.apihelper.ApiTelegramException:
                     text_error = f'Пользователь <{username}> заблокировал бота!'
@@ -97,15 +98,15 @@ class Notification:
                 self.sqlite_connection.close()
                 print("Соединение с SQLite закрыто")
 
-    def send_notification_to_subscribers(self, text_message):
+    def send_notification_to_subscribers(self, text_message, silent=False):
         """Отправляет уведомление подписчикам"""
 
-        self.notification_for(text_message, 'notification', 'yes')
+        self.notification_for(text_message, 'notification', 'yes', silent)
 
-    def send_notification_to_administrators(self, text_message):
+    def send_notification_to_administrators(self, text_message, silent=False):
         """Отправляет уведомление администраторам"""
 
-        self.notification_for(text_message, 'status', 'admin')
+        self.notification_for(text_message, 'status', 'admin', silent)
 
     # def send_notification_to_sub_bar(self, text_message):
     #     """Отправляет уведомление подписчикам барахолки"""
@@ -244,6 +245,7 @@ class Notification:
                 print("Соединение с SQLite закрыто")
 
     def get_last_record_lots(self):
+        """Получение числового значения последнего порядкового номера опубликованного лота"""
         try:
             self.cursor.execute('SELECT ID FROM lots ORDER BY ID DESC LIMIT 1')
             record_id = self.cursor.fetchone()[0]
@@ -252,7 +254,7 @@ class Notification:
             print("Ошибка при работе с SQLite", error)
             Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
-    def notification_for_sub_baraholka(self, text_message):
+    def notification_for_sub_baraholka(self, text_message, silent=False):
         """Инструмент для отправки текстового сообщения подписчикам барахолки"""
 
         try:
@@ -260,7 +262,7 @@ class Notification:
             records = self.cursor.fetchall()
             for ids in records:
                 ids = ids[0]
-                Data.bot.send_message(chat_id=ids, text=text_message)
+                Data.bot.send_message(chat_id=ids, text=text_message, disable_notification=silent)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))

@@ -234,7 +234,7 @@ class Working_with_a_file:
             logging_file_processing('info', text_message)
             return text_message
 
-    def check_event_today(self):
+    def check_event_today(self, silent=False):
         """Проверяет есть ли сегодня событие. Результат - уведомление соответствующей группе пользователей."""
 
         data_list = self.read_file()
@@ -255,7 +255,7 @@ class Working_with_a_file:
                                 text_log = f'check_event_today(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
-                                Notification().send_a_notification_to_all_users(text_message)
+                                Notification().send_a_notification_to_all_users(text_message, silent)
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                             elif self.sheet_name == 'Уведомления для подписчиков':
                                 text_message = f'• Уведомление для подписчиков •\n\n' \
@@ -263,7 +263,7 @@ class Working_with_a_file:
                                 text_log = f'check_event_today(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
-                                Notification().send_notification_to_subscribers(text_message)
+                                Notification().send_notification_to_subscribers(text_message, silent)
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                             elif self.sheet_name == 'Уведомления для админов':
                                 text_message = f'• Уведомление для администраторов •\n\n' \
@@ -271,7 +271,7 @@ class Working_with_a_file:
                                 text_log = f'check_event_today(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
-                                Notification().send_notification_to_administrators(text_message)
+                                Notification().send_notification_to_administrators(text_message, silent)
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                             elif self.sheet_name == 'Уведомления для барахолки':
                                 text_message = f'• Уведомление для подписчиков барахолки •\n\n' \
@@ -279,7 +279,7 @@ class Working_with_a_file:
                                 text_log = f'check_event_today(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
-                                Notification().notification_for_sub_baraholka(text_message)
+                                Notification().notification_for_sub_baraholka(text_message, silent)
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                         elif 0 <= self.difference_date(date) <= 2:
                             if self.sheet_name == 'Инвентаризация':
@@ -288,7 +288,7 @@ class Working_with_a_file:
                                 text_log = f'check_event_today(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
-                                Notification().send_notification_to_administrators(text_message)
+                                Notification().send_notification_to_administrators(text_message, silent)
                                 # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
 
                         time.sleep(5)
