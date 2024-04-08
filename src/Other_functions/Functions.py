@@ -15,7 +15,7 @@ import Data
 #
 # from Other_functions.Working_with_notifications import Notification
 # from  import Notification
-import src.Other_functions.Functions
+# import src.Other_functions.Functions
 from src.Other_functions import Working_with_notifications, Exchange_with_yougile
 
 
@@ -109,32 +109,31 @@ def can_help(user_id):
     return end_text
 
 
-def random_name():
-    """Присылает уведомление кто сегодня закрывает сигналы"""
-    if datetime.datetime.today().isoweekday() <= 5:
-        list_name = ['Паша', 'Дима', 'Никита']
-        rand_name = random.choice(list_name)
+def name_hero():
+    """Присылает уведомление кто на этой неделе закрывает сигналы"""
+    if datetime.datetime.today().isoweekday() <= 1:
+        from src.Other_functions import File_processing
+        name = File_processing.Working_with_a_file('Дежурный').read_file()[0][2]  # Имя ближайшего дежурного
 
         phrase_list = [
-            f'Случайным образом определено, что в цеху сегодня работает {rand_name}',
-            f'Монетка подброшена. {rand_name} сегодня выполняет сигналы!',
-            f'Беспощадный рандом определил, что сегодня {rand_name} занимается сигналами',
-            f'Кручу-верчу сегодня {rand_name} главный по сигналам!',
-            f'Сегодня {rand_name} повелитель сигналов',
-            f'Сегодня только {rand_name} нажимает на кнопку "принять сигнал"!',
-            f'Вжух, и сигналами сегодня занимается {rand_name}',
-            f'Если бы на Ремите был конкурс на лучшего супер героя, то победил бы {rand_name} как '
+            f'Случайным образом определено, что в цеху на этой неделе работает {name}!',
+            f'Монетка подброшена. {name} на этой неделе выполняет сигналы!',
+            f'Беспощадный рандом определил, что на этой неделе {name} занимается сигналами!',
+            f'Кручу-верчу на этой неделе {name} главный по сигналам!',
+            f'На этой неделе {name} повелитель сигналов!',
+            f'На этой неделе только {name} нажимает на кнопку "Принять сигнал"!',
+            f'Вжух, и сигналами на этой неделе занимается {name}!',
+            f'Если бы на Ремите был конкурс на лучшего супер-героя, то победил бы {name} как '
             f'лучший человек-сигнал!',
-            f'Сегодня лучший системный администратор {rand_name} спасает завод от нерешённых сигналов',
-            f'Говорят, что за каждый сигнал будут давать премию! '
-            f'{rand_name} рубанёт сегодня бабла! Но это не точно...',
-            f'Хочешь изменить мир? Начни с завода! {rand_name} сегодня твой день! Сделай это!',
-            f'Кому сегодня не фартануло тот {rand_name}. Сигналы сегодня на тебе!'
+            f'На этой неделе лучший системный администратор {name} спасает завод от нерешённых сигналов!',
+            f'Хочешь изменить мир? Начни с Ремита! {name} на этой неделе всё держится на тебе! Сделай это!',
+            f'Кому на этой неделе не фартануло тот {name}. Сигналы на тебе!'
         ]
+
         rand_phrase = random.choice(phrase_list)
 
-        for i in list_name:
-            Data.bot.send_message(chat_id=Data.list_admins.get(i), text=rand_phrase)
+        for key, value in Data.list_admins.items():
+            Data.bot.send_message(chat_id=value, text=rand_phrase)
 
 
 class SQL:

@@ -8,7 +8,7 @@ import telebot
 import Data
 import src.Other_functions.Working_with_notifications
 from src.Exchange_with_ERP.Exchange_with_ERP import Exchange_with_ERP
-from src.Other_functions import Working_with_notifications
+from src.Other_functions import Working_with_notifications, File_processing
 from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Functions import SQL, can_help, logging_telegram_bot, number_of_events, declension_day, \
     string_to_dict
@@ -231,14 +231,15 @@ def invent(message):
 
 @bot.message_handler(commands=['random'])
 def random_name(message):
-    """Получить случайное имя из сисадминов"""
+    """Получить имя дежурного на этой неделе из сисадминов"""
 
     if rights_admin(message) is True:
-        list_name = ['Паша', 'Дима', 'Никита']  # Список имён
-        r_name = random.choice(list_name)  # Получение случайного значения из списка
+        # list_name = ['Паша', 'Дима', 'Никита']  # Список имён
+        # r_name = random.choice(list_name)  # Получение случайного значения из списка
+        name_hero = File_processing.Working_with_a_file('Дежурный').read_file()[0][2]  # Имя ближайшего дежурного
         types_message(message)
-        bot.reply_to(message, r_name)  # Отправка сообщения с рандомным именем
-        print(f'{answer_bot}{r_name}\n')
+        bot.reply_to(message, name_hero)
+        print(f'{answer_bot}{name_hero}\n')
     else:
         end_text = rights_admin(message)
         types_message(message)

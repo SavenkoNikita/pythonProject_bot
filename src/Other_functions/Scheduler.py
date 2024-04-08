@@ -82,7 +82,7 @@ schedule.every().day.at('15:00').do(check_dej)
 schedule.every().day.at('07:00').do(check_event, 'Инвентаризация', silent=True)
 
 # Присылает случайное имя кто идёт в цех
-# schedule.every().day.at('07:01').do(Functions.random_name)
+schedule.every().day.at('07:01').do(Functions.name_hero)
 
 # Присылает админам топ самых жадных барахольщиков
 schedule.every().day.at('07:02').do(check_top_byers, silent=True)
