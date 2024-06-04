@@ -1,17 +1,16 @@
 import requests
 from requests.auth import HTTPBasicAuth
-
-import Data
+from src.Body_bot import Secret
 
 
 class Exchange_with_ERP:
     """Позволяет получить некоторые данные из 1С"""
 
     def __init__(self, params):
-        self.request_get = Data.way_erp_get
-        self.request_post = Data.way_erp_post
-        self.login = Data.login_erp
-        self.password = Data.pass_erp
+        self.request_get = Secret.way_erp_get
+        self.request_post = Secret.way_erp_post
+        self.login = Secret.login_erp
+        self.password = Secret.pass_erp
         self.user_agent_val = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                               'Chrome/75.0.3770.142 Safari/537.36 '
         # self.headers = {'Cache-Control': 'private',
@@ -36,13 +35,13 @@ class Exchange_with_ERP:
             # print(self.response.json())
             # if self.response.status_code == 200:
             if self.response.ok:
-                if Data.func_name1 in self.response.json():
+                if Secret.func_name1 in self.response.json():
                     return self.in_out()
-                elif Data.func_name2 in self.response.json():
+                elif Secret.func_name2 in self.response.json():
                     return self.get_count_days()
-                elif Data.func_name3 in self.response.json():
+                elif Secret.func_name3 in self.response.json():
                     return self.verification()
-                elif Data.func_name4 in self.response.json():
+                elif Secret.func_name4 in self.response.json():
                     return self.response.json()
             elif self.response.status_code == 400:
                 json = self.response.json()
@@ -66,7 +65,7 @@ class Exchange_with_ERP:
         Если пользователь не уволен, функция вернёт число, во всех остальных случаях 1С вернёт ошибку"""
 
         json = self.response.json()
-        count_day = int(json[Data.func_name2])
+        count_day = int(json[Secret.func_name2])
 
         return count_day
 
@@ -75,7 +74,7 @@ class Exchange_with_ERP:
         указанным ИНН. Либо возвращает str(ошибку)."""
 
         json = self.response.json()
-        answer_erp = json[Data.func_name3]
+        answer_erp = json[Secret.func_name3]
 
         return answer_erp
 

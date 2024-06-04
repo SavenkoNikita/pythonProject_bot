@@ -8,7 +8,7 @@ import time
 
 import telebot
 
-import Data
+from src.Body_bot import Secret
 
 # from Data import list_command_admin, list_command_user
 # from datetime import datetime, date, timedelta
@@ -23,7 +23,7 @@ def get_key(user_name):
     """Проверяет среди словаря есть ли в нём имя{user_name} и возвращает соответствующий id_telegram"""
 
     # key = 'Имя не найдено или человек не относится к дежурным. Error Other_function.get_key.'
-    for keys, v in Data.user_data.items():
+    for keys, v in Secret.user_data.items():
         for a in v:
             if a == user_name:
                 key = keys
@@ -66,28 +66,28 @@ def logging_sensors(condition, text_log):
     """Записывает логи показаний датчиков. На вход принимает записываемый в файл текст. Возможные варианты записи
     логов - 'debug', 'info', 'warning', 'error', 'critical' """
 
-    logging_event(Data.way_to_log_sensors, condition, text_log)
+    logging_event(Secret.way_to_log_sensors, condition, text_log)
 
 
 def logging_scheduler(condition, text_log):
     """Записывает логи schedule. На вход принимает записываемый в файл текст. Возможные варианты записи логов -
     'debug', 'info', 'warning', 'error', 'critical' """
 
-    logging_event(Data.way_to_log_scheduler, condition, text_log)
+    logging_event(Secret.way_to_log_scheduler, condition, text_log)
 
 
 def logging_telegram_bot(condition, text_log):
     """Записывает логи работы бота. На вход принимает записываемый в файл текст. Возможные варианты записи логов -
     'debug', 'info', 'warning', 'error', 'critical' """
 
-    logging_event(Data.way_to_log_telegram_bot, condition, text_log)
+    logging_event(Secret.way_to_log_telegram_bot, condition, text_log)
 
 
 def logging_file_processing(condition, text_log):
     """Записывает логи работы с файлом. На вход принимает записываемый в файл текст. Возможные варианты записи логов -
     'debug', 'info', 'warning', 'error', 'critical' """
 
-    logging_event(Data.way_to_log_file_processing, condition, text_log)
+    logging_event(Secret.way_to_log_file_processing, condition, text_log)
 
 
 def can_do_it(x):
@@ -103,9 +103,9 @@ def can_help(user_id):
     end_text = f'Вот что я умею:\n'
     check_admin = SQL().check_for_admin(user_id)
     if check_admin is True:  # Если пользователь админ
-        end_text = end_text + can_do_it(Data.list_command_admin)  # Передать полный список доступных команд
+        end_text = end_text + can_do_it(Secret.list_command_admin)  # Передать полный список доступных команд
     else:  # Если пользователь НЕ админ
-        end_text = end_text + can_do_it(Data.list_command_user)  # Передать список команд доступных юзеру
+        end_text = end_text + can_do_it(Secret.list_command_user)  # Передать список команд доступных юзеру
     return end_text
 
 
@@ -132,30 +132,31 @@ def name_hero():
 
         rand_phrase = random.choice(phrase_list)
 
-        for key, value in Data.list_admins.items():
-            Data.bot.send_message(chat_id=value, text=rand_phrase)
+        for key, value in Secret.list_admins.items():
+            Secret.bot.send_message(chat_id=value, text=rand_phrase)
 
 
 class SQL:
     """Проверка, добавление, обновление и удаление данных о пользователях"""
 
     def __init__(self):
-        self.sqlite_connection = sqlite3.connect(Data.way_sql, check_same_thread=False, timeout=10)
+        self.sqlite_connection = sqlite3.connect(Secret.way_sql, check_same_thread=False, timeout=10)
         self.cursor = self.sqlite_connection.cursor()
+        self.current_year = datetime.datetime.now().year
 
     def check_verify_in_ERP(self, user_id):
         """Проверка на то, прошёл ли пользователь верификацию в 1С. Возвращает True или False"""
 
         try:
             if self.check_for_existence(user_id) is True:
-                status_ERP = self.cursor.execute(f'SELECT * FROM users WHERE verify_erp="yes" and user_id={user_id}')
+                status_ERP = self.cursor.execute(f'SELECT * FROM users WHERE verify_erp="yes" and user_id="{user_id}"')
                 if status_ERP.fetchone() is None:  # Если пользователь не верифицирован в 1С
                     return False
                 else:  # Если пользователь верифицирован в 1С
                     return True
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def check_for_existence(self, user_id, table_DB='users'):
         """Проверка на существование пользователя в БД"""
@@ -169,7 +170,7 @@ class SQL:
                 return True
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def check_for_admin(self, user_id):
         """Проверка на то, является ли пользователь админом"""
@@ -217,36 +218,44 @@ class SQL:
             all_user_sql = []
             for row in records:
                 all_user_sql.append(row[1])
-            text_message = f'Присоединился новый пользователь. Нас уже {len(all_user_sql) + 1}!'
-            logging_event(Data.way_to_log_telegram_bot, 'info', str(text_message))
+
+            count_users = len(all_user_sql) + 1
+            list_phrase = [f'Присоединился новый пользователь. Нас уже {count_users}!',
+                           f'Счётчик пользователей нашего бота пополнился на одного. Итого: {count_users}',
+                           f'У нас пополнение! К {count_users - 1} прибавился ещё пользователь',
+                           f'Число {count_users} вам ни о чём не говорит? Подскажу, к нам присоединился ещё один'
+                           f' пользователь!']
+            text_message = random.choice(list_phrase)
+            logging_event(Secret.way_to_log_telegram_bot, 'info', str(text_message))
 
             i = 0
             while i < len(all_user_sql):
                 user_name = SQL().get_user_info(all_user_sql[i])
                 try:
                     print(user_name)
-                    Data.bot.send_message(all_user_sql[i], text=text_message)
+                    Secret.bot.send_message(all_user_sql[i], text=text_message)
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
-                except Data.telebot.apihelper.ApiTelegramException:
+                except Secret.telebot.apihelper.ApiTelegramException:
                     text_error = f'Пользователь <{user_name}> заблокировал бота!'
                     print(text_error)
-                    logging_event(Data.way_to_log_telegram_bot, 'error', str(text_error))
+                    logging_event(Secret.way_to_log_telegram_bot, 'error', str(text_error))
                     self.log_out(all_user_sql[i])  # SQL().log_out(all_user_sql[i])
                 i += 1
-            self.cursor.execute('INSERT INTO users (user_id, user_first_name, user_last_name, username) VALUES (?, ?, '
-                                '?, ?)',
-                                (user_id, first_name, last_name, username))
+            self.cursor.execute(f'INSERT INTO users (user_id, user_first_name, user_last_name, username) '
+                                f'VALUES ("{user_id}", "{first_name}", "{last_name}", "{username}"')
             self.sqlite_connection.commit()
             # self.cursor.close()
             end_text = f'К боту подключился новый пользователь!\n{data_user()}\n'
-            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
+            Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=end_text)
             print(end_text)
         elif self.check_for_existence(user_id) is True:
             # обновление изменений данных о пользователе:
-            sqlite_update_query = f'UPDATE users set user_first_name = ?, user_last_name = ?, username = ? ' \
-                                  f'WHERE user_id = {user_id}'
-            column_values = (first_name, last_name, username)
-            self.cursor.execute(sqlite_update_query, column_values)
+            sqlite_update_query = (f'UPDATE users '
+                                   f'SET user_first_name = "{first_name}", user_last_name = "{last_name}", '
+                                   f'username = "{username}" '
+                                   f'WHERE user_id = "{user_id}"')
+            # column_values = (first_name, last_name, username)
+            self.cursor.execute(sqlite_update_query)
             self.sqlite_connection.commit()
             # self.cursor.close()
             end_text = f'Обновлены данные пользователя\n{data_user()}\n'
@@ -254,7 +263,7 @@ class SQL:
             print(end_text)
         else:
             end_text = 'Пользователь уже есть в базе данных!\n' + data_user() + '\n'
-            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
+            Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=end_text)
             print(end_text)
 
         return end_text
@@ -263,14 +272,16 @@ class SQL:
         """Обновление статуса пользователя в SQL"""
         if self.check_for_existence(user_id) is True:
             try:
-                self.cursor.execute(f"Update users set {column_name} = ? where user_id = ?", (status, user_id))
+                self.cursor.execute(f'UPDATE users '
+                                    f'SET {column_name} = "{status}" '
+                                    f'WHERE user_id = "{user_id}"')
                 # self.cursor.execute(f"Update users set {column_name} = {status} where user_id = {user_id}")
                 self.sqlite_connection.commit()
                 print("Запись успешно обновлена")
                 # self.cursor.close()
             except sqlite3.Error as error:
                 print("Ошибка при работе с SQLite", error)
-                logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+                logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
             # finally:
             #     if self.sqlite_connection:
             #         self.sqlite_connection.close()
@@ -282,14 +293,15 @@ class SQL:
                 try_message = f'Все данные о пользователе <{self.get_user_info(user_id)}> успешно удалены ' \
                               f'из {table_name_DB}! '
                 print(try_message)
-                logging_event(Data.way_to_log_telegram_bot, 'info', try_message)
-                self.cursor.execute(f'DELETE from {table_name_DB} where user_id = ?', (user_id,))
+                logging_event(Secret.way_to_log_telegram_bot, 'info', try_message)
+                self.cursor.execute(f'DELETE from {table_name_DB} '
+                                    f'WHERE user_id = "{user_id}"')
                 self.sqlite_connection.commit()
                 # self.cursor.close()  # Вероятно из-за этой строки появлялась ошибка при регистрации новых
                 # пользователей: Cannot operate on a closed cursor.
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def update_data_user(self, user_id, first_name, last_name, username):
         """Обновить данные о пользователе"""
@@ -300,7 +312,9 @@ class SQL:
         # username = message.from_user.username
         if self.check_for_existence(user_id) is True:
             try:
-                self.cursor.execute('SELECT * FROM users WHERE user_id=?', (user_id,))
+                self.cursor.execute(f'SELECT * '
+                                    f'FROM users '
+                                    f'WHERE user_id = "{user_id}"')
                 records = self.cursor.fetchall()
                 for row in records:
                     user_id_SQL = row[1]
@@ -316,7 +330,7 @@ class SQL:
                 self.cursor.close()
             except sqlite3.Error as error:
                 print("Ошибка при работе с SQLite: ", error)
-                logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+                logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
             # finally:
             #     if self.sqlite_connection:
             #         self.sqlite_connection.close()
@@ -324,7 +338,9 @@ class SQL:
     def get_user_info(self, user_id, table_name='users', column_name='user_id'):
         """Получить данные о пользователе"""
         try:
-            self.cursor.execute(f"select * from {table_name} where {column_name} = ?", (user_id,))
+            self.cursor.execute(f'SELECT * '
+                                f'FROM {table_name} '
+                                f'WHERE {column_name} = "{user_id}"')
             records = self.cursor.fetchall()
             for row in records:
                 if row[4] is not None:  # Если в SQL есть запись о username
@@ -335,7 +351,7 @@ class SQL:
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         # finally:
         #     if self.sqlite_connection:
         #         self.sqlite_connection.close()
@@ -343,7 +359,9 @@ class SQL:
     def get_a_user_sticker_from_the_database(self, user_id):
         """Получить стикер пользователя"""
         try:
-            request = f'''SELECT sticker FROM users WHERE user_id = "{user_id}"'''
+            request = (f'SELECT sticker '
+                       f'FROM users '
+                       f'WHERE user_id = "{user_id}"')
             self.cursor.execute(request)
             sticker = self.cursor.fetchone()[0]
             if sticker is not None:
@@ -352,15 +370,16 @@ class SQL:
                 return None
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def get_list_users(self):
         """Получить список всех пользователей"""
         try:
-            sql_select_query = """select * from users"""
+            sql_select_query = ('SELECT * '
+                                'FROM users')
             self.cursor.execute(sql_select_query)
             records = self.cursor.fetchall()
             count_records = 'Общее количество пользователей: ' + str(len(records)) + '\n\n'
@@ -376,7 +395,7 @@ class SQL:
             return full_list
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         # finally:
         #     if self.sqlite_connection:
         #         self.sqlite_connection.close()
@@ -393,8 +412,10 @@ class SQL:
         f"""Проверяет у конкретного {user_id} соответствует ли {status} в колонке {column_name}."""
 
         try:
-            request = f'select * from {table_DB} where user_id = ? and {column_name} = ?'
-            self.cursor.execute(request, (user_id, status))
+            request = (f'SELECT * '
+                       f'FROM {table_DB} '
+                       f'WHERE user_id = "{user_id}" and {column_name} = "{status}"')
+            self.cursor.execute(request)
             user = self.cursor.fetchone()
             if user is not None:
                 return True
@@ -402,14 +423,16 @@ class SQL:
                 return False
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def create_list_users(self, column_name_DB, column_meaning, name_table_DB='users'):
         """Формирует список пользователей с подходящими параметрами. Например, список id_user которые подписаны на
         уведомления. На вход принимает имя колонки из БД и значение ячейки. Результат list[user_id]."""
 
         try:
-            info = self.cursor.execute(f'SELECT * FROM {name_table_DB} WHERE {column_name_DB}=?', (column_meaning,))
+            info = self.cursor.execute(f'SELECT * '
+                                       f'FROM {name_table_DB} '
+                                       f'WHERE {column_name_DB} = "{column_meaning}"')
             records = self.cursor.fetchall()
 
             list_users_id = []
@@ -424,7 +447,7 @@ class SQL:
                 return list_users_id
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -433,8 +456,10 @@ class SQL:
         """Проверяет есть ли message_id в tracking_sensor_defroster и если есть возвращает его"""
 
         try:
-            request = f'select * from tracking_sensor_defroster where user_id = ?'
-            self.cursor.execute(request, (user_id,))
+            request = (f'SELECT * '
+                       f'FROM tracking_sensor_defroster '
+                       f'WHERE user_id = "{user_id}"')
+            self.cursor.execute(request)
             row = self.cursor.fetchone()
             if row is not None:
                 return row[1]
@@ -442,7 +467,7 @@ class SQL:
                 return None
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -453,17 +478,17 @@ class SQL:
         try:
             if self.check_status_DB(user_id, column_name, status) is True:
                 if self.check_for_existence(user_id, name_table_DB) is False:
-                    self.cursor.execute(f'INSERT INTO {name_table_DB} (user_id, message_id) VALUES (?, ?)',
-                                        (user_id, None))
+                    self.cursor.execute(f'INSERT INTO {name_table_DB} (user_id, message_id) '
+                                        f'VALUES ("{user_id}", "None")')
                     self.sqlite_connection.commit()
                     self.cursor.close()
                     print(f'Пользователь {user_id} успешно добавлен в таблицу {name_table_DB}')
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def update_mess_id_by_table(self, user_id, message_id, table_name_DB, name_column_in_table_users):
         f"""В таблице {table_name_DB} обновляет пользователю {user_id} значение {message_id}"""
@@ -472,40 +497,44 @@ class SQL:
             if self.check_status_DB(user_id, name_column_in_table_users, 'yes') is True:
                 if self.check_for_existence(user_id, table_name_DB) is True:
                     # обновление изменений данных о сообщении:
-                    sqlite_update_query = f'UPDATE {table_name_DB} set message_id={message_id} ' \
-                                          f'WHERE user_id={user_id}'
+                    sqlite_update_query = (f'UPDATE {table_name_DB} '
+                                           f'SET message_id="{message_id}" '
+                                           f'WHERE user_id="{user_id}"')
                     self.cursor.execute(sqlite_update_query)
                     self.sqlite_connection.commit()
                     self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def get_dict(self, table_name_DB):
         """Получить список user_id и message_id"""
 
         try:
-            request = f'select * from {table_name_DB}'
+            request = (f'SELECT * '
+                       f'FROM {table_name_DB}')
             self.cursor.execute(request)
             row = self.cursor.fetchall()
             return row
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def talk(self, text_message):
         """Ищет в БД ответ на вопрос. Принимает текст сообщения. Если есть ответ, возвращает его,
         а если нет, возвращает None"""
 
         try:
-            request = f'select * from talk where question = ?'
-            self.cursor.execute(request, (text_message,))
+            request = (f'SELECT * '
+                       f'FROM talk '
+                       f'WHERE question = "{text_message}"')
+            self.cursor.execute(request)
             row = self.cursor.fetchone()
             if row is not None:
                 return row[1]
@@ -514,7 +543,7 @@ class SQL:
                 return None
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -523,29 +552,31 @@ class SQL:
         """Если вопрос отсутствует в БД, добавляет его."""
 
         try:
-            self.cursor.execute(f'INSERT INTO talk (question, answer) VALUES (?, ?)',
-                                (text_message, None))
+            self.cursor.execute(f'INSERT INTO talk (question, answer) '
+                                f'VALUES ("{text_message}", "None")')
             self.sqlite_connection.commit()
             self.cursor.close()
             print(f'Запись {text_message} успешно добавлена в таблицу talk')
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def update_answer_speak_DB(self, question, answer):
         """"""
 
         try:
-            sqlite_update_query = f'UPDATE talk set answer=? WHERE question=?'
-            self.cursor.execute(sqlite_update_query, (answer, question,))
+            sqlite_update_query = (f'UPDATE talk '
+                                   f'SET answer = "{answer}" '
+                                   f'WHERE question = "{question}"')
+            self.cursor.execute(sqlite_update_query)
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -554,7 +585,8 @@ class SQL:
         """Считает кол-во вопросов без ответа. Результат - число."""
 
         try:
-            self.cursor.execute('select * from talk')
+            self.cursor.execute('SELECT * '
+                                'FROM talk')
             row = self.cursor.fetchall()
             for rows in row:
                 # print(rows[1])
@@ -565,7 +597,7 @@ class SQL:
             return count
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -574,7 +606,8 @@ class SQL:
         """Находит первый вопрос без ответа. Результат - текст вопроса."""
 
         try:
-            self.cursor.execute('select * from talk')
+            self.cursor.execute('SELECT * '
+                                'FROM talk')
             row = self.cursor.fetchall()
             for rows in row:
                 if rows[0] is not None:
@@ -587,7 +620,7 @@ class SQL:
 
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -598,13 +631,14 @@ class SQL:
         устанавливает в колонке {set_name_column} значение {set_value_column}"""
 
         try:
-            sqlite_update_query = f'UPDATE {name_table} set {set_name_column}=?'  # WHERE {where_name_column}=?'
-            self.cursor.execute(sqlite_update_query, (set_value_column,))  # , where_value_column,))
+            sqlite_update_query = (f'UPDATE {name_table} '
+                                   f'SET {set_name_column} = "{set_value_column}"')  # WHERE {where_name_column}=?'
+            self.cursor.execute(sqlite_update_query)  # , where_value_column,))
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -613,27 +647,27 @@ class SQL:
         """"""
 
         try:
-            self.cursor.execute(f'SELECT * FROM {name_table}')
+            self.cursor.execute(f'SELECT * '
+                                f'FROM {name_table}')
             records = self.cursor.fetchall()
             self.cursor.close()
             return records
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite: ", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     #  Работа с тестированием сотрудников
     def insert_data(self, user_id, number_test, id_question):
         """Заполняет таблицу employee_testing(user_id, number_test, id_question) данными тестирования."""
 
         try:
-            data = (user_id, number_test, id_question)
-            self.cursor.execute(f'INSERT INTO employee_testing(user_id, number_test, id_question) '
-                                f'VALUES(?, ?, ?);', data)
+            self.cursor.execute(f'INSERT INTO employee_testing (user_id, number_test, id_question) '
+                                f'VALUES ("{user_id}", "{number_test}", "{id_question}")')
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -643,54 +677,47 @@ class SQL:
         возвращает True, иначе False."""
 
         try:
-            # data = (user_id, number_test, id_question)
-            info = self.cursor.execute(f"select * from employee_testing where "
-                                       f"user_id = ? and "
-                                       f"number_test = ? and "
-                                       f"id_question = ?", (user_id, number_test, id_question,))
+            info = self.cursor.execute(f'SELECT * '
+                                       f'FROM employee_testing '
+                                       f'WHERE user_id = "{user_id}" and '
+                                       f'number_test = "{number_test}" and '
+                                       f'id_question = "{id_question}"')
             if info.fetchone() is None:  # Если записи нет
                 return False
             else:  # Если запись есть
                 return True
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def update_data_poll(self, name_column, set_value, user_id, number_test, id_question):
         """Заполняет таблицу employee_testing(id_answer, id_poll, id_poll_answer) данными тестирования."""
 
         try:
-            # data = ()
             self.cursor.execute(f'UPDATE employee_testing '
-                                f'SET {name_column} = ? '
-                                f'WHERE user_id = ? and number_test = ? and id_question = ?',
-                                (set_value, user_id, number_test, id_question,))
+                                f'SET {name_column} = "{set_value}" '
+                                f'WHERE user_id = "{user_id}" and '
+                                f'number_test = "{number_test}" and '
+                                f'id_question = "{id_question}"')
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def update_data_poll_option_ids(self, name_column, set_value, user_id, poll_id):
         """Заполняет таблицу employee_testing("""
 
         try:
-            # data = ()
             self.cursor.execute(f'UPDATE employee_testing '
-                                f'SET {name_column} = ? '
-                                f'WHERE user_id = ? and id_poll = ?',
-                                (set_value, user_id, poll_id,))
+                                f'SET {name_column} = "{set_value}" '
+                                f'WHERE user_id = "{user_id}" and '
+                                f'id_poll = "{poll_id}"')
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
         finally:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
@@ -709,16 +736,15 @@ class SQL:
             return data
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def create_data_poll(self, user_id, test_code):
         """"""
 
         try:
-            request = f'SELECT * FROM employee_testing WHERE user_id="{user_id}" and number_test = "{test_code}"'
+            request = (f'SELECT * '
+                       f'FROM employee_testing '
+                       f'WHERE user_id = "{user_id}" and number_test = "{test_code}"')
             self.cursor.execute(request)
             records = self.cursor.fetchall()
 
@@ -734,10 +760,7 @@ class SQL:
             return data_answers
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def get_message_poll_id(self, user_id, test_number):
         """Получить список со всеми id сообщений в рамках теста для пользователя для дальнейшего их удаления из БД."""
@@ -756,10 +779,7 @@ class SQL:
             return total_list
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     ###
 
@@ -771,40 +791,43 @@ class SQL:
         try:
             status = self.cursor.execute(f'SELECT * '
                                          f'FROM sensors '
-                                         f'WHERE id_sensor="{id_sensor}" AND ip_host="{ip_host}"')
+                                         f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
             if status.fetchone() is None:  # Если датчика нет в БД
                 # print(f'Датчика "{name_sensor}" нет в таблице')
                 data = (id_sensor, name_sensor, ip_host, name_host, online, last_value, last_update)
                 self.cursor.execute(f'INSERT INTO sensors(id_sensor, name_sensor, ip_host, name_host, online, '
-                                    f'last_value, last_update) VALUES(?, ?, ?, ?, ?, ?, ?);', data)
+                                    f'last_value, last_update) '
+                                    f'VALUES("{id_sensor}", "{name_sensor}", "{ip_host}", "{name_host}", "{online}", '
+                                    f'"{last_value}", "{last_update}")')
                 self.sqlite_connection.commit()
-                self.cursor.close()
+                # self.cursor.close()
             else:  # Иначе обновляем данные
-                # print(f'Датчик "{name_sensor}" есть в таблице')
-                data2 = ('True', last_value, last_update, name_sensor, id_sensor, ip_host)
                 # 0.5 из-за задвоения get_data()
                 if int(float(last_value)) < int(float(-100)):
-                    sql_update_query = 'UPDATE sensors ' \
-                                       'SET online = ?, last_value = ?, last_update = ?, ' \
-                                       'detect_count = detect_count + 0.5, name_sensor = ? ' \
-                                       'WHERE id_sensor = ? AND ip_host = ?'
+                    sql_update_query = (f'UPDATE sensors '
+                                        f'SET online = "{True}", last_value = "{last_value}", '
+                                        f'last_update = "{last_update}", detect_count = detect_count + 0.5, '
+                                        f'name_sensor = "{name_sensor}" '
+                                        f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
                 else:
-                    sql_update_query = 'UPDATE sensors ' \
-                                       'SET online = ?, last_value = ?, last_update = ?, ' \
-                                       'detect_count = 0, name_sensor = ? ' \
-                                       'WHERE id_sensor = ? AND ip_host = ?'
-                self.cursor.execute(sql_update_query, data2)
+                    sql_update_query = (f'UPDATE sensors '
+                                        f'SET online = "{True}", last_value = "{last_value}", '
+                                        f'last_update = "{last_update}", '
+                                        f'detect_count = 0, name_sensor = "{name_sensor}" '
+                                        f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
+                self.cursor.execute(sql_update_query)
                 self.sqlite_connection.commit()
-                self.cursor.close()
+                # self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_sensors, 'error', str(error))
+            logging_event(Secret.way_to_log_sensors, 'error', str(error))
 
     def host_sensors_error(self, ip_host):
         try:
-            sql_update_query = 'UPDATE sensors SET online = ? WHERE ip_host = ?'
-            data = ('False', ip_host)
-            self.cursor.execute(sql_update_query, data)
+            sql_update_query = (f'UPDATE sensors '
+                                f'SET online = "False" '
+                                f'WHERE ip_host = "{ip_host}"')
+            self.cursor.execute(sql_update_query)
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
@@ -816,25 +839,27 @@ class SQL:
          в колонку activity_counter_today"""
 
         try:
-            if user_id != Data.list_admins.get('Никита'):
-                sql_select_query = f'SELECT activity_counter_today FROM users WHERE user_id = "{user_id}"'
+            if user_id != Secret.list_admins.get('Никита'):
+                sql_select_query = (f'SELECT activity_counter_today '
+                                    f'FROM users '
+                                    f'WHERE user_id = "{user_id}"')
                 self.cursor.execute(sql_select_query)
                 count = self.cursor.fetchone()[0]
                 if count is None:  # Если значение счётчика пустое, заменить на "1"
-                    sql_update_query = f'UPDATE users ' \
-                                       f'SET activity_counter_today = 1 ' \
-                                       f'WHERE user_id = "{user_id}"'
+                    sql_update_query = (f'UPDATE users '
+                                        f'SET activity_counter_today = 1 '
+                                        f'WHERE user_id = "{user_id}"')
                     self.cursor.execute(sql_update_query)
                     self.sqlite_connection.commit()
                 else:  # Иначе прибавить 1
-                    sql_update_query = f'UPDATE users ' \
-                                       f'SET activity_counter_today = activity_counter_today + 1 ' \
-                                       f'WHERE user_id = "{user_id}"'
+                    sql_update_query = (f'UPDATE users '
+                                        f'SET activity_counter_today = activity_counter_today + 1 '
+                                        f'WHERE user_id = "{user_id}"')
                     self.cursor.execute(sql_update_query)
                     self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def recording_statistics(self):
         """Находит всех пользователей в таблице users, у кого активность по запросам за день больше нуля.
@@ -842,19 +867,18 @@ class SQL:
         заполняет колонки today и all_time в таблице statistic."""
 
         try:
-            select_user_id = 'SELECT user_id, activity_counter_today ' \
-                             'FROM users ' \
-                             'WHERE activity_counter_today > 0'
+            select_user_id = ('SELECT user_id, activity_counter_today '
+                              'FROM users '
+                              'WHERE activity_counter_today > 0')
             self.cursor.execute(select_user_id)
             ids_users = self.cursor.fetchall()  # Список id пользователей у которых кол-во запросов больше 0
-            # print(ids_users)
 
             for ids in ids_users:
                 user_id = ids[0]
 
-                select_query = f'SELECT user_id ' \
-                               f'FROM statistic ' \
-                               f'WHERE user_id = {user_id}'
+                select_query = (f'SELECT user_id '
+                                f'FROM statistic '
+                                f'WHERE user_id = "{user_id}"')
                 self.cursor.execute(select_query)
                 ids_users = self.cursor.fetchone()
 
@@ -862,20 +886,19 @@ class SQL:
                 count_today = ids[1]
 
                 if ids_users is None:
-                    insert_query = f'INSERT INTO statistic (user_id, today, month, all_time) ' \
-                                   f'VALUES ({user_id}, {count_today}, {0}, {0})'
+                    insert_query = (f'INSERT INTO statistic (user_id, today, month, all_time) '
+                                    f'VALUES ("{user_id}", "{count_today}", "{0}", "{0}")')
                     self.cursor.execute(insert_query)
                     self.sqlite_connection.commit()
                 else:
-                    update_query = f'UPDATE statistic ' \
-                                   f'SET today = {count_today} ' \
-                                   f'WHERE user_id = {user_id}'
+                    update_query = (f'UPDATE statistic '
+                                    f'SET today = {count_today} '
+                                    f'WHERE user_id = "{user_id}"')
                     self.cursor.execute(update_query)
                     self.sqlite_connection.commit()
-            # self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def calculating_statistics(self):
         """Подсчитывает активность пользователей. Если сегодня тот же месяц, что вчера, количество запросов за день
@@ -884,8 +907,9 @@ class SQL:
         try:
             current_month = datetime.date.today().month  # Текущий месяц
             yesterday_month = datetime.date.today() - datetime.timedelta(days=1)  # Вчерашний месяц
-            if current_month == yesterday_month.month:  # Если сегодня тот же месяц что вчера
-                select_query = f'SELECT * FROM statistic'  # Получаем все строки в таблице statistic
+            if current_month == yesterday_month.month:  # Если сегодня тот же месяц, что вчера
+                select_query = (f'SELECT * '
+                                f'FROM statistic')  # Получаем все строки в таблице statistic
                 self.cursor.execute(select_query)
                 count_today = self.cursor.fetchall()
                 # print(count_today)
@@ -897,9 +921,9 @@ class SQL:
                     count_request_month = elem[2] + count_request_day  # Количество запросов за месяц
                     count_request_all_time = elem[3] + count_request_day  # Количество запросов за всё время
 
-                    update_count_month = f'UPDATE statistic ' \
-                                         f'SET month = {count_request_month}, all_time = {count_request_all_time} ' \
-                                         f'WHERE user_id = {user_id}'
+                    update_count_month = (f'UPDATE statistic '
+                                          f'SET month = "{count_request_month}", all_time = "{count_request_all_time}" '
+                                          f'WHERE user_id = "{user_id}"')
                     # print(update_count_month)
                     self.cursor.execute(update_count_month)
                     self.sqlite_connection.commit()
@@ -910,14 +934,14 @@ class SQL:
                 count_today = self.cursor.fetchall()
                 for elem in count_today:
                     user_id = elem[0]
-                    update_count_month = f'UPDATE statistic ' \
-                                         f'SET month = 0 ' \
-                                         f'WHERE user_id = {user_id}'
+                    update_count_month = (f'UPDATE statistic '
+                                          f'SET month = 0 '
+                                          f'WHERE user_id = "{user_id}"')
                     self.cursor.execute(update_count_month)
                     self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def reset_count_request(self):
         """Обнуляет счетчик ежедневной активности пользователей"""
@@ -930,12 +954,12 @@ class SQL:
             count_today = self.cursor.fetchall()
             for row in count_today:
                 user_id = row[0]
-                reset_count_today_users = f'UPDATE users ' \
-                                          f'SET activity_counter_today = 0 ' \
-                                          f'WHERE user_id = {user_id}'
-                reset_count_today_statistic = f'UPDATE statistic ' \
-                                              f'SET today = 0 ' \
-                                              f'WHERE user_id = {user_id}'
+                reset_count_today_users = (f'UPDATE users '
+                                           f'SET activity_counter_today = 0 '
+                                           f'WHERE user_id = "{user_id}"')
+                reset_count_today_statistic = (f'UPDATE statistic '
+                                               f'SET today = 0 '
+                                               f'WHERE user_id = "{user_id}"')
                 self.cursor.execute(reset_count_today_users)
                 self.sqlite_connection.commit()
                 self.cursor.execute(reset_count_today_statistic)
@@ -943,7 +967,7 @@ class SQL:
             # self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def top_chart(self):
         """Достаёт из таблицы statistic самых активных пользователей. Возвращает текст с именами этих пользователей и
@@ -1027,7 +1051,7 @@ class SQL:
             return end_text
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def calculating_the_average_number_of_active_users(self):
         """Записывает в БД дату и кол-во пользователей использовавших бота за сегодня."""
@@ -1041,18 +1065,18 @@ class SQL:
             ids_users = self.cursor.fetchall()
             count = len(ids_users)
 
-            insert_query = f'INSERT INTO user_activity_counter (date, count) ' \
-                           f'VALUES ("{yesterday}", {count})'
+            insert_query = (f'INSERT INTO user_activity_counter (date, count) '
+                            f'VALUES ("{yesterday}", "{count}")')
             self.cursor.execute(insert_query)
             self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def average_values_active_users(self):
         try:
-            select_query = 'SELECT count ' \
-                           'FROM user_activity_counter'
+            select_query = ('SELECT count '
+                            'FROM user_activity_counter')
             self.cursor.execute(select_query)
             data = self.cursor.fetchall()
 
@@ -1071,11 +1095,13 @@ class SQL:
             return average
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def check_status_bar(self, user_id):
         try:
-            select_user_id = f'SELECT sub_bar FROM users WHERE user_id = {user_id}'
+            select_user_id = (f'SELECT sub_bar '
+                              f'FROM users '
+                              f'WHERE user_id = "{user_id}"')
             self.cursor.execute(select_user_id)
             status_user = self.cursor.fetchone()[0]
             if status_user == 'yes':
@@ -1086,22 +1112,26 @@ class SQL:
                 return 'error'
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def change_status_bar(self, user_id):
         try:
-            select_user_id = f'SELECT sub_bar FROM users WHERE user_id = {user_id}'
+            select_user_id = (f'SELECT sub_bar '
+                              f'FROM users '
+                              f'WHERE user_id = "{user_id}"')
             self.cursor.execute(select_user_id)
             user = self.cursor.fetchone()[0]
             # print(user)
 
             if user == 'no':
-                update_query = f'UPDATE users SET sub_bar = "yes" WHERE user_id = "{user_id}"'
+                update_query = (f'UPDATE users '
+                                f'SET sub_bar = "yes" '
+                                f'WHERE user_id = "{user_id}"')
                 self.cursor.execute(update_query)
                 self.sqlite_connection.commit()
                 # print('status no change to yes')
-                text = 'Теперь вы подписаны на обновления барахолки. Прямо сейчас Вам станут доступны лоты, ' \
-                       'которые еще не забрали.'
+                text = ('Теперь вы подписаны на обновления барахолки. Если есть активные лоты, они прямо сейчас '
+                        'станут Вам доступны.')
                 count_subs_users = self.count_users()
                 random_notification = [
                     f'На обновления барахолки подписался ещё один пользователь. Теперь нас {count_subs_users}!',
@@ -1115,7 +1145,9 @@ class SQL:
                 self.send_lots_new_sub_bar(user_id)
                 return text
             elif user == 'yes':
-                update_query = f'UPDATE users SET sub_bar = "no" WHERE user_id = "{user_id}"'
+                update_query = (f'UPDATE users '
+                                f'SET sub_bar = "no" '
+                                f'WHERE user_id = "{user_id}"')
                 self.cursor.execute(update_query)
                 self.sqlite_connection.commit()
                 # print('status True change to False')
@@ -1123,7 +1155,7 @@ class SQL:
                 return text
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def record_lot_to_DB(self, name_lot, photo_id, description):
         """Записывает данные о новых лотах"""
@@ -1137,7 +1169,7 @@ class SQL:
             self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def booked_lots(self, number_lot, user_id):
         """Проверяет кол-во забронированных лотов. Если их меньше чем 3, бронирует лот, записывает в БД, обновляет
@@ -1147,14 +1179,16 @@ class SQL:
             count_booked = self.count_booked_lot(user_id)
 
             if count_booked < 3:
-                select_query = f'SELECT booked FROM lots WHERE ID = {number_lot}'
+                select_query = (f'SELECT booked '
+                                f'FROM lots '
+                                f'WHERE ID = "{number_lot}"')
                 self.cursor.execute(select_query)
                 status_booked = self.cursor.fetchone()[0]
                 if status_booked == 'no':
                     date = datetime.datetime.today()
-                    update_query = f'UPDATE lots ' \
-                                   f'SET booked = "yes", booked_by_whom = {user_id}, booking_date = "{date}" ' \
-                                   f'WHERE ID = {number_lot}'
+                    update_query = (f'UPDATE lots '
+                                    f'SET booked = "yes", booked_by_whom = "{user_id}", booking_date = "{date}" '
+                                    f'WHERE ID = "{number_lot}"')
                     self.cursor.execute(update_query)
                     self.sqlite_connection.commit()
                     self.edit_message_lots(number_lot)
@@ -1163,115 +1197,141 @@ class SQL:
                 return 'Вы можете забронировать не более 3 лотов!'
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def count_booked_lot(self, user_id):
         """"""
         try:
-            select_query = f'SELECT ID ' \
-                           f'FROM lots ' \
-                           f'WHERE booked_by_whom = {user_id} and confirm = "no"'
+            select_query = (f'SELECT ID '
+                            f'FROM lots '
+                            f'WHERE booked_by_whom = "{user_id}" and confirm = "no"')
             self.cursor.execute(select_query)
             count_booked = len(self.cursor.fetchall())
             return count_booked
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def edit_message_lots(self, number_lot):
         """"""
         try:
-            select_query = f'SELECT ids_message FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT ids_message '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             dict_user_mess = self.cursor.fetchone()[0]
             dict_user_mess = eval(dict_user_mess)
             # print(dict_user_mess)
             # print(type(dict_user_mess))
 
-            select_query = f'SELECT name FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT name '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             name_lot = self.cursor.fetchone()[0]  # Получаем название лота
 
-            select_query = f'SELECT description FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT description '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             description_lot = self.cursor.fetchone()[0]  # Получаем описание лота
 
-            select_query = f'SELECT booked FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT booked '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             status_lot = self.cursor.fetchone()[0]  # Получаем статус лота
 
-            select_query = f'SELECT booked_by_whom FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT booked_by_whom '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             booked_by_whom = self.cursor.fetchone()[0]  # Получаем user_id пользователя кто забронировал лот
 
-            select_query = f'SELECT booking_date FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT booking_date '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             str_booking_date = self.cursor.fetchone()[0]  # Получаем дату брони
+            date_of_cancel_format = ''
             if str_booking_date != '':
                 booking_date = datetime.datetime.strptime(str_booking_date, '%Y-%m-%d %H:%M:%S.%f')
                 date_of_cancel = booking_date + datetime.timedelta(days=1)
                 date_of_cancel_format = date_of_cancel.strftime("%d.%m.%Y %H:%M:%S")
 
-            select_query = f'SELECT on_the_hands FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT on_the_hands '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             on_the_hands = self.cursor.fetchone()[0]  # Получаем статус лота (на руках он или нет)
 
-            select_query = f'SELECT confirm FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT confirm '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             confirm = self.cursor.fetchone()[0]  # Получаем статус подтверждения выдачи
 
-            select_query = f'SELECT date_of_public FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT date_of_public '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             date_public = self.cursor.fetchone()[0]  # Получаем дату поста
-            date = datetime.datetime.strptime(date_public, "%Y-%m-%d")
-            date = date.date()
-            date_public_format = date.strftime('%d.%m.%Y')
+            # date_public_datetime = datetime.datetime.strptime(date_public, "%Y-%m-%d")
+            date = date_public
+            # date_public_format = date.strftime('%d.%m.%Y')
 
-            select_query = f'SELECT status FROM lots WHERE ID = {number_lot}'
+            select_query = (f'SELECT status '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
             self.cursor.execute(select_query)
             status_active_lot = self.cursor.fetchone()[0]  # Получаем статус активности лота
 
-            ### В этом блоке проверяются посты статус которых "active". Если пост размещён более 30 дней назад, он
-            ### становится неактивным у всех, в БД меняется статус на "cancel" и впредь не попадает под проверку
+            # В этом блоке проверяются посты статус которых "active". Если пост размещён более 30 дней назад, он
+            # становится неактивным у всех, в БД меняется статус на "cancel" и впредь не попадает под проверку
             if status_active_lot == 'active':
                 # date_format = date.strftime('%d.%m.%Y')
                 # print(date_format)
                 date_today = datetime.datetime.now()
-                date_today = date_today.date()
-                date_today_format = date_today.strftime('%d.%m.%Y')
+                date_today_day = date_today.date()
+                date_today_format = date_today_day.strftime('%d.%m.%Y')
 
-                dif_day = date_today - date
+                dif_day = date_today - date_today_day
                 dif_day = dif_day.days
                 # print(dif_day)
                 if dif_day > 30:
-                    update_query = f'UPDATE lots ' \
-                                   f'SET status = "cancel" ' \
-                                   f'WHERE ID = {number_lot}'
+                    update_query = (f'UPDATE lots '
+                                    f'SET status = "cancel" '
+                                    f'WHERE ID = "{number_lot}"')
                     self.cursor.execute(update_query)
                     self.sqlite_connection.commit()
-                    if confirm == 'no':
-                        for user_id, message_id in dict_user_mess.items():
-                            description = f'Лот №{number_lot}\n\n' \
-                                          f'Название: {name_lot}\n\n' \
-                                          f'Описание: {description_lot}\n\n' \
-                                          f'#####\n' \
-                                          f'Пост аннулирован {date_today_format} из-за срока давности\n' \
-                                          f'#####'
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=description)
+            elif status_active_lot == 'cancel':
+                date_today = datetime.datetime.now()
+                date_today_day = date_today.date()
+                date_today_format = date_today_day.strftime('%d.%m.%Y')
 
-                            Data.bot.unpin_chat_message(chat_id=user_id,
-                                                        message_id=message_id)
-            ###
+                for user_id, message_id in dict_user_mess.items():
+                    description = f'Лот №{number_lot}\n\n' \
+                                  f'Название: {name_lot}\n\n' \
+                                  f'Описание: {description_lot}\n\n' \
+                                  f'#####\n' \
+                                  f'Пост аннулирован {date_today_format} из-за срока давности\n' \
+                                  f'#####'
+                    Secret.bot.edit_message_caption(chat_id=user_id,
+                                                    message_id=message_id,
+                                                    caption=description)
+
+                    Secret.bot.unpin_chat_message(chat_id=user_id,
+                                                  message_id=message_id)
+                    # print(f'Лот №{number_lot}: у пользователя {user_id} обновлено сообщение {message_id}')
+                    # continue
 
             if status_lot == 'yes' and on_the_hands == 'no':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
                         if self.check_for_admin(user_id) is True:
-                            select_query = f'SELECT user_first_name, user_last_name ' \
-                                           f'FROM users ' \
-                                           f'WHERE user_id = {booked_by_whom}'
+                            select_query = (f'SELECT user_first_name, user_last_name '
+                                            f'FROM users '
+                                            f'WHERE user_id = "{booked_by_whom}"')
                             self.cursor.execute(select_query)
                             data_of_user = self.cursor.fetchone()  # Получаем данные о пользователе
                             temp_list = []
@@ -1290,9 +1350,9 @@ class SQL:
                                           f'Если до {date_of_cancel_format} его не заберут, ' \
                                           f'бронь аннулируется и вы сможете отложить его для себя.\n' \
                                           f'#####'
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=description)
+                            Secret.bot.edit_message_caption(chat_id=user_id,
+                                                            message_id=message_id,
+                                                            caption=description)
                         else:
                             description = f'Лот №{number_lot}\n\n' \
                                           f'Название: {name_lot}\n\n' \
@@ -1302,9 +1362,9 @@ class SQL:
                                           f'Если до {date_of_cancel_format} его не заберут, ' \
                                           f'бронь аннулируется и вы сможете отложить его для себя.\n' \
                                           f'#####'
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=description)
+                            Secret.bot.edit_message_caption(chat_id=user_id,
+                                                            message_id=message_id,
+                                                            caption=description)
                     else:
                         str_dict_cancel = str({'cancel': number_lot})
                         str_dict_sold = str({'sold': number_lot})
@@ -1316,17 +1376,17 @@ class SQL:
                                                                       callback_data=str_dict_sold)
                         keyboard.add(button, button_2)
 
-                        Data.bot.edit_message_caption(chat_id=user_id,
-                                                      message_id=message_id,
-                                                      caption=f'Лот №{number_lot}\n\n'
-                                                              f'Название: {name_lot}\n\n'
-                                                              f'Описание: {description_lot}\n\n'
-                                                              f'#####\n'
-                                                              f'Этот лот забронирован вами '
-                                                              f'до {date_of_cancel_format}. '
-                                                              f'Если забрать не успеваете, бронь аннулируется!\n'
-                                                              f'#####',
-                                                      reply_markup=keyboard)
+                        Secret.bot.edit_message_caption(chat_id=user_id,
+                                                        message_id=message_id,
+                                                        caption=f'Лот №{number_lot}\n\n'
+                                                                f'Название: {name_lot}\n\n'
+                                                                f'Описание: {description_lot}\n\n'
+                                                                f'#####\n'
+                                                                f'Этот лот забронирован вами '
+                                                                f'до {date_of_cancel_format}. '
+                                                                f'Если забрать не успеваете, бронь аннулируется!\n'
+                                                                f'#####',
+                                                        reply_markup=keyboard)
             elif status_lot == 'yes' and on_the_hands == 'yes':
                 for user_id, message_id in dict_user_mess.items():
                     if user_id != booked_by_whom:
@@ -1346,10 +1406,10 @@ class SQL:
                                           f'#####\n' \
                                           f'Ожидает подтверждения выдачи\n' \
                                           f'#####'
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=description,
-                                                          reply_markup=keyboard)
+                            Secret.bot.edit_message_caption(chat_id=user_id,
+                                                            message_id=message_id,
+                                                            caption=description,
+                                                            reply_markup=keyboard)
                         else:
                             if confirm == 'no':
                                 description = f'Лот №{number_lot}\n\n' \
@@ -1359,9 +1419,9 @@ class SQL:
                                               f'Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
                                               f'лот снова станет доступен. Следите за обновлениями!\n' \
                                               f'#####'
-                                Data.bot.edit_message_caption(chat_id=user_id,
-                                                              message_id=message_id,
-                                                              caption=description)
+                                Secret.bot.edit_message_caption(chat_id=user_id,
+                                                                message_id=message_id,
+                                                                caption=description)
                             else:
                                 description = f'Лот №{number_lot}\n\n' \
                                               f'Название: {name_lot}\n\n' \
@@ -1369,12 +1429,12 @@ class SQL:
                                               f'#####\n' \
                                               f'Лот забрали. Он более недоступен.\n' \
                                               f'#####'
-                                Data.bot.edit_message_caption(chat_id=user_id,
-                                                              message_id=message_id,
-                                                              caption=description)
+                                Secret.bot.edit_message_caption(chat_id=user_id,
+                                                                message_id=message_id,
+                                                                caption=description)
 
-                                Data.bot.unpin_chat_message(chat_id=user_id,
-                                                            message_id=message_id)
+                                Secret.bot.unpin_chat_message(chat_id=user_id,
+                                                              message_id=message_id)
                     else:
                         if confirm == 'no':
                             description = f'Лот №{number_lot}\n\n' \
@@ -1391,9 +1451,9 @@ class SQL:
                                           f'получение нажав кнопку "Лот уже у меня"!' \
                                           f'#####'
 
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=description)
+                            Secret.bot.edit_message_caption(chat_id=user_id,
+                                                            message_id=message_id,
+                                                            caption=description)
                         elif confirm == 'yes':
                             description = f'Лот №{number_lot}\n\n' \
                                           f'Название: {name_lot}\n\n' \
@@ -1402,12 +1462,12 @@ class SQL:
                                           f'Выдача лота подтверждена.\n' \
                                           f'Поздравляем с приобретением!\n' \
                                           f'#####'
-                            Data.bot.edit_message_caption(chat_id=user_id,
-                                                          message_id=message_id,
-                                                          caption=description)
+                            Secret.bot.edit_message_caption(chat_id=user_id,
+                                                            message_id=message_id,
+                                                            caption=description)
 
-                            Data.bot.unpin_chat_message(chat_id=user_id,
-                                                        message_id=message_id)
+                            Secret.bot.unpin_chat_message(chat_id=user_id,
+                                                          message_id=message_id)
             elif status_lot == 'no':
                 # print('status lot no')
                 str_dict_lot = str({'lot': number_lot})
@@ -1416,24 +1476,35 @@ class SQL:
                                                             callback_data=str_dict_lot)
                 keyboard.add(button)
                 for user_id, message_id in dict_user_mess.items():
-                    Data.bot.edit_message_caption(chat_id=user_id,
-                                                  message_id=message_id,
-                                                  caption=f'Лот №{number_lot}\n\n'
-                                                          f'Название: {name_lot}\n\n'
-                                                          f'Описание: {description_lot}\n\n',
-                                                  reply_markup=keyboard)
+                    Secret.bot.edit_message_caption(chat_id=user_id,
+                                                    message_id=message_id,
+                                                    caption=f'Лот №{number_lot}\n\n'
+                                                            f'Название: {name_lot}\n\n'
+                                                            f'Описание: {description_lot}\n\n',
+                                                    reply_markup=keyboard)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        except Data.telebot.apihelper.ApiTelegramException as error:
-            text_error = f'Не удаётся обновить лот {number_lot} у пользователя {user_id}\n' \
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+            pass
+        except Secret.telebot.apihelper.ApiTelegramException as error:
+            text_error = f'Не удаётся обновить лот {number_lot} у пользователя {user_id}. Not message {message_id}\n' \
                          f'{error}\n\n'
-            print(text_error)
+            del dict_user_mess[user_id]
+            update_ids_for_lot = (f'UPDATE lots '
+                                  f'SET ids_message = "{dict_user_mess}"'
+                                  f'WHERE ID = "{number_lot}"')
+            self.cursor.execute(update_ids_for_lot)
+            self.sqlite_connection.commit()
+            self.edit_message_lots(number_lot=number_lot)
+        # finally:
+        #     print('У всех пользователей обновлены лоты')
 
     def get_id_mes_lot(self, id_lot, user_id):
         """"""
         try:
-            select_query = f'SELECT ids_message FROM lots WHERE ID = {id_lot}, booked_by_whom = {user_id}'
+            select_query = (f'SELECT ids_message '
+                            f'FROM lots '
+                            f'WHERE ID = "{id_lot}", booked_by_whom = "{user_id}"')
             self.cursor.execute(select_query)
             dict_ids = self.cursor.fetchone()[0]
             dict_ids = eval(dict_ids)
@@ -1441,61 +1512,63 @@ class SQL:
             return id_message
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def cancel_lot(self, id_lot):
         """"""
         try:
-            update_query = f'UPDATE lots SET booked = "no", booked_by_whom = "", booking_date = "" WHERE ID = {id_lot}'
+            update_query = (f'UPDATE lots '
+                            f'SET booked = "no", booked_by_whom = "", booking_date = "" '
+                            f'WHERE ID = "{id_lot}"')
             self.cursor.execute(update_query)
             self.sqlite_connection.commit()
             self.edit_message_lots(id_lot)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def sold_lot(self, id_lot, user_id):
         """"""
         try:
             today = datetime.datetime.today()
-            update_query = f'UPDATE lots ' \
-                           f'SET on_the_hands = "yes", who_took_it = {user_id}, date_of_issue = "{today}", ' \
-                           f'confirm = "no" ' \
-                           f'WHERE ID = {id_lot}'
+            update_query = (f'UPDATE lots '
+                            f'SET on_the_hands = "yes", who_took_it = "{user_id}", date_of_issue = "{today}", '
+                            f'confirm = "no" '
+                            f'WHERE ID = "{id_lot}"')
             self.cursor.execute(update_query)
             self.sqlite_connection.commit()
             self.edit_message_lots(id_lot)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def confirm_the_issue(self, id_lot):
         """Подтверждение выдачи лота. В БД обновляются данные и у всех пользователей обновляет сообщение."""
 
         try:
-            update_query = f'UPDATE lots ' \
-                           f'SET confirm = "yes" ' \
-                           f'WHERE ID = {id_lot}'
+            update_query = (f'UPDATE lots '
+                            f'SET confirm = "yes" '
+                            f'WHERE ID = "{id_lot}"')
             self.cursor.execute(update_query)
             self.sqlite_connection.commit()
             self.edit_message_lots(id_lot)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def refute_the_issue(self, id_lot):
         """Опровержение того что лот на руках"""
 
         try:
-            update_query = f'UPDATE lots ' \
-                           f'SET on_the_hands = "no", who_took_it = "", date_of_issue = "", confirm = "no" ' \
-                           f'WHERE ID = {id_lot}'
+            update_query = (f'UPDATE lots '
+                            f'SET on_the_hands = "no", who_took_it = "", date_of_issue = "", confirm = "no" '
+                            f'WHERE ID = "{id_lot}"')
             self.cursor.execute(update_query)
             self.sqlite_connection.commit()
             self.edit_message_lots(id_lot)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def schedule_cancel_booking(self):
         """Находит все даты броней в БД и если находит лот у которого истёк срок брони, обнуляет его и меняет текст
@@ -1504,9 +1577,9 @@ class SQL:
         try:
             today = datetime.datetime.today()
 
-            select_query = f'SELECT booking_date, ID ' \
-                           f'FROM lots ' \
-                           f'WHERE on_the_hands = "no"'  #
+            select_query = (f'SELECT booking_date, ID '
+                            f'FROM lots '
+                            f'WHERE on_the_hands = "no"')  #
             self.cursor.execute(select_query)
             list_booking_date = self.cursor.fetchall()  # Список дат забронированных лотов
             for elem in list_booking_date:
@@ -1517,9 +1590,9 @@ class SQL:
                     date_of_cancel = dates + datetime.timedelta(days=1)
                     # print(date_of_cancel)
                     if today > date_of_cancel:
-                        update_query = f'UPDATE lots ' \
-                                       f'SET booked = "no", booked_by_whom = 0, booking_date = "" ' \
-                                       f'WHERE ID = {id_lot}'
+                        update_query = (f'UPDATE lots '
+                                        f'SET booked = "no", booked_by_whom = 0, booking_date = "" '
+                                        f'WHERE ID = "{id_lot}"')
                         self.cursor.execute(update_query)
                         self.sqlite_connection.commit()
 
@@ -1528,7 +1601,7 @@ class SQL:
                               f'Бронь на лот №{id_lot} аннулирована, т.к. истёк срок брони.')
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def schedule_cancel_lot(self):
         """Проверяет дату размещения поста. Если пост висит более 30 дней, лот аннулируется"""
@@ -1537,9 +1610,9 @@ class SQL:
             today = datetime.datetime.today()
             today = today.date()
 
-            select_query = f'SELECT date_of_public, ID ' \
-                           f'FROM lots ' \
-                           f'WHERE status = "active"'
+            select_query = (f'SELECT date_of_public, ID '
+                            f'FROM lots '
+                            f'WHERE status = "active"')
             self.cursor.execute(select_query)
             list_date = self.cursor.fetchall()
             for element in list_date:
@@ -1563,14 +1636,13 @@ class SQL:
                           f'Лот №{id_lot} аннулирован, т.к. истёк срок.')
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def schedule_updating_data_on_lots(self):
         """Актуализирует лоты у всех пользователей отталкиваясь от данных из БД"""
 
         try:
-            select_query = f'SELECT ID ' \
-                           f'FROM lots'
+            select_query = f'SELECT ID FROM lots'
             self.cursor.execute(select_query)
             list_id_lots = self.cursor.fetchall()  # Полный список ID лотов
             for elem in list_id_lots:
@@ -1579,32 +1651,32 @@ class SQL:
                 time.sleep(1)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def count_users(self):
         """Подсчитывает кол-во подписчиков барахолки"""
 
         try:
-            select_query = f'SELECT user_id ' \
-                           f'FROM users ' \
-                           f'WHERE sub_bar = "yes"'
+            select_query = (f'SELECT user_id '
+                            f'FROM users '
+                            f'WHERE sub_bar = "yes"')
             self.cursor.execute(select_query)
             list_booking_date = self.cursor.fetchall()
             count_sub = len(list_booking_date)
             return count_sub
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def test(self):
         select_query = f'SELECT user_id, today FROM statistic'  # Получаем все строки в таблице statistic
         self.cursor.execute(select_query)
         count_today = self.cursor.fetchall()
-        print(count_today)
+        # print(count_today)
         for row in count_today:  # Повторить для каждой строки
             user_id = row[0]
             count_request = row[1]
-            print(f'юзер {user_id} - счётчик {count_request}')
+            # print(f'юзер {user_id} - счётчик {count_request}')
 
     def get_name_attr_class_or_insert_button(self, name_button, value_button):
         print(f'get_or_insert_button: {name_button}, {value_button}')
@@ -1643,9 +1715,9 @@ class SQL:
         """Доставляет новым подписчикам барахолки лоты которые ещё не забрали"""
 
         try:
-            select_query = f'SELECT * ' \
-                           f'FROM lots ' \
-                           f'WHERE confirm = "no"'
+            select_query = (f'SELECT * '
+                            f'FROM lots '
+                            f'WHERE confirm = "no"')
             self.cursor.execute(select_query)
             lots_not_hand = self.cursor.fetchall()
             for lots in lots_not_hand:
@@ -1668,7 +1740,7 @@ class SQL:
                 if user_id not in ids_message.keys():  # Если у пользователя отсутствует лот
                     # print('user not found')
                     if booked == 'no':  # Если лот не забронирован
-                        callback_data = src.Other_functions.Functions.pack_in_callback_data('lot', number_lot)
+                        callback_data = pack_in_callback_data('lot', number_lot)
                         keyboard = telebot.types.InlineKeyboardMarkup()
                         button = telebot.types.InlineKeyboardButton(text='Забронировать лот',
                                                                     callback_data=callback_data)
@@ -1678,13 +1750,13 @@ class SQL:
                                   f'Название: {name_lot}\n\n' \
                                   f'Описание: {description_lot}\n\n'
 
-                        message_id = Data.bot.send_photo(chat_id=user_id,
-                                                         caption=caption,
-                                                         photo=id_photo,
-                                                         reply_markup=keyboard).message_id
+                        message_id = Secret.bot.send_photo(chat_id=user_id,
+                                                           caption=caption,
+                                                           photo=id_photo,
+                                                           reply_markup=keyboard).message_id
 
-                        Data.bot.pin_chat_message(chat_id=user_id,
-                                                  message_id=message_id)  # Закрепляет сообщение у пользователя
+                        Secret.bot.pin_chat_message(chat_id=user_id,
+                                                    message_id=message_id)  # Закрепляет сообщение у пользователя
 
                         ids_message[user_id] = message_id
                     elif booked == 'yes':  # Если лот забронирован
@@ -1695,12 +1767,12 @@ class SQL:
                                           f'### Лот зарезервирован. Бронирование недоступно. ' \
                                           f'Если до {booking_date} его не заберут, ' \
                                           f'бронь аннулируется и вы сможете отложить его для себя. ###'
-                            message_id = Data.bot.send_photo(chat_id=user_id,
-                                                             caption=description,
-                                                             photo=id_photo).message_id
+                            message_id = Secret.bot.send_photo(chat_id=user_id,
+                                                               caption=description,
+                                                               photo=id_photo).message_id
 
-                            Data.bot.pin_chat_message(chat_id=user_id,
-                                                      message_id=message_id)  # Закрепляет сообщение у пользователя
+                            Secret.bot.pin_chat_message(chat_id=user_id,
+                                                        message_id=message_id)  # Закрепляет сообщение у пользователя
 
                             ids_message[user_id] = message_id
                         elif on_the_hands == 'yes':  # Если лот на руках
@@ -1709,18 +1781,18 @@ class SQL:
                                           f'Описание: {description_lot}\n\n' \
                                           f'### Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
                                           f'лот снова станет доступен. Следите за обновлениями! ###'
-                            message_id = Data.bot.send_photo(chat_id=user_id,
-                                                             caption=description,
-                                                             photo=id_photo).message_id
+                            message_id = Secret.bot.send_photo(chat_id=user_id,
+                                                               caption=description,
+                                                               photo=id_photo).message_id
 
-                            Data.bot.pin_chat_message(chat_id=user_id,
-                                                      message_id=message_id)  # Закрепляет сообщение у пользователя
+                            Secret.bot.pin_chat_message(chat_id=user_id,
+                                                        message_id=message_id)  # Закрепляет сообщение у пользователя
 
                             ids_message[user_id] = message_id
 
-                    update_query = f'UPDATE lots ' \
-                                   f'SET ids_message = "{ids_message}" ' \
-                                   f'WHERE ID = {number_lot}'
+                    update_query = (f'UPDATE lots '
+                                    f'SET ids_message = "{ids_message}" '
+                                    f'WHERE ID = "{number_lot}"')
                     self.cursor.execute(update_query)
                     self.sqlite_connection.commit()
                 else:
@@ -1728,14 +1800,14 @@ class SQL:
                     pass
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def check_top_byers(self):
         """Возвращает строку с топ 3 самыми жадными пользователями барахолки"""
 
-        select_query = f'SELECT who_took_it ' \
-                       f'FROM lots ' \
-                       f'WHERE confirm = "yes"'
+        select_query = (f'SELECT who_took_it '
+                        f'FROM lots '
+                        f'WHERE confirm = "yes"')
         self.cursor.execute(select_query)
         list_byers = self.cursor.fetchall()
 
@@ -1766,9 +1838,9 @@ class SQL:
         temp_list_2 = []
 
         for i in sorted_dict.keys():
-            select_query = f'SELECT user_first_name, user_last_name ' \
-                           f'FROM users ' \
-                           f'WHERE user_id = {i}'
+            select_query = (f'SELECT user_first_name, user_last_name '
+                            f'FROM users '
+                            f'WHERE user_id = "{i}"')
             self.cursor.execute(select_query)
             tuple_data_user = self.cursor.fetchall()
 
@@ -1868,20 +1940,19 @@ class SQL:
             while len(list_top) > 3:
                 list_top.pop(-1)
 
-            print(list_top)
+            # print(list_top)
 
             return list_top
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def get_name_user(self, user_id):  # noqa
-        select_name = f'SELECT user_first_name, user_last_name ' \
-                      f'FROM users ' \
-                      f'WHERE user_id = "{user_id}"'
+        select_name = (f'SELECT user_first_name, user_last_name '
+                       f'FROM users '
+                       f'WHERE user_id = "{user_id}"')
         self.cursor.execute(select_name)
         name_top_user = self.cursor.fetchone()
-        # print(name_top_user)
         full_name = []
         for elem in name_top_user:
             if elem is not None:
@@ -1897,44 +1968,229 @@ class SQL:
         """Проверяет в БД таблицу sensors, колонку detect_count.
         Если счётчик равен 60, присылает уведомление разработчику."""
         try:
-            select_query = f'SELECT name_sensor ' \
-                           f'FROM sensors ' \
-                           f'WHERE detect_count = 60'
+            # print(f'Старт {self.get_list_faulty_sensors.__name__}')
+            select_query = (f'SELECT name_sensor '
+                            f'FROM sensors '
+                            f'WHERE detect_count = 60')
             self.cursor.execute(select_query)
-            list_sensors = self.cursor.fetchall()
+            list_sensors = self.cursor.fetchall()  # Список совпадений
 
             detected_list = []
             for elem in list_sensors:
                 detected_list.append(elem[0])
+
             # print(detected_list)
 
-            if len(detected_list) > 1:
+            end_text = 'Заглушка'
+
+            if len(detected_list) > 1:  # Если список не пуст
                 nl = '\n'
                 end_text = f'Более часа нет ответа от этих датчиков:\n\n' \
                            f'{nl.join(detected_list)}'
-                # print(end_text)
             elif len(detected_list) == 1:
-                end_text = f'Более часа нет ответа от датчика <{detected_list[0]}>'
+                name_sensor = detected_list[0]
+                end_text = f'Более часа нет ответа от датчика <{name_sensor}>'
+            # else:
+            #     print(f'Список с неисправными датчиками пуст:\n'
+            #           f'{list_sensors}')
 
             if len(detected_list) != 0:
-                # print(detected_list)
-                # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
-                #                       text=end_text)
-                data_list = SQL().get_dict('observers_for_faulty_sensors')
+                nl = '\n'
+                data_list = self.get_dict('observers_for_faulty_sensors')
+                # print(data_list)
+
+                list_users = []
                 if len(data_list) != 0:
                     for users in data_list:
-                        user_id = users[0]
-                        Data.bot.send_message(chat_id=user_id,
-                                              text=end_text)
+                        # print(users)
+                        user_id = int(users[0])
+                        # print(users[0])
+                        list_users.append(user_id)
 
-                for elem in detected_list:
-                    title = f'Неисправен датчик <{elem}>'
-                    # print(title)
+                if len(list_users) != 0:
+                    for element in list_users:
+                        try:
+                            Secret.bot.send_message(chat_id=element,
+                                                    text=end_text)
+                        except Secret.telebot.apihelper.ApiTelegramException:
+                            text_error = f'Пользователь {element} заблокировал бота!'
+                            print(text_error)
+                            self.log_out(element)
+
+                for name_faulty_sensor in detected_list:
+                    title = f'Больше часа нет ответа от датчика <{name_faulty_sensor}>'
+                    log_text = f'{self.get_list_faulty_sensors.__name__}\n' \
+                               f'В YouGile в колонку "Контроль температур" добавлена задача:\n' \
+                               f'{title}\n\n'
                     Exchange_with_yougile.post_task_to_column_sensors(title_text=title)
+                    print(log_text)
+                    Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                                            text=log_text)
                     time.sleep(1)
 
         except sqlite3.Error as error:
+            error_message = f'{self.get_list_faulty_sensors.__name__}\n' \
+                            f'Ошибка при работе с SQLite: <{error}>'
+            print(error_message)
+            Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                                    text=error_message)
+
+    def registration_secret_santa(self, user_id, user_name):
+        """Регистрация участников в новогоднем обмене подарками"""
+        try:
+            select_query = f'SELECT nickname FROM secret_santa_{self.current_year}'
+            self.cursor.execute(select_query)
+            list_nickname = self.cursor.fetchall()
+
+            # print(list_nickname)
+
+            nickname = random.choice(Secret.list_nicknames)
+            if list_nickname is not None:
+                for elements in list_nickname:
+                    nickname = random.choice(Secret.list_nicknames)
+                    if nickname in list_nickname:
+                        Secret.list_nicknames.pop(nickname)
+                    else:
+                        nickname = nickname
+
+            select_query_user_id = (f'SELECT user_id '
+                                    f'FROM secret_santa_{self.current_year} '
+                                    f'WHERE user_id = "{user_id}"')
+            self.cursor.execute(select_query_user_id)
+            user_id_in_sql = self.cursor.fetchone()
+            # print(user_id_in_sql)
+
+            if user_id_in_sql is None:
+                insert_query = (f'INSERT INTO secret_santa_{self.current_year} (user_id, user_name, nickname) '
+                                f'VALUES ("{user_id}", "{user_name}", "{nickname}")')
+                self.cursor.execute(insert_query)
+                self.sqlite_connection.commit()
+            # else:
+            #     print('Пользователь уже зарегистрирован')
+        except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
+
+    def selecting_opponent_secret_santa(self):
+        """Подбор оппонента для жеребьёвки подарков"""
+        try:
+            select_query = (f'SELECT user_id, good_gift, bad_gift, nickname, gift_from '
+                            f'FROM secret_santa_{self.current_year}')
+            self.cursor.execute(select_query)
+            data_list = self.cursor.fetchall()
+
+            positive_result = ('Привет! Тайный Санта уже записал всех участников и их пожелания. Настало время узнать '
+                               'кто же выпал тебе.')
+
+            negative_result = ('Привет! Тайный Санта уже записал всех участников и их пожелания. Количество '
+                               'участников оказалось нечётным и тебе не досталось оппонента. Но не расстраивайся, '
+                               'тебя под ёлкой тоже будет ждать подарок!')
+
+            link_picture = ('https://sun9-55.userapi.com/impg/p8pV3a19CGm4FKAZWn0vZRu8ERimXP5KG-_Nig/yC8XilHLD4M.jpg'
+                            '?size=833x1080&quality=95&sign=4d1ad4ae55d9d281a0db19c03e5049da&c_uniq_tag'
+                            '=yz0eMUncEIgkLyv1UkIO41arT2jYmluE_YfHe0Yowa4&type=album')
+
+            list_reg_nickname = []
+            for lists in data_list:
+                list_reg_nickname.append(lists[3])
+
+            for element in data_list:
+                while len(data_list) >= 1 or len(data_list) == 0:
+                    gift_from = random.choice(list_reg_nickname)
+                    # print(gift_from)
+                    user_id = element[0]
+                    nick_name = element[3]
+                    if gift_from != nick_name:
+                        update_query = (f'UPDATE secret_santa_{self.current_year} '
+                                        f'SET gift_from = "{gift_from}" '
+                                        f'WHERE user_id = "{user_id}"')
+                        self.cursor.execute(update_query)
+                        self.sqlite_connection.commit()
+                        time.sleep(1)
+                        list_reg_nickname.remove(gift_from)
+                        break
+                    elif len(list_reg_nickname) == 1 and gift_from == nick_name:
+                        # print(f'Пользователю {data_list[0][3]} не досталось пары')
+                        Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                                                text=f'Пользователю {nick_name} не досталось пары при распределении '
+                                                     f'в Secret_santa')
+                        break
+
+            self.cursor.execute(select_query)
+            update_data_list = self.cursor.fetchall()
+
+            for data in update_data_list:
+                user_id = data[0]
+                gift_from = data[4]
+
+                search_query = (f'SELECT good_gift, bad_gift '
+                                f'FROM secret_santa_{self.current_year} '
+                                f'WHERE nickname = "{gift_from}"')
+                self.cursor.execute(search_query)
+                search_opponent = self.cursor.fetchall()
+
+                for opponent in search_opponent:
+                    if opponent[0] != '':
+                        good_gift = f'он хотел бы получить _{opponent[0].lower()}_'
+                    else:
+                        good_gift = 'пожелания по подарку отсутствуют, выбор сделайте самостоятельно'
+
+                    if opponent[1] != '':
+                        bad_gift = f'А нежелательным подарком можно считать что-то из этого: _{opponent[1].lower()}_'
+                    else:
+                        bad_gift = 'Ограничений по нежелательным подаркам нет'
+
+                    text_message = negative_result
+                    if gift_from is not None:
+                        text_message = (f'{positive_result}\n'
+                                        f'Итак, его зовут *{gift_from}*, {good_gift}. {bad_gift}.\n'
+                                        f'Все данные у вас есть. До Нового года ещё достаточно времени. '
+                                        f'Удачи с выбором!')
+
+                    # Secret.bot.send_photo(chat_id=Secret.list_admins.get('Никита'),
+                    #                       photo=link_picture,
+                    #                       caption=text_message,
+                    #                       parse_mode="Markdown")
+                    Secret.bot.send_photo(chat_id=user_id,
+                                          photo=link_picture,
+                                          caption=text_message,
+                                          parse_mode="Markdown")
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+
+    def update_data_secret_santa(self, user_id, good_gift, bad_gift):
+        update_query = (f'UPDATE secret_santa_{self.current_year} '
+                        f'SET good_gift = "{good_gift}", bad_gift = "{bad_gift}" '
+                        f'WHERE user_id = "{user_id}"')
+        self.cursor.execute(update_query)
+        self.sqlite_connection.commit()
+
+    def check_user_in_table_secret_santa(self, user_id):
+        """Проверка пользователя на наличие в таблице"""
+        create_table = (f'CREATE TABLE IF NOT EXISTS secret_santa_{self.current_year}'
+                        f'(Id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                        f'user_id INTEGER NOT NULL,'
+                        f'user_name TEXT,'
+                        f'nickname TEXT UNIQUE,'
+                        f'good_gift TEXT,'
+                        f'bad_gift TEXT,'
+                        f'gift_from TEXT UNIQUE,'
+                        f'gift_delivered INTEGER DEFAULT "0",'
+                        f'gift_received INTEGER DEFAULT "0")')
+        self.cursor.execute(create_table)
+        self.sqlite_connection.commit()
+
+        select_query = (f'SELECT user_id '
+                        f'FROM secret_santa_{self.current_year} '
+                        f'WHERE user_id = "{user_id}"')
+        self.cursor.execute(select_query)
+        user_id_in_table = self.cursor.fetchone()
+
+        # print(user_id_in_table)
+
+        if user_id_in_table is not None:
+            return True
+        else:
+            return False
 
 
 class Decorators:

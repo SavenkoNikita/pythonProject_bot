@@ -3,7 +3,7 @@ import time
 
 import telebot
 
-import Data
+from src.Body_bot import Secret
 # from Other_functions.Functions import logging_event, pack_in_callback_data, SQL
 from src.Other_functions import Functions
 
@@ -14,7 +14,7 @@ def repeat_for_list(data_list, user_id, count=1):
 
     temporary_list = []
     for elem in range(0, count):
-        Data.bot.send_message(user_id, data_list[elem])
+        Secret.bot.send_message(user_id, data_list[elem])
         temporary_list.append(data_list[elem])
 
     print('Бот ответил:')
@@ -26,7 +26,7 @@ class Notification:
     """Методы уведомлений"""
 
     def __init__(self):
-        self.sqlite_connection = sqlite3.connect(Data.way_sql)
+        self.sqlite_connection = sqlite3.connect(Secret.way_sql)
         self.cursor = self.sqlite_connection.cursor()
 
     def send_a_notification_to_all_users(self, text_message, silent=False):
@@ -45,10 +45,10 @@ class Notification:
                 username = Functions.SQL().get_user_info(all_user_sql[i])
                 try:
                     print(username)
-                    Data.bot.send_message(all_user_sql[i], text=text_message, disable_notification=silent)
+                    Secret.bot.send_message(all_user_sql[i], text=text_message, disable_notification=silent)
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
-                except Data.telebot.apihelper.ApiTelegramException:
-                    text_error = 'Пользователь <' + username + '> заблокировал бота!'
+                except Secret.telebot.apihelper.ApiTelegramException:
+                    text_error = f'Пользователь <{username}> заблокировал бота!'
                     print(text_error)
                     Functions.logging_file_processing('error', str(text_error))
                     Functions.SQL().log_out(all_user_sql[i])
@@ -82,9 +82,9 @@ class Notification:
                 username = Functions.SQL().get_user_info(all_id_sql[i])
                 try:
                     print(username)
-                    Data.bot.send_message(all_id_sql[i], text=text_message, disable_notification=silent)
+                    Secret.bot.send_message(all_id_sql[i], text=text_message, disable_notification=silent)
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text=text_message)
-                except Data.telebot.apihelper.ApiTelegramException:
+                except Secret.telebot.apihelper.ApiTelegramException:
                     text_error = f'Пользователь <{username}> заблокировал бота!'
                     print(text_error)
                     Functions.logging_file_processing('error', str(text_error))
@@ -132,14 +132,15 @@ class Notification:
                 try:
                     print(username)
                     # user_sticker = SQL().get_user_sticker(get_key(user_first_name))
-                    Data.bot.send_sticker(all_id_sql[i], user_sticker)
+                    Secret.bot.send_sticker(all_id_sql[i], user_sticker)
                     # Data.bot.send_sticker(Data.list_admins.get('Никита'), user_sticker)
-                except Data.telebot.apihelper.ApiTelegramException:
+                except Secret.telebot.apihelper.ApiTelegramException:
                     print(f'Пользователь <{username}> заблокировал бота!')
                     Functions.SQL().log_out(username)
                 except Exception as e:
                     time.sleep(3)
-                    Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=f'Бот выдал ошибку: {str(e)}')
+                    Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                                            text=f'Бот выдал ошибку: {str(e)}')
                     print(str(e))
                     Functions.logging_file_processing('error', str(e))
                 i += 1
@@ -171,16 +172,20 @@ class Notification:
                 for elem in data_list:
                     user_id = elem[0]
                     message_id = elem[1]
-                    Data.bot.edit_message_text(text=text_message,
-                                               chat_id=user_id,
-                                               message_id=message_id,
-                                               parse_mode='Markdown')
+                    try:
+                        Secret.bot.edit_message_text(text=text_message,
+                                                     chat_id=user_id,
+                                                     message_id=message_id,
+                                                     parse_mode='Markdown')
+                    except Secret.telebot.apihelper.ApiTelegramException:
+                        self.cursor.execute(f'DELETE from {name_table_DB} where user_id = ?', (user_id,))
+                        self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
+            # Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
 
     def notification_for_subs_lots(self, name_lot, photo_id, description, price, name_key_callback_data='lot'):
         """Отправляет уведомление всем пользователям подписчикам барахолки. В случае если пользователь заблокировал
@@ -207,25 +212,25 @@ class Notification:
                     button = telebot.types.InlineKeyboardButton(text='Забронировать лот', callback_data=callback_data)
                     keyboard.add(button)
 
-                    message_id = Data.bot.send_photo(chat_id=ids,
-                                                     caption=f'Лот №{id_callback_data}\n\n' \
-                                                             f'Название: {name_lot}\n\n' \
-                                                             f'Описание: {description}\n\n'
-                                                             f'Стоимость: {price}\n\n',
-                                                     photo=photo_id,
-                                                     reply_markup=keyboard).message_id
-                    Data.bot.pin_chat_message(chat_id=ids,
-                                              message_id=message_id)  # Закрепляет сообщение у пользователя
+                    message_id = Secret.bot.send_photo(chat_id=ids,
+                                                       caption=f'Лот №{id_callback_data}\n\n'
+                                                               f'Название: {name_lot}\n\n'
+                                                               f'Описание: {description}\n\n'
+                                                               f'Стоимость: {price}\n\n',
+                                                       photo=photo_id,
+                                                       reply_markup=keyboard).message_id
+                    Secret.bot.pin_chat_message(chat_id=ids,
+                                                message_id=message_id)  # Закрепляет сообщение у пользователя
 
                     ids_message[ids] = message_id
                 except telebot.apihelper.ApiException as error:
                     Functions.SQL().change_status_bar(ids)
                     text = f'При рассылке лота пользователю {ids} возникла ошибка:\n<{error}>\n\n' \
                            f'Статус подписки пользователя на барахолку изменён на "no"'
-                    message_id = Data.bot.send_message(chat_id=Data.list_admins.get('Никита'),
-                                                       text=text).message_id
-                    Data.bot.pin_chat_message(chat_id=Data.list_admins.get('Никита'),
-                                              message_id=message_id)
+                    message_id = Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                                                         text=text).message_id
+                    Secret.bot.pin_chat_message(chat_id=Secret.list_admins.get('Никита'),
+                                                message_id=message_id)
                     pass
 
             # print(ids_message)
@@ -238,11 +243,11 @@ class Notification:
             self.sqlite_connection.commit()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
-                print("Соединение с SQLite закрыто")
+            Functions.logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+        # finally:
+        #     if self.sqlite_connection:
+        #         self.sqlite_connection.close()
+        #         print("Соединение с SQLite закрыто")
 
     def get_last_record_lots(self):
         """Получение числового значения последнего порядкового номера опубликованного лота"""
@@ -252,7 +257,7 @@ class Notification:
             return record_id
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            Functions.logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
     def notification_for_sub_baraholka(self, text_message, silent=False):
         """Инструмент для отправки текстового сообщения подписчикам барахолки"""
@@ -262,12 +267,12 @@ class Notification:
             records = self.cursor.fetchall()
             for ids in records:
                 ids = ids[0]
-                Data.bot.send_message(chat_id=ids, text=text_message, disable_notification=silent)
+                Secret.bot.send_message(chat_id=ids, text=text_message, disable_notification=silent)
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-            Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
+            Functions.logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
-    def notification_for_top_user(self):
+    def notification_for_top_user(self):  # noqa
         """Присылает уведомление трём самым активным пользователям и разработчику о том, какое место в рейтинге
         они заняли"""
 
@@ -306,22 +311,20 @@ class Notification:
 
             message_for_admin = f'{title}{end_text}'
 
-            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=message_for_admin)
+            Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=message_for_admin)
             print(message_for_admin)
 
-            Data.bot.send_message(chat_id=id_first, text=message_for_leader)
+            Secret.bot.send_message(chat_id=id_first, text=message_for_leader)
             print(message_for_leader)
 
-            Data.bot.send_message(chat_id=id_second, text=message_for_second)
+            Secret.bot.send_message(chat_id=id_second, text=message_for_second)
             print(message_for_second)
 
-            Data.bot.send_message(chat_id=id_third, text=message_for_third)
+            Secret.bot.send_message(chat_id=id_third, text=message_for_third)
             print(message_for_third)
         except telebot.apihelper.ApiException as error:
             text = f'При рассылке уведомлений о самом активном пользователе, возникла ошибка:\n<{error}>\n'
-            Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
+            Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
 
     def send_light_news(self):
         """Тут же отправляет переданное уведомление указанной группе людей"""
-
-

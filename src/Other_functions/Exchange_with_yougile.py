@@ -1,9 +1,9 @@
 import http.client
 
-import Data
+from src.Body_bot import Secret
 
-column_sensors = Data.column_termosensors
-column_all_task = Data.column_all_task
+column_sensors = Secret.column_termosensors
+column_all_task = Secret.column_all_task
 
 
 def post_task(title_task='test', description_text='', column_task=column_all_task):
@@ -23,7 +23,7 @@ def post_task(title_task='test', description_text='', column_task=column_all_tas
 
     headers = {
         'Content-Type': "application/json",
-        'Authorization': f"Bearer {Data.token_yougile}"
+        'Authorization': f"Bearer {Secret.token_yougile}"
     }
 
     conn.request("POST", "/api-v2/tasks", payload.encode('utf-8'), headers)
@@ -37,8 +37,10 @@ def post_task(title_task='test', description_text='', column_task=column_all_tas
 def post_task_to_column_sensors(title_text='test', description_text=''):
     """Размещает задачу в колонке 'Термосенсоры'
     с названием {title_text}(если не указать = 'test')
-    и описанием {description_text}(если не указать = '')"""
+    и описанием {description_text}(если не указать = '')"""  # noqa
 
     post_task(title_task=title_text,
               description_text=description_text,
               column_task=column_sensors)
+
+# post_task_to_column_sensors('Test')

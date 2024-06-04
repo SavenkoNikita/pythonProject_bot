@@ -7,7 +7,7 @@ import urllib
 from openpyxl import load_workbook
 from smb.SMBHandler import SMBHandler
 
-import Data
+from src.Body_bot import Secret
 from src.Other_functions.Functions import SQL, get_key, days_before_inventory, logging_file_processing
 from src.Other_functions.Working_with_notifications import Notification
 from urllib.request import urlopen
@@ -19,7 +19,7 @@ class Working_with_a_file:
     def __init__(self, sheet_name):
         self.sheet_name = sheet_name
         self.opener = urllib.request.build_opener(SMBHandler)
-        self.file_name = self.opener.open(Data.route)
+        self.file_name = self.opener.open(Secret.route)
         self.wb = load_workbook(self.file_name)  # Открываем нужную книгу
         self.sheet = self.wb[sheet_name]  # Получить лист по имени
         self.first_column = self.sheet['A']
@@ -37,8 +37,9 @@ class Working_with_a_file:
         f"""На вход принимает дату. Возвращает int(разницу) в днях между сегодня и {date}. 
         Где "0" означает сегодня, "1" - "завтра" и тд"""
 
-        difference = date - self.now_date  # Разница между 1‑й датой и сегодня
-        difference = difference.days + 1  # Форматируем в кол-во дней +1
+        # difference = date - self.now_date  # Разница между 1‑й датой и сегодня
+        # difference = difference.days + 1  # Форматируем в кол-во дней +1
+        difference = (date - self.now_date).days + 1
 
         if difference == -1:
             print('Событие было вчера')
@@ -53,6 +54,7 @@ class Working_with_a_file:
                       f'Разница между датами = {difference}.'
         logging_file_processing('info', text_to_log)
         # print(text_to_log)
+        # print(f'Событие через: {difference}')
 
         return difference
 
@@ -119,15 +121,11 @@ class Working_with_a_file:
 
         for i in range(2, 10):  # Повторить для каждого значения в 1 колонке
             date = self.sheet.cell(row=i, column=1).value
-            # print(date)
-            # print(type(date))
             if date is not None:  # Если значение не пустое
                 if isinstance(date, datetime.datetime):  # Если значение == дата
-                    # print('date')
                     date = date
                 else:
                     date = datetime.datetime.strptime(date, '%d.%m.%Y')
-                    # print(f'{date} not date')
 
                 if self.difference_date(date) < 0:  # Если событие в прошлом
                     date_event = self.sheet.cell(row=i, column=1)  # Колонка с датой
@@ -141,17 +139,11 @@ class Working_with_a_file:
                     self.sheet.delete_rows(i)  # Удаляем указанную в скобках строку
                     self.wb.save('test.xlsx')  # Сохранить книгу
                     file = open('test.xlsx', 'rb')
-                    self.file_name = self.opener.open(Data.route, data=file)  # noqa
+                    self.file_name = self.opener.open(Secret.route, data=file)  # noqa
                     self.file_name.close()
                     os.remove('test.xlsx')
                     time.sleep(1)
                     self.clear_old_data()
-                    # else:
-                    #     print(f'{self.difference_date(self.sheet.cell(row=i, column=1).value)}')
-                # else:
-                #     print(f'{type(self.sheet.cell(row=i, column=1).value)} не дата')
-            # else:
-            #     print(f'{self.sheet.cell(row=i, column=1).value} is None')
 
     def next_dej(self):
         """Если файл заполнен, возвращает строку 'В период с {first_date} по {second_date} будет дежурить {name}.'"""
@@ -240,8 +232,7 @@ class Working_with_a_file:
         data_list = self.read_file()
 
         if data_list is not None:  # Если лист не пуст
-            # print(f'data_list not None')
-            if self.sheet_name in Data.sheets_file:  # Если название листа есть в списке известных
+            if self.sheet_name in Secret.sheets_file:  # Если название листа есть в списке известных
                 for i in data_list:
                     date = i[0]
                     # print(date)
@@ -305,22 +296,23 @@ class Working_with_a_file:
                     first_date = i[0].strftime('%d.%m.%Y')  # Дата str(1)
                     second_date = i[1].strftime('%d.%m.%Y')  # Дата str(2)
                     name = i[2]
-                    name_from_SQL = SQL().get_user_info(get_key(i[2]))  # Имя дежурного
+                    name_from_SQL = SQL().get_user_info(get_key(name))  # Имя дежурного
 
                     text_message = f'В период с {first_date} по {second_date} будет дежурить {name_from_SQL}.'
 
-                    text_log = f'check_dej_tomorrow(): {text_message}'
+                    text_log = f'{self.check_dej_tomorrow.__name__}: {text_message}'
                     logging_file_processing('info', text_log)
                     print(f'<{datetime.datetime.now().strftime("%d.%m.%Y %H:%M")}>\n{text_message}')
 
                     sticker_dej = SQL().get_a_user_sticker_from_the_database(get_key(name))
 
-                    Notification().send_notification_to_subscribers(text_message)
-                    Notification().send_sticker_to_subscribers(sticker_dej)
+                    # Notification().send_notification_to_subscribers(text_message)
+                    # Notification().send_sticker_to_subscribers(sticker_dej)
+
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                     # Data.bot.send_sticker(Data.list_admins.get('Никита'), sticker_dej)
                 elif self.difference_date(date) < 0:  # Если событие в прошлом
-                    text_log = f'check_dej_tomorrow(): Событие в прошлом.'
+                    text_log = f'{self.check_dej_tomorrow.__name__}: Событие в прошлом.'
                     logging_file_processing('info', text_log)
                     self.clear_old_data()
                 # else:
@@ -341,7 +333,7 @@ class Working_with_a_file:
                     self.sheet.cell(row=empty_string, column=2).value = text_event  # Текст события
                     self.wb.save('test.xlsx')  # Сохранить книгу
                     file = open('test.xlsx', 'rb')
-                    self.file_name = self.opener.open(Data.route, data=file)  # noqa
+                    self.file_name = self.opener.open(Secret.route, data=file)  # noqa
                     self.file_name.close()
                     os.remove('test.xlsx')
                     text_message = f'• Запись добавлена в лист: <{self.sheet_name}>\n' \

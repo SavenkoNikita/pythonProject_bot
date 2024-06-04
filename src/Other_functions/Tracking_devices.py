@@ -1,19 +1,20 @@
 import datetime
+import socket
 import urllib.request
 import xml.etree.ElementTree as ET
-from pprint import pprint
 
-import Data
+from src.Body_bot import Secret
 from src.Other_functions.Functions import SQL, logging_sensors
+from ping3 import ping
 
 
 class TrackingSensor:
     """Мониторинг неисправных датчиков"""
 
     def __init__(self):
-        self.list_controllers = Data.list_controllers
+        self.list_controllers = Secret.list_controllers
         self.list_observers = [
-            Data.list_admins.get('Никита'),
+            Secret.list_admins.get('Никита'),
         ]
         self.list_names_def_sensor = [
             'Дефростер 1',
@@ -216,7 +217,7 @@ class TrackingSensor:
 
                 name_dev = root_node.find(device_name).text
 
-                obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']
+                obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']  # noqa
 
                 sensor = {}
                 data_dict = {name_dev: sensor}
@@ -242,7 +243,7 @@ class TrackingSensor:
         list_data = self.get_all_data()
         # pprint(list_data)
 
-        obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']
+        # obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']  # noqa
 
         for controller in list_data:
             name_controller = list(controller.keys())[0]
@@ -250,10 +251,49 @@ class TrackingSensor:
             # pprint(name_controller)
             for sensor in controller:
                 data_sensor = controller.get(name_controller)
-                name_sensor = list(data_sensor.keys())[0]
+                # name_sensor = list(data_sensor.keys())[0]
                 # pprint(data_sensor)
                 # pprint(name_sensor)
                 for elem in data_sensor:
                     list_elem = data_sensor.get(elem)
 
                     # pprint(list_elem)
+
+
+class TrackingCameras:
+    """video"""
+
+    def __init__(self):
+        self.subnet = [54, 55]
+
+    def ping(self):
+        for i in self.subnet:
+            # address = f'192.168.{subnet}.1-255'
+
+            counter = 1
+
+            job_list = []
+            not_job_list = []
+
+            for device in range(1, 255):
+                ip_address = f'192.168.{i}.{counter}'
+                answer = ping(ip_address)
+
+                counter += 1
+                if answer is None:
+                    # print(f'{ip_address} - {answer}')
+                    # pass
+                    not_job_list.append(ip_address)
+                else:
+                    try:
+                        name_device = socket.gethostbyaddr(ip_address)  # (ip_address)[0]
+                        print(f'{ip_address} - {name_device}')
+                    except Exception:  # noqa
+                        print(f'{ip_address}')
+                    finally:
+                        job_list.append(ip_address)
+
+            # string_job_ip = '\n'.join(job_list)
+            # string_not_job_ip = '\n'.join(not_job_list)
+
+            print(job_list)
