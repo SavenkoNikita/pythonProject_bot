@@ -1,7 +1,13 @@
 from telebot import types
 
-from Data import bot
+from src.Body_bot.Secret import bot2
 from src.Other_functions.Functions import pack_in_callback_data, SQL
+
+
+def step_back(name_button):
+    back = types.InlineKeyboardButton(text='<< назад', callback_data=name_button)
+
+    return back
 
 
 class Bot_menu:
@@ -10,7 +16,7 @@ class Bot_menu:
     def __init__(self, user_id):
         self.markup = types.InlineKeyboardMarkup()
         self.admin = SQL().check_for_admin(user_id)
-        print(self.admin)
+        # print(self.admin)
 
         self.list_main_menu = [
             ['Основные функции', 'button_main_functions'],
@@ -58,7 +64,7 @@ class Bot_menu:
         ]
 
     def init_menu(self, data_list_buttons):
-        print(data_list_buttons)
+        # print(data_list_buttons)
         temporary_list = []
         for i in data_list_buttons:
             name_button = i[0]
@@ -66,17 +72,12 @@ class Bot_menu:
             SQL().get_name_attr_class_or_insert_button(name_button, callback_data)
             temporary_list.append(types.InlineKeyboardButton(text=name_button, callback_data=callback_data))
 
-        print(temporary_list)
+        # print(temporary_list)
 
         for elem in temporary_list:
             self.markup.add(elem)
 
         return self.markup
-
-    def step_back(self, name_button):
-        back = types.InlineKeyboardButton(text='<< назад', callback_data=name_button)
-
-        return back
 
     def home(self):
         home = types.InlineKeyboardButton(text='<<< на главную', callback_data='home')
@@ -91,7 +92,7 @@ class Bot_menu:
 
     def lvl_3(self, list_function, name_button):
         keyboard = self.init_menu(list_function)
-        keyboard.add(self.step_back(name_button))
+        keyboard.add(step_back(name_button))
         keyboard.add(self.home())
 
         return keyboard

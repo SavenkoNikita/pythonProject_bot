@@ -1,9 +1,12 @@
 import datetime
+import inspect
 import socket
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 
 from src.Body_bot import Secret
+from src.Body_bot.Secret import bot
 from src.Other_functions.Functions import SQL, logging_sensors
 from ping3 import ping
 
@@ -59,11 +62,11 @@ class TrackingSensor:
 
         sensors_with_an_error = []
 
-        for i in self.list_controllers:
+        for ip_host in self.list_controllers:
             try:
-                url = f'http://{i}/values.xml'
+                url = f'http://{ip_host}/values.xml'
                 web_file = urllib.request.urlopen(url)
-                root_node = ET.parse(web_file).getroot()
+                root_node = ET.parse(web_file).getroot()  # not well-formed (invalid token): line 142, column 7
 
                 device_name = 'Agent/DeviceName'
                 sensor_name = 'SenSet/Entry/Name'
@@ -110,17 +113,35 @@ class TrackingSensor:
                     name_sensor = list_sensor_name[count]
                     last_value = list_sensor_value[count]
                     now_date = datetime.datetime.now().strftime('%d.%m.%Y %H:%M')
-                    SQL().updating_sensor_data(id_sensor, name_sensor, i, name_dev, 'True', last_value, now_date)
+                    SQL().updating_sensor_data(id_sensor=id_sensor, name_sensor=name_sensor, ip_host=ip_host,
+                                               name_host=name_dev, online='True', last_value=last_value,
+                                               last_update=now_date)
                     # print(id_sensor, name_sensor, i, name_dev, 'True', last_value, now_date)
 
                     count += 1
             except OSError:
-                text_error = f'Нет соединения с {i}'
+                text_error = f'Нет соединения с {ip_host}'
                 print(text_error)
-                SQL().host_sensors_error(i)
+                SQL().host_sensors_error(ip_host)
                 # Data.bot.send_message(Data.list_admins.get('Никита'), OSError)
                 logging_sensors('warning', text_error)
-                pass
+                # pass
+                continue
+            except Exception as error:
+                time.sleep(3)
+
+                #  Получить имя модуля в котором сработало исключение
+                frm = inspect.trace()[-1]
+                file_name = frm[1]
+                line_error = frm[2]
+
+                text = (f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                        f'Сработало исключение: "{error}"\n'
+                        f'Имя файла: {file_name}\n'
+                        f'Строка: {line_error}\n')
+
+                bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
+                print(text)
 
         return sensors_with_an_error
 
@@ -131,23 +152,23 @@ class TrackingSensor:
         def_two = []
         def_three = []
 
-        for name, value in self.get_data:
-            if name in self.list_names_def_sensor:
-                if int(float(value)) <= int(float(-100)):
-                    text_message = f'"{name}" : неисправен'
-                    if name in self.list_names_def_one:
+        for name_sensor, value_sensor in self.get_data:
+            if name_sensor in self.list_names_def_sensor:
+                if int(float(value_sensor)) <= int(float(-100)):
+                    text_message = f'"{name_sensor}" : неисправен'
+                    if name_sensor in self.list_names_def_one:
                         def_one.append(text_message)
-                    elif name in self.list_names_def_two:
+                    elif name_sensor in self.list_names_def_two:
                         def_two.append(text_message)
-                    elif name in self.list_names_def_three:
+                    elif name_sensor in self.list_names_def_three:
                         def_three.append(text_message)
                 else:
-                    text_message = f'"{name}" : {value} ℃'
-                    if name in self.list_names_def_one:
+                    text_message = f'"{name_sensor}" : {value_sensor} ℃'
+                    if name_sensor in self.list_names_def_one:
                         def_one.append(text_message)
-                    elif name in self.list_names_def_two:
+                    elif name_sensor in self.list_names_def_two:
                         def_two.append(text_message)
-                    elif name in self.list_names_def_three:
+                    elif name_sensor in self.list_names_def_three:
                         def_three.append(text_message)
 
         def_one.sort()
@@ -171,12 +192,14 @@ class TrackingSensor:
 
         sensors_error = []
 
-        for name, value in self.get_data:
-            if int(float(value)) <= int(float(-100)):
-                text_message = name
+        for name_sensor, value_sensor in self.get_data:
+            if int(float(value_sensor)) <= int(float(-100)):
+                text_message = name_sensor
                 sensors_error.append(text_message)
-                logging_sensors('error', f'Неисправен датчик "{name}". '
-                                         f'Текущее показание температуры: {int(float(value))} ℃')
+                text_error = (f'Неисправен датчик "{name_sensor}". '
+                              f'Текущее показание температуры: {int(float(value_sensor))} ℃')
+                logging_sensors(condition='error',
+                                text_log=text_error)
 
         if len(sensors_error) != 0:
             sensors_error.sort()
@@ -193,23 +216,14 @@ class TrackingSensor:
 
         return end_text
 
-    # def notification_of_errors(self):
-    #
-    #     list_id_mes = {}
-    #
-    #     for user in self.list_observers:  # Повторить для каждого юзера в списке наблюдателей
-    #         id_mes = Data.bot.send_message(user, 'Start tracking all error sensor')
-    #         list_id_mes[user] = id_mes  # Добавить в словарь пару id_user: id_message
-    #         Data.bot.pin_chat_message(user, message_id=id_mes.message_id)  # Закрепляет сообщение у пользователя
-
     def get_all_data(self):
         """Получить имя контроллера, имя датчика, id датчика и текущие показания температуры. Результат - список с
         вложенными списками [name, value] """
 
         list_data_all = []
-        for i in self.list_controllers:
+        for ip_host in self.list_controllers:
             try:
-                url = f'http://{i}/values.xml'
+                url = f'http://{ip_host}/values.xml'
                 web_file = urllib.request.urlopen(url)
                 root_node = ET.parse(web_file).getroot()
 
@@ -235,29 +249,20 @@ class TrackingSensor:
 
                 list_data_all.append(data_dict)
             except OSError:
-                text_error = f'Нет соединения с {i}'
+                text_error = f'Нет соединения с {ip_host}'
                 print(text_error)
         return list_data_all
 
     def test(self):
         list_data = self.get_all_data()
-        # pprint(list_data)
-
         # obs = ['ID', 'Value', 'Min', 'Max', 'SenId', 'Hyst']  # noqa
 
         for controller in list_data:
             name_controller = list(controller.keys())[0]
-            # pprint(list_data)
-            # pprint(name_controller)
             for sensor in controller:
                 data_sensor = controller.get(name_controller)
-                # name_sensor = list(data_sensor.keys())[0]
-                # pprint(data_sensor)
-                # pprint(name_sensor)
                 for elem in data_sensor:
-                    list_elem = data_sensor.get(elem)
-
-                    # pprint(list_elem)
+                    data_sensor.get(elem)
 
 
 class TrackingCameras:
@@ -267,7 +272,7 @@ class TrackingCameras:
         self.subnet = [54, 55]
 
     def ping(self):
-        for i in self.subnet:
+        for subnet in self.subnet:
             # address = f'192.168.{subnet}.1-255'
 
             counter = 1
@@ -276,13 +281,11 @@ class TrackingCameras:
             not_job_list = []
 
             for device in range(1, 255):
-                ip_address = f'192.168.{i}.{counter}'
+                ip_address = f'192.168.{subnet}.{counter}'
                 answer = ping(ip_address)
 
                 counter += 1
                 if answer is None:
-                    # print(f'{ip_address} - {answer}')
-                    # pass
                     not_job_list.append(ip_address)
                 else:
                     try:
@@ -292,8 +295,5 @@ class TrackingCameras:
                         print(f'{ip_address}')
                     finally:
                         job_list.append(ip_address)
-
-            # string_job_ip = '\n'.join(job_list)
-            # string_not_job_ip = '\n'.join(not_job_list)
 
             print(job_list)

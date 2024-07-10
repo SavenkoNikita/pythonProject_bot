@@ -1,4 +1,5 @@
 import datetime
+import inspect
 import random
 import time
 import traceback
@@ -7,7 +8,8 @@ import requests
 import schedule
 
 # import Data
-from Tests import Test_2
+from Tests.Test_2 import test
+from src.Body_bot import Secret
 from src.Body_bot.Secret import bot, list_admins
 from src.Other_functions.Functions import SQL, name_hero
 from src.Other_functions.Working_with_notifications import Notification
@@ -123,8 +125,17 @@ def schedule_next_run():
 def update_data_sensors():
     all_sensors = TrackingSensor().check_all()
     defrosters = TrackingSensor().check_defroster()
-    Notification().update_mess('observers_for_faulty_sensors', all_sensors)
-    Notification().update_mess('tracking_sensor_defroster', defrosters)
+    Notification().update_mess(name_table_DB='observers_for_faulty_sensors',
+                               text_message=all_sensors,
+                               name_table_up_stat='users',
+                               set_name_column='observer_all_sensor',
+                               set_value_column='no')
+
+    Notification().update_mess(name_table_DB='tracking_sensor_defroster',
+                               text_message=defrosters,
+                               name_table_up_stat='users',
+                               set_name_column='def',
+                               set_value_column='no')
 
 
 # Проверяет и уведомляет есть ли завтра дежурный
@@ -142,13 +153,14 @@ schedule.every(1).minutes.do(SQL().schedule_cancel_lot)
 
 #  Create random schedule with jobs
 schedule.every().day.at('00:00').do(schedule_next_run)
+schedule_next_run()
 # schedule.every(5).seconds.do(job)
 
 # Присылает топ чарт лидеров по кол-ву запросов к боту
 schedule.every().day.at('00:00').do(top_statistic)
 
 # Мониторинг пользователей
-schedule.every(10).seconds.do(Test_2.test)
+schedule.every(10).seconds.do(test)
 
 # Запустить жеребьёвку участников Тайного Санты
 schedule.every(1).day.at('12:00').do(start_the_draw_santa)
@@ -162,17 +174,26 @@ while True:
         text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса'
         # bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
         print(text)
-    except requests.ConnectionError:
+    except requests.ConnectionError as error_connection:
         print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
-              f'Нет соединения с сервером:\n<{requests.ConnectionError.__name__}>\n')
+              f'Тип исключения: <{requests.ConnectionError.__name__}>\n'
+              f'Ошибка: {error_connection}\n')
         time.sleep(60)
         print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПопытка соединения')
     except Exception as e:
-        print(datetime.datetime.now())
-        text_error = traceback.format_exc()
-        # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text='Scheduler: сработало исключение.')
-        print(text_error)
-        # Other_functions.logging_event('error', text_error)
-        print(e)
-        # text_log = f'Scheduler: возникло исключение <{e}>.\nПодробности: {text_error}'
-        # logging_scheduler('debug', text_log)
+        time.sleep(3)
+
+        #  Получить имя модуля в котором сработало исключение
+        frm = inspect.trace()[-1]
+        file_name = frm[1]
+        line_error = frm[2]
+
+        text = (f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                f'Сработало исключение: "{e}"\n'
+                f'Имя файла: "{file_name}"\n'
+                f'Строка: {line_error}\n')
+                # f'Работа остановлена')
+
+        bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
+        print(text)
+        # break

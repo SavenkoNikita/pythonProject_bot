@@ -3,15 +3,12 @@ import time
 
 import telebot
 
-# from src.Body_bot.Telegram_bot import existence, types_message, bot, answer_bot
-# from src.Other_functions.Functions import can_help
-import Data
-from Data import bot3
+from src.Body_bot import Secret
 from src.Other_functions import Working_with_notifications, Functions
 from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Functions import SQL, logging_telegram_bot, number_of_events
 
-bot = bot3
+bot = Secret.bot3
 
 
 def answer_bot(text_answer):
@@ -31,9 +28,9 @@ def creating_list_commands(user_id):
     heading = f'Вот что я умею:\n'
     check_admin = SQL().check_for_admin(user_id)
     if check_admin is True:  # Если пользователь админ
-        list_commands = f'{heading} {can_do_it(Data.list_command_admin)}'  # Передать полный список доступных команд
+        list_commands = f'{heading} {can_do_it(Secret.list_command_admin)}'  # Передать полный список доступных команд
     else:  # Если пользователь НЕ админ
-        list_commands = f'{heading} {can_do_it(Data.list_command_user)}'  # Передать список команд доступных юзеру
+        list_commands = f'{heading} {can_do_it(Secret.list_command_user)}'  # Передать список команд доступных юзеру
     return list_commands
 
 
@@ -61,7 +58,7 @@ class Bot_commands:
                 self.forward_user_id = data_object.forward_from.id  # id человека полученного из пересылаемого сообщения
                 self.forward_user_first_name = data_object.forward_from.first_name  # Получаем имя
                 self.forward_user_last_name = data_object.forward_from.last_name  # Получаем фамилию
-                self.forward_username = data_object.forward_from.username  # Получаем юзернейм
+                self.forward_username = data_object.forward_from.username  # Получаем username
         elif name_object == 'CallbackQuery':
             print(f'its {name_object}')
             self.message = data_object.message
@@ -72,7 +69,7 @@ class Bot_commands:
             self.username = data_object.from_user.username
             self.check_admin = SQL().check_for_admin(self.user_id)  # Проверяем является ли пользователь админом
 
-        self.log_file = Data.way_to_log_telegram_bot
+        self.log_file = Secret.way_to_log_telegram_bot
         self.hide_keyboard = telebot.types.ReplyKeyboardRemove()
 
     def type_user(self):
@@ -153,9 +150,9 @@ class Bot_commands:
             button = telebot.types.InlineKeyboardButton(text='Пройти регистрацию', callback_data=callback_data)
             keyboard.add(button)
 
-            Data.bot.send_message(chat_id=self.user_id,
-                                  text=hello_message,
-                                  reply_markup=keyboard)
+            Secret.bot.send_message(chat_id=self.user_id,
+                                    text=hello_message,
+                                    reply_markup=keyboard)
 
         else:  # Эта строка появится если уже зарегистрированный пользователь попытается заново пройти регистрацию
             end_text = f'Привет еще раз, {self.user_first_name}\nМы уже знакомы!\n' \
@@ -284,7 +281,8 @@ class Bot_commands:
         """Обработка пересланного сообщения"""
         try:
             if self.message.forward_from is not None:
-                full_name_future_admin = f'{self.forward_user_first_name} {self.forward_user_last_name}'  # Склеиваем данные воедино
+                # Склеиваем данные воедино
+                full_name_future_admin = f'{self.forward_user_first_name} {self.forward_user_last_name}'
                 print(f'{self.full_name_user()} переслал сообщение от пользователя {full_name_future_admin} '
                       f'содержащее текст:\n {self.text}')
                 answer_text = f'Пользователь <{full_name_future_admin}> добавлен в список администраторов'
@@ -295,7 +293,7 @@ class Bot_commands:
                         bot.reply_to(self.message, answer_text)  # Бот уведомляет об этом того кто выполнил запрос
                         answer_bot(answer_text)
                         bot.send_message(self.forward_user_id, f'Администратор <{self.user_id}> '
-                                                               f'предоставил вам права администратора')  # Бот уведомляет
+                                                               f'предоставил вам права администратора')
                         # пользователя, что такой-то юзер, дал ему права админа
                     else:  # Если тот кому предоставляют права уже админ, бот сообщит об ошибке
                         end_text = 'Нельзя пользователю дать права администратора, поскольку он им уже является!'
@@ -320,9 +318,10 @@ class Bot_commands:
         """Лишить пользователя прав администратора"""
 
         if self.checking_for_an_administrator() is True:
-            answer_message = '• Чтобы пользователю присвоить статус <user>, перешлите мне сообщение от этого человека.\n' \
-                             '• Если хотите отказаться от прав админа, в ответ пришлите сообщение с любым текстом.\n' \
-                             '• Для отмены операции нажмите "Отмена".'
+            answer_message = ('• Чтобы пользователю присвоить статус <user>, перешлите мне сообщение от этого '
+                              'человека.\n'
+                              '• Если хотите отказаться от прав админа, в ответ пришлите сообщение с любым текстом.\n'
+                              '• Для отмены операции нажмите "Отмена".')
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
             buttons = ['Отмена']
             keyboard.add(*buttons)
@@ -389,7 +388,7 @@ class Bot_commands:
                 self.types_message()
                 bot.reply_to(self.message, end_text)  # Отправка текста выше
                 #  Отсылка уведомлений о действии разработчику
-                bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                bot.send_message(chat_id=Secret.list_admins.get('Никита'),
                                  text=f'{self.full_name_user()} подписался на уведомления.')
                 answer_bot(end_text)
             else:  # Если подписчик пытается подписаться, то получит ошибку
@@ -411,7 +410,7 @@ class Bot_commands:
                 self.types_message()
                 bot.reply_to(self.message, end_text)  # Отправка текста выше
                 #  Отсылка уведомлений о действии разработчику
-                bot.send_message(chat_id=Data.list_admins.get('Никита'),
+                bot.send_message(chat_id=Secret.list_admins.get('Никита'),
                                  text=f'{self.full_name_user()} отписался от уведомлений.')
                 answer_bot(end_text)
             else:  # Если не подписчик пытается отписаться, то получит ошибку
@@ -449,8 +448,6 @@ class Bot_commands:
         bot.reply_to(self.message, end_text)
         answer_bot(end_text)
 
-    ### not Job ###
-
     def command_dezhurnyj(self):
         """Узнать кто дежурный"""
 
@@ -471,10 +468,6 @@ class Bot_commands:
             answer_bot(end_text)
 
     def command_dezhurnyj_step_2(self, message):
-        # Bot_commands(message.__class__.__name__, message)
-        # print(f'command_dej_2 - {message.__class__.__name__}')
-        # print(self.name_object)
-        # self.type_user()
         sheet_name = 'Дежурный'
         try:
             if message.text == 'Имя следующего дежурного':

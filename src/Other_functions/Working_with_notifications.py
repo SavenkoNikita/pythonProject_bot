@@ -4,7 +4,6 @@ import time
 import telebot
 
 from src.Body_bot import Secret
-# from Other_functions.Functions import logging_event, pack_in_callback_data, SQL
 from src.Other_functions import Functions
 
 
@@ -162,7 +161,7 @@ class Notification:
 
         self.send_sticker_for('status', 'admin', sticker)
 
-    def update_mess(self, name_table_DB, text_message):
+    def update_mess(self, name_table_DB, text_message, name_table_up_stat, set_name_column, set_value_column):
         """Обновляет сообщение у пользователей."""
 
         try:
@@ -177,15 +176,46 @@ class Notification:
                                                      chat_id=user_id,
                                                      message_id=message_id,
                                                      parse_mode='Markdown')
-                    except Secret.telebot.apihelper.ApiTelegramException:
-                        self.cursor.execute(f'DELETE from {name_table_DB} where user_id = ?', (user_id,))
-                        self.sqlite_connection.commit()
+                    except Secret.telebot.apihelper.ApiTelegramException as error:
+                        name_func = self.update_mess.__name__
+                        description = error.result_json.get('description')
+                        desc_error = error
+
+                        if error.error_code == 400:
+                            desc_error = 'Данный чат боту неизвестен или сообщение удалено.'
+                            self.cursor.execute(f'DELETE '
+                                                f'FROM {name_table_DB} '
+                                                f'WHERE user_id = "{user_id}"')
+                            self.sqlite_connection.commit()
+
+                            from src.Other_functions.Functions import SQL
+                            SQL().update_data_in_table_SQL(name_table=name_table_up_stat,
+                                                           set_name_column=set_name_column,
+                                                           set_value_column=set_value_column,
+                                                           user_id=user_id)
+                        elif error.error_code == 403:
+                            desc_error = ('Пользователь заблокировал бота или вы пытаетесь выполнить действие с '
+                                          'учетной записью пользователя, которая была деактивирована или удалена.')
+
+                            self.cursor.execute(f'DELETE '
+                                                f'FROM {name_table_DB} '
+                                                f'WHERE user_id = "{user_id}"')
+                            self.sqlite_connection.commit()
+
+                            from src.Other_functions.Functions import SQL
+                            SQL().log_out(user_id=user_id)
+                        elif error.error_code == 429:
+                            desc_error = f'Слишком много запросов от бота.'
+
+                        answer_message = (f'Возникло исключение в: {name_func}\n'
+                                          f'Предполагаемая проблема: {desc_error}\n'
+                                          f'Описание проблемы: {description}\n')
+
+                        Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                                                text=answer_message)
         except sqlite3.Error as error:
-            print("Ошибка при работе с SQLite", error)
+            print(f'Ошибка при работе с SQLite:\nerror')
             # Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
-        # finally:
-        #     if self.sqlite_connection:
-        #         self.sqlite_connection.close()
 
     def notification_for_subs_lots(self, name_lot, photo_id, description, price, name_key_callback_data='lot'):
         """Отправляет уведомление всем пользователям подписчикам барахолки. В случае если пользователь заблокировал

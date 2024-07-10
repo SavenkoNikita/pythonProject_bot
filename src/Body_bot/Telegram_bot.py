@@ -1,4 +1,5 @@
 import datetime as datetime
+import inspect
 import random
 import time
 
@@ -8,50 +9,71 @@ import telebot
 from src.Other_functions import Working_with_notifications, File_processing, ERP
 from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Functions import SQL, can_help, logging_telegram_bot, number_of_events, declension_day, \
-    string_to_dict
+    string_to_dict, declension
 from src.Other_functions.Working_with_notifications import Notification
 from src.Body_bot import Secret
-
-# from poetry.layouts import src
+from src.Other_functions import Decorators
 
 time_now = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Secret.bot
-answer_bot = 'Бот ответил:\n'
+
+
+def answer_bot(message, text_answer, keyboard=None):
+    """Имитация нажатия клавиш ботом"""
+
+    if message.forward_from is not None:  # Если сообщение является пересылаемым
+        user_id = message.forward_from.id
+    else:
+        user_id = message.from_user.id
+
+    # count_text_message = random.randint(1, 3)  # Случайное кол-во секунд будет имитироваться набор текста
+    # count_text_message = float(int(0.1))
+    count_text_message = len(text_answer) * 0.01
+    # print(count_text_message)
+
+    bot.send_chat_action(chat_id=user_id, action='typing')
+    time.sleep(count_text_message)
+
+    """Логирование действий в консоли"""
+
+    if keyboard is None:
+        bot.reply_to(message, text_answer)
+    else:
+        bot.send_message(chat_id=message.from_user.id,
+                         text=text_answer,
+                         reply_markup=keyboard)
+    print(f'IT Remit info bot: "{text_answer}"\n')
+
 
 log_file = Secret.way_to_log_telegram_bot
 
 
-def full_name_user(message):
-    """Принимает на вход сообщение. Возвращает имя пользователя: Администратор/Пользователь + Имя + ID"""
-
-    check_admin = SQL().check_for_admin(message.from_user.id)  # Проверяем является ли пользователь админом
-    if check_admin is True:
-        status_user = 'Администратор '
-    else:
-        status_user = 'Пользователь '
-    name_user = f'{message.from_user.first_name} (ID: {message.from_user.id})'  # Получаем имя и id
-    pattern = f'{time_now(message.date)}\n{status_user} {name_user}'  # Итог дата, /n, статус и данные пользователя
-    return pattern
+# def full_name_user(message):
+#     """Принимает на вход сообщение. Возвращает имя пользователя: Администратор/Пользователь + Имя + ID"""
+#
+#     check_admin = SQL().check_for_admin(message.from_user.id)  # Проверяем является ли пользователь админом
+#     if check_admin is True:
+#         status_user = 'Администратор '
+#     else:
+#         status_user = 'Пользователь '
+#     name_user = f'{message.from_user.first_name} (ID: {message.from_user.id})'  # Получаем имя и id
+#     pattern = f'{time_now(message.date)}\n{status_user} {name_user}'  # Итог дата, /n, статус и данные пользователя
+#     return pattern
 
 
 def existence(message):
-    if message.forward_from is not None:  # Если сообщение является пересылаемым
-        user_id = message.forward_from.id  # Получаем id человека полученного из пересылаемого сообщения
-    else:
-        user_id = message.from_user.id
+    # if message.forward_from is not None:  # Если сообщение является пересылаемым
+    #     user_id = message.forward_from.id  # Получаем id человека полученного из пересылаемого сообщения
+    # else:
+    #     user_id = message.from_user.id
+    user_id = message.chat.id
 
-    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
+    # print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if SQL().check_for_existence(user_id) is True:  # Проверка на наличие юзера в БД
         SQL().collect_statistical_information(user_id)  # Счётчик активности пользователя
         SQL().update_data_user(user_id, message.from_user.first_name, message.from_user.last_name,
                                message.from_user.username)
         return True
-        # if SQL().check_verify_in_ERP(user_id) is True:
-        #     return True
-        # else:
-        #     verify_error = 'Чтобы воспользоваться функцией необходимо пройти верификацию в 1С -> /verification'
-        #     print(f'{answer_bot}{verify_error}\n')
-        #     return verify_error
     else:
         end_text = 'Чтобы воспользоваться функцией нужно зарегистрироваться -> /start'
         print(f'{answer_bot}{end_text}\n')
@@ -73,32 +95,11 @@ def rights_admin(message):
             return end_text
 
 
-def types_message(message):
-    """Имитация нажатия клавиш ботом"""
-
-    if message.forward_from is not None:  # Если сообщение является пересылаемым
-        user_id = message.forward_from.id
-    else:
-        user_id = message.from_user.id
-
-    count_text_message = random.randint(1, 3)  # Случайное кол-во секунд будет имитироваться набор текста
-    # count_text_message = float(int(0.1))
-
-    bot.send_chat_action(user_id, action='typing')
-    time.sleep(count_text_message)
-
-
-# @bot.message_handler(commands=['test'])
-# def test(message):
-#     print(message)
-#     # if bot.message_handler(commands='dezhurnyj'):
-#     #     Bot_commands(message).command_dezhurnyj()
-
 @bot.message_handler(commands=['start'])
+@Decorators.registration_of_actions
 def start_command(message):
     """Приветственное сообщение"""
 
-    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if SQL().check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         # Приветственное сообщение
         hello_message = f'Добро пожаловать {message.from_user.first_name}!\n' \
@@ -111,28 +112,21 @@ def start_command(message):
                         f'Имя: {message.from_user.first_name}\n' \
                         f'Фамилия: {message.from_user.last_name}\n' \
                         f'Username:  @{message.from_user.username}\n'
-        types_message(message)
-        bot.reply_to(message, hello_message)
-        print(f'{answer_bot}{hello_message}\n')
+        answer_bot(message, hello_message)
     else:  # Эта строка появится если уже зарегистрированный пользователь попытается заново пройти регистрацию
         end_text = f'Привет еще раз, {message.from_user.first_name}\nМы уже знакомы!\n' \
                    f'Список доступных команд тут -> /help'
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['register'])
+@Decorators.registration_of_actions
 def register(message):
     """Регистрация данных о пользователе в БД"""
 
-    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if SQL().check_for_existence(message.from_user.id) is False:  # Если пользователь отсутствует в БД
         SQL().db_table_val(message.from_user.id, message.from_user.first_name, message.from_user.last_name,
                            message.from_user.username)
-        # bot.send_message(chat_id=message.from_user.id,
-        #                  text='Подождите. Сохраняю данные о вас...')
-        # time.sleep(5)  # Подождать указанное кол-во секунд
         bot.send_message(chat_id=message.from_user.id,
                          text='Регистрация выполнена успешно!')
         register_message = f'Добро пожаловать {message.from_user.first_name}!\n\n' \
@@ -143,40 +137,35 @@ def register(message):
                            f'• Узнать количество накопившихся дней отпуска -> /vacation\n\n' \
                            f'Со списком команд можно ознакомиться открыв меню, расположенное слева от ' \
                            f'поля ввода текста, или получить полный, доступный вам список тут -> /help\n'
-        types_message(message)
-        bot.reply_to(message, register_message)  # Бот пришлёт уведомление об успешной регистрации
-        print(f'{answer_bot}{register_message}\n')
+        answer_bot(message, register_message)
     else:  # Иначе бот уведомит о том что пользователь уже регистрировался
         end_text = f'Вы уже зарегистрированы!\nЧтобы узнать что умеет бот жми /help.'
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['log_out'])
+@Decorators.registration_of_actions
 def log_out(message):
     """Удаление данных о пользователе из БД"""
 
-    print(f'{full_name_user(message)} отправил команду:\n{message.text}')
+    # print(f'{full_name_user(message)} отправил команду:\n{message.text}')
     if SQL().check_for_existence(message.from_user.id) is True:  # Если пользователь присутствует в БД
         SQL().log_out(message.from_user.id)  # Удаление данных из БД
+
         first_message = 'Подождите...'
-        types_message(message)
-        bot.reply_to(message, first_message)
+        answer_bot(message, first_message)
+
         log_out_message = f'До новых встреч {message.from_user.first_name}!\n' \
                           f'Данные о вашем аккаунте успешно удалены!\n' \
                           f'Чтобы снова пользоваться функционалом бота, жми /register.'
-        types_message(message)
-        bot.reply_to(message, log_out_message)  # Прощальное сообщение
-        print(f'{answer_bot}{log_out_message}\n')
+        answer_bot(message, log_out_message)
     else:  # Иначе бот уведомит о том что пользователь ещё не регистрировался
         end_text = f'Нельзя удалить данные которых нет :)\nЧтобы это сделать, нужно зарегистрироваться!'
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
-@bot.message_handler(commands=['help'])  # , func=help_command)
+@bot.message_handler(commands=['help'])
+@Decorators.registration_of_actions
 def help_command(message):
     """Список доступных команд"""
 
@@ -184,19 +173,17 @@ def help_command(message):
         keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
         keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
         list_commands = can_help(message.from_user.id)
-        types_message(message)
-        # Показ списка доступных команд и кнопки "Написать разработчику"
-        bot.reply_to(message, list_commands, reply_markup=keyboard)
-        print(f'{answer_bot}{list_commands}\n')
+        answer_bot(message, list_commands, keyboard)
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_message = existence(message)
-        types_message(message)
-        bot.reply_to(message, end_message)
-        print(f'{answer_bot}{end_message}\n')
-    # bot.send_message(message.from_user.id, text='Главное меню', reply_markup=Menu_bot.Bot_menu().main_menu())
+        answer_bot(message, end_message)
+
+
+# bot.send_message(message.from_user.id, text='Главное меню', reply_markup=Menu_bot.Bot_menu().main_menu())
 
 
 @bot.message_handler(commands=['invent'])
+@Decorators.registration_of_actions
 def invent(message):
     """Узнать кто следующий на инвентаризацию"""
 
@@ -206,98 +193,79 @@ def invent(message):
         if Working_with_a_file(list_name).read_file() is not None:
             answer_message = Working_with_a_file(list_name).next_invent()
             sticker = Working_with_a_file(list_name).sticker_next_dej()
-            types_message(message)
-            bot.reply_to(message, answer_message)
+
+            answer_bot(message, answer_message)
             if sticker is not None:
                 bot.send_sticker(message.chat.id, sticker)
-            print(f'{answer_bot}{answer_message}\n')
         else:
             answer_message = Working_with_a_file(list_name).next_invent()
-            types_message(message)
-            bot.reply_to(message, answer_message)
-            print(f'{answer_bot}{answer_message}\n')
+            answer_bot(message, answer_message)
     else:
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['random'])
+@Decorators.registration_of_actions
 def random_name(message):
     """Получить имя дежурного на этой неделе из сисадминов"""
 
     if rights_admin(message) is True:
-        # list_name = ['Паша', 'Дима', 'Никита']  # Список имён
-        # r_name = random.choice(list_name)  # Получение случайного значения из списка
-        name_hero = File_processing.Working_with_a_file('Дежурный').read_file()[0][2]  # Имя ближайшего дежурного
-        types_message(message)
-        bot.reply_to(message, name_hero)
-        print(f'{answer_bot}{name_hero}\n')
+        list_name = ['Паша', 'Дима', 'Никита', 'Лёха']  # Список имён
+        name_hero = random.choice(list_name)  # Получение случайного значения из списка
+        # name_hero = File_processing.Working_with_a_file('Дежурный').read_file()[0][2]  # Имя ближайшего дежурного
+        answer_bot(message, name_hero)
     else:
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['set_admin'])
+@Decorators.registration_of_actions
 def set_to_admin(message):
     """Назначить пользователя админом"""
 
     if rights_admin(message) is True:
         answer_message = 'Чтобы назначить администратора, перешли мне сообщение от этого человека'
-        types_message(message)
-        bot.reply_to(message, answer_message)  # Бот пришлёт выше указанный текст
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message)
         bot.register_next_step_handler(message, receive_id)  # Регистрация следующего действия
     else:
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
+@Decorators.registration_of_actions
 def receive_id(message):
     """Обработка пересланного сообщения"""
     try:
         id_future_admin = message.forward_from.id  # Получаем id человека полученного из пересылаемого сообщения
         first_name_future_admin = str(message.forward_from.first_name)  # Получаем имя будущего админа
         last_name_future_admin = str(message.forward_from.last_name)  # Получаем фамилию будущего админа
-        full_name_future_admin = first_name_future_admin + ' ' + last_name_future_admin  # Склеиваем данные воедино
-        print(f'{full_name_user(message)} переслал сообщение от пользователя {full_name_future_admin} '
-              f'содержащее текст:\n {message.text}')
+        full_name_future_admin = f'{first_name_future_admin} {last_name_future_admin}'  # Склеиваем данные воедино
+        print(f'{message.from_user.first_name} (ID: {message.from_user.id}) переслал сообщение от пользователя '
+              f'{full_name_future_admin} содержащее текст:\n {message.text}')
         answer_text = f'Пользователь <{full_name_future_admin}> добавлен в список администраторов'
         if SQL().check_for_existence(id_future_admin) is True:  # Проверка на наличие человека в БД
             if SQL().check_for_admin(id_future_admin) is False:  # Проверка админ ли юзер
                 SQL().set_admin(id_future_admin)  # Обновляем статус нового админа в БД
-                types_message(message)
-                bot.reply_to(message, answer_text)  # Бот уведомляет об этом того кто выполнил запрос
-                print(f'{answer_bot}{answer_text}\n')
-                bot.send_message(id_future_admin, f'Администратор <{message.from_user.first_name}> '
-                                                  f'предоставил вам права администратора')  # Бот уведомляет
-                # пользователя, что такой-то юзер, дал ему права админа
+                answer_bot(message, answer_text)
+                message_from_new_admin = (f'Администратор <{message.from_user.first_name}> наделил вас правами '
+                                          f'администратора')
+                bot.send_message(id_future_admin, message_from_new_admin)  # Бот уведомляет пользователя, что такой-то
+                # юзер, дал ему права админа
             else:  # Если тот кому предоставляют права уже админ, бот сообщит об ошибке
                 end_text = 'Нельзя пользователю дать права администратора, поскольку он им уже является!'
-                types_message(message)
-                bot.reply_to(message, end_text)
-                print(f'{answer_bot}{end_text}\n')
+                answer_bot(message, end_text)
         else:  # Если того кому пытаются дать права нет в БД, бот сообщит об ошибке
             end_text = 'Вы пытаетесь дать права администратора пользователю который отсутствует в базе данных!'
-            types_message(message)
-            bot.reply_to(message, end_text)
-            print(f'{answer_bot}{end_text}\n')
-    except Exception as error:  # В любом другом случае бот сообщит об ошибке
+            answer_bot(message, end_text)
+    except Exception:  # В любом другом случае бот сообщит об ошибке
         error_text = 'Что-то пошло не так. Чтобы попробовать снова, жми /set_admin'
-        types_message(message)
-        bot.reply_to(message, error_text)
-        print(str(error))
-        logging_telegram_bot('error', str(error))
-
-    return
+        answer_bot(message, error_text)
 
 
 @bot.message_handler(commands=['set_user'])
+@Decorators.registration_of_actions
 def set_to_user(message):
     """Лишить пользователя прав администратора"""
 
@@ -308,65 +276,49 @@ def set_to_user(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Отмена']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)  # Бот пришлёт выше указанный текст и клавиатуру
+        answer_bot(message, answer_message, keyboard)
         bot.register_next_step_handler(message, receive_id_user)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
+@Decorators.registration_of_actions
 def receive_id_user(message):
     try:
-        print(f'{full_name_user(message)} написал:\n{message.text}')
         hide_keyboard = telebot.types.ReplyKeyboardRemove()
         if message.text == 'Отмена':
             answer_message = 'Операция прервана.'
-            types_message(message)
-            bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+            answer_bot(message, answer_message, hide_keyboard)
         else:
             chat_id = message.chat.id  # Получаем id чата
             id_future_user = chat_id  # Получаем id человека полученного из сообщения
             first_name_future_user = str(message.from_user.first_name)  # Получаем имя будущего юзера
             last_name_future_user = str(message.from_user.last_name)  # Получаем фамилию будущего юзера
-            full_name_future_user = first_name_future_user + ' ' + last_name_future_user  # Склеиваем данные воедино
-            print(f'{full_name_user(message)} переслал сообщение от пользователя {full_name_future_user} '
-                  f'содержащее текст:\n {message.text}')
+            full_name_future_user = f'{first_name_future_user} {last_name_future_user}'  # Склеиваем данные воедино
+            print(f'{message.from_user.first_name} (ID: {message.from_user.id}) переслал сообщение от пользователя '
+                  f'{full_name_future_user} содержащее текст:\n {message.text}')
             answer_text = f'Пользователю <{full_name_future_user}> присвоен статус <user>'
             if SQL().check_for_existence(id_future_user) is True:  # Проверка на наличие человека в БД
                 if SQL().check_for_admin(id_future_user) is True:  # Проверка админ ли юзер
                     SQL().set_user(id_future_user)  # Обновляем статус нового юзера в БД
-                    types_message(message)
-                    bot.reply_to(message, answer_text, reply_markup=hide_keyboard)  # Бот уведомляет об этом того кто
-                    # выполнил запрос
-                    print(f'{answer_bot}{answer_text}\n')
+                    answer_bot(message, answer_text, hide_keyboard)
                     bot.send_message(id_future_user, f'Администратор <{message.from_user.first_name}> лишил вас прав '
                                                      f'администратора')  # Бот уведомляет нового юзера, что
                     # пользователь <Имя>, лишил его прав админа
                 else:  # Если тот, кого лишают прав админа, уже и так юзер, бот сообщит об ошибке
                     end_text = 'Нельзя пользователю присвоить статус <user> поскольку он им уже является'
-                    types_message(message)
-                    bot.reply_to(message, end_text, reply_markup=hide_keyboard)
-                    print(f'{answer_bot}{end_text}\n')
+                    answer_bot(message, end_text, hide_keyboard)
             else:  # Если того, кого пытаются лишить прав админа, нет в БД, бот сообщит об ошибке
                 end_text = 'Вы пытаетесь присвоить пользователю статус <user>, который отсутствует в базе данных!'
-                types_message(message)
-                bot.reply_to(message, end_text, reply_markup=hide_keyboard)
-                print(f'{answer_bot}{end_text}\n')
-
-    except Exception as error:  # В любом другом случае бот сообщит об ошибке
+                answer_bot(message, end_text, hide_keyboard)
+    except Exception:  # В любом другом случае бот сообщит об ошибке
         error_text = 'Что-то пошло не так. Чтобы попробовать снова, жми /set_user'
-        types_message(message)
-        bot.reply_to(message, error_text)
-        print(str(error))
-        logging_telegram_bot('error', str(error))
-    return
+        answer_bot(message, error_text)
 
 
 @bot.message_handler(commands=['subscribe'])
+@Decorators.registration_of_actions
 def set_subscribe(message):
     """Подписка на рассылку"""
 
@@ -374,33 +326,28 @@ def set_subscribe(message):
         if SQL().check_status_DB(message.from_user.id, 'notification',
                                  'yes') is False:  # Если пользователь не подписчик
             SQL().change_status_DB(message.from_user.id, 'notification')  # Присвоить статус <подписан>
-            end_text = 'Подписка на уведомления активирована. Теперь вам будут приходить уведомления о том, ' \
-                       'кто из системных администраторов дежурит в ближайшие выходные или праздничные дни, ' \
-                       'кто в отпуске и прочая информация.\n\n' \
-                       '#####\n' \
-                       'В эту подписку не входят уведомления из барахолки! Внимательно ознакомьтесь со списком ' \
-                       'доступных команд -> /help\n' \
-                       '#####\n\n' \
-                       'Чтобы отказаться от рассылки, жми /unsubscribe '
-            types_message(message)
-            bot.reply_to(message, end_text)  # Отправка текста выше
+            end_text = ('Подписка на уведомления активирована. Теперь вам будут приходить уведомления о том, '
+                        'кто из системных администраторов дежурит в ближайшие выходные или праздничные дни, '
+                        'кто в отпуске и прочая информация.\n\n'
+                        '#####\n'
+                        'В эту подписку не входят уведомления из барахолки! Внимательно ознакомьтесь со списком '
+                        'доступных команд -> /help\n'
+                        '#####\n\n'
+                        'Чтобы отказаться от рассылки, жми /unsubscribe')
+            answer_bot(message, end_text)
             #  Отсылка уведомлений о действии разработчику
-            bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                             text=f'{full_name_user(message)} подписался на уведомления.')
-            print(f'{answer_bot}{end_text}\n')
+            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            #                  text=f'{full_name_user(message)} подписался на уведомления.')
         else:  # Если подписчик пытается подписаться, то получит ошибку
             end_text = 'Вы уже подписаны на уведомления.'
-            types_message(message)
-            bot.reply_to(message, end_text)
-            print(f'{answer_bot}{end_text}\n')
+            answer_bot(message, end_text)
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['unsubscribe'])
+@Decorators.registration_of_actions
 def set_subscribe(message):
     if existence(message) is True:
         if SQL().check_status_DB(message.from_user.id, 'notification',
@@ -408,51 +355,42 @@ def set_subscribe(message):
             SQL().change_status_DB(message.from_user.id,
                                    'notification')  # Присвоить в БД статус <не подписан>
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
-            types_message(message)
-            bot.reply_to(message, end_text)  # Отправка текста выше
+            answer_bot(message, end_text)
             #  Отсылка уведомлений о действии разработчику
-            bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                             text=f'{full_name_user(message)} отписался от уведомлений.')
-            print(f'{answer_bot}{end_text}\n')
+            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            #                  text=f'{full_name_user(message)} отписался от уведомлений.')
         else:  # Если не подписчик пытается отписаться, то получит ошибку
             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
-            types_message(message)
-            bot.reply_to(message, end_text)
-            print(f'{answer_bot}{end_text}\n')
+            answer_bot(message, end_text)
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['change_sticker'])
+@Decorators.registration_of_actions
 def change_sticker(message):
     """Присвоить/сменить себе стикер"""
 
     if rights_admin(message) is True:
         answer_message = 'Отправь мне стикер который хочешь привязать в своей учётной записи!'
-        types_message(message)
-        bot.reply_to(message, answer_message)
+        answer_bot(message, answer_message)
         bot.register_next_step_handler(message, change_sticker_step_2)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
+# @Decorators.registration_of_actions
 def change_sticker_step_2(message):
-    print(f'{full_name_user(message)} отправил стикер {message.sticker.file_id}')
+    # print(f'{full_name_user(message)} отправил стикер {message.sticker.file_id}')
     SQL().update_sqlite_table(message.sticker.file_id, message.from_user.id, 'sticker')
     end_text = 'Стикер обновлён'
-    types_message(message)
-    bot.reply_to(message, end_text)
-    print(f'{answer_bot}{end_text}\n')
+    answer_bot(message, end_text)
 
 
-@bot.message_handler(commands=['dezhurnyj'])  # , func=command_dezhurnyj)
+@bot.message_handler(commands=['dezhurnyj'])
+@Decorators.registration_of_actions
 def dej(message):
     """Узнать кто дежурный"""
 
@@ -461,154 +399,109 @@ def dej(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Имя следующего дежурного', 'Список дежурных']
         keyboard.add(*buttons)
-        types_message(message)
-        # bot.send_message(copy_call.from_user.id, copy_call.message.text, reply_markup=keyboard)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard)
         bot.register_next_step_handler(message, dej_step_2)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = existence(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
+@Decorators.registration_of_actions
 def dej_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     sheet_name = 'Дежурный'
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
-    try:
-        if message.text == 'Имя следующего дежурного':
-            answer_message = Working_with_a_file(sheet_name).next_dej()
-            user_sticker = Working_with_a_file(sheet_name).sticker_next_dej()
-            # Пришлёт сообщение о дежурном
-            types_message(message)
-            bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-            if user_sticker is not None:
-                # Пришлёт стикер этого дежурного
-                bot.send_sticker(message.chat.id, user_sticker)
-            print(f'{answer_bot}{answer_message}\n')
-        elif message.text == 'Список дежурных':
-            count_data_list = len(Working_with_a_file(sheet_name).list_dej())
-            answer_message = number_of_events(count_data_list)
-            types_message(message)
-            bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-            bot.register_next_step_handler(message, dej_step_3, sheet_name,
-                                           count_data_list)  # Регистрация следующего действия
-            print(f'{answer_bot}{answer_message}\n')
-    except Exception as error:  # В любом другом случае бот сообщит об ошибке
-        answer_message = 'Что-то пошло не так. Чтобы попробовать снова, жми /dezhurnyj'
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
-        print(str(error))
-        logging_telegram_bot('error', str(error))
+    if message.text == 'Имя следующего дежурного':
+        answer_message = Working_with_a_file(sheet_name).next_dej()
+        user_sticker = Working_with_a_file(sheet_name).sticker_next_dej()
+        # Пришлёт сообщение о дежурном
+        answer_bot(message, answer_message, hide_keyboard)
+        if user_sticker is not None:
+            # Пришлёт стикер этого дежурного
+            bot.send_sticker(message.chat.id, user_sticker)
+    elif message.text == 'Список дежурных':
+        count_data_list = len(Working_with_a_file(sheet_name).list_dej())
+        answer_message = number_of_events(count_data_list)
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
+        bot.register_next_step_handler(message, dej_step_3, sheet_name,
+                                       count_data_list)  # Регистрация следующего действия
 
 
+# @Decorators.registration_of_actions
 def dej_step_3(message, sheet_name, count_data_list):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     count = int(message.text)
-    try:
-        if count <= count_data_list:
-            data_list = Working_with_a_file(sheet_name).list_dej()
-            Working_with_notifications.repeat_for_list(data_list, message.from_user.id, count)
-        else:
-            answer_message = f'Вы запрашиваете {count} записей, а есть только {count_data_list}.\n' \
-                             f'Попробуйте снова - /dezhurnyj'
-            types_message(message)
-            bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-            print(f'{answer_bot}{answer_message}\n')
-    except Exception as error:  # В любом другом случае бот сообщит об ошибке
-        answer_message = 'Я не распознал число, попробуйте снова - /dezhurnyj'
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
-        print(str(error))
-        logging_telegram_bot('error', str(error))
+    if count <= count_data_list:
+        data_list = Working_with_a_file(sheet_name).list_dej()
+        Working_with_notifications.repeat_for_list(data_list, message.from_user.id, count)
+    else:
+        answer_message = f'Вы запрашиваете {count} записей, а есть только {count_data_list}.\n' \
+                         f'Попробуйте снова - /dezhurnyj'
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
 
 
 @bot.message_handler(commands=['get_list'])
+@Decorators.registration_of_actions
 def get_list(message):
     """Получить список всех пользователей"""
 
     if rights_admin(message) is True:
         answer_message = SQL().get_list_users()
-        types_message(message)
-        bot.reply_to(message, answer_message)
+        answer_bot(message, answer_message)
     else:  # Если пользователь не зарегистрирован, бот предложит это сделать
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['feed_back'])
+@Decorators.registration_of_actions
 def feed_back(message):
     """Обратная связь"""
 
-    # if existence(message) is True:  # Проверка на наличие юзера в БД
     answer_message = 'Выберите тип обращения'
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Что-то не работает', 'Есть идея новой функции', 'Другое', 'Отмена']
     keyboard.add(*buttons)
-    types_message(message)
-    bot.reply_to(message, answer_message, reply_markup=keyboard)
+    answer_bot(message, answer_message, keyboard=keyboard)
     bot.register_next_step_handler(message, feed_back_step_2)  # Регистрация следующего действия
-    print(f'{answer_bot}{answer_message}\n')
-    # else:  # Если пользователь не зарегистрирован, бот предложит это сделать
-    #     end_text = existence(message)
-    #     types_message(message)
-    #     bot.reply_to(message, end_text)
-    #     print(f'{answer_bot}{end_text}\n')
 
 
+@Decorators.registration_of_actions
 def feed_back_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Отмена':
         answer_message = 'Обращение отменено.'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
     else:
-        print(f'{full_name_user(message)} написал:\n{message.text}')
         text_answer = 'Опишите суть обращения. Чем подробнее тем лучше.\n'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Отмена']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, text_answer, reply_markup=keyboard)
+        answer_bot(message, text_answer, keyboard=keyboard)
         contacting_technical_support = f'{message.text}\n'
         bot.register_next_step_handler(message, feed_back_step_3,
                                        contacting_technical_support)  # Регистрация следующего действия
-        print(f'{answer_bot}{text_answer}\n')
 
 
+# @Decorators.registration_of_actions
 def feed_back_step_3(message, text_problem):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Отмена':
         answer_message = 'Обращение отменено.'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
     else:
-        problem = f'FEED_BACK:\n{text_problem}{message.text}'
-        logging_telegram_bot('info', problem)
-        answer_message = f'Ваше обращение создано!\n' \
-                         f'Тип: {text_problem}\n' \
-                         f'Текст сообщения: {message.text}'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        # problem = f'FEED_BACK:\n{text_problem}{message.text}'
+        answer_message = (f'Ваше обращение создано!\n'
+                          f'Тип: {text_problem}\n'
+                          f'Текст сообщения: {message.text}')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
         bot.send_message(chat_id=Secret.list_admins.get('Никита'),
                          text=f'Поступило новое обращение от пользователя:\n'
                               f'Тип: {text_problem}\n'
                               f'Текст сообщения: {message.text}')
-        print(f'{answer_bot}{answer_message}\n')
 
 
 @bot.message_handler(commands=['create_record'])
+@Decorators.registration_of_actions
 def create_record(message):
     """Создать уведомление"""
 
@@ -617,59 +510,46 @@ def create_record(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Уведомления для всех', 'Уведомления для подписчиков', 'Уведомления для админов', 'Отмена']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard=keyboard)
         bot.register_next_step_handler(message, create_record_step_2, buttons)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
+# @Decorators.registration_of_actions
 def create_record_step_2(message, list_sheet):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Отмена':
         answer_message = 'Операция прервана.'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
     elif message.text not in list_sheet:
         answer_message = f'Нет листа с именем <{message.text}>! Необходимо выбрать из списка.'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Ок']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard=keyboard)
         bot.register_next_step_handler(message, create_record)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         list_of_answers = [message.text]
         answer_message = 'Введи текст уведомления'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
         bot.register_next_step_handler(message, create_record_step_3,
                                        list_of_answers)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
 
 
+# @Decorators.registration_of_actions
 def create_record_step_3(message, list_of_answers):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     list_of_answers.append(message.text)
-    answer_message = 'Введи дату когда уведомить о событии в формате <ДД.ММ.ГГГГ>.\n' \
-                     '*Примечание: если дату указать некорректно, уведомление не сработает!*'
-    types_message(message)
-    bot.reply_to(message, answer_message)
+    answer_message = ('Введи дату когда уведомить о событии в формате <ДД.ММ.ГГГГ>.\n'
+                      '*Примечание: если дату указать некорректно, уведомление не сработает!*')
+    answer_bot(message, answer_message)
     bot.register_next_step_handler(message, create_record_step_4, list_of_answers)  # Регистрация следующего действия
-    print(f'{answer_bot}{answer_message}\n')
 
 
+# @Decorators.registration_of_actions
 # noinspection PyTypeChecker
 def create_record_step_4(message, list_of_answers):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
-
     list_of_answers.append(message.text)
 
     sheet_name = list_of_answers[0]
@@ -677,41 +557,27 @@ def create_record_step_4(message, list_of_answers):
     text_event = list_of_answers[1]
 
     answer_message = Working_with_a_file(sheet_name).create_event(date, text_event)
-    print(answer_message)
-    types_message(message)
-    bot.reply_to(message, answer_message)
-    print(f'{answer_bot}{answer_message}\n')
-
-    report_text = f'{full_name_user(message)} создал событие\n\n{answer_message}'
-    bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=report_text)
-
+    answer_bot(message, answer_message)
     list_of_answers.clear()
 
     exit()
 
 
 @bot.message_handler(commands=['games'])
+@Decorators.registration_of_actions
 def games(message):
     """Игры"""
 
-    # if existence(message) is True:  # Проверка на наличие юзера в БД
     answer_message = 'На данный момент доступна одна игра'
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Играть в "Угадаю число"', 'Отмена']
     keyboard.add(*buttons)
-    types_message(message)
-    bot.reply_to(message, answer_message, reply_markup=keyboard)
+    answer_bot(message, answer_message, keyboard=keyboard)
     bot.register_next_step_handler(message, games_step_2)  # Регистрация следующего действия
-    print(f'{answer_bot}{answer_message}\n')
-    # else:
-    #     end_text = existence(message)
-    #     types_message(message)
-    #     bot.reply_to(message, end_text)
-    #     print(f'{answer_bot}{end_text}\n')
 
 
+@Decorators.registration_of_actions
 def games_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     if message.text == 'Играть в "Угадаю число"':
         answer_message = 'Хорошо, начнём. Правила просты - загадай число от 1 до 100 а я попробую его угадать. ' \
                          'Я называю число, если твоё число меньше, жми "меньше", если твоё число больше, ' \
@@ -719,31 +585,26 @@ def games_step_2(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Начнём']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, keyboard=keyboard)
         bot.register_next_step_handler(message, games_step_3)
     elif message.text == 'Отмена':
         answer_message = 'Хорошо, сыграем в другой раз.'
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message)
 
 
+@Decorators.registration_of_actions
 def games_step_3(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}\n')
     if message.text == 'Начнём':
         number = random.randint(0, 100)
         answer_message = f'Возможно это {number}?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Больше', 'Меньше', 'В точку']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
-        print(f'{answer_message}')
+        answer_bot(message, answer_message, keyboard=keyboard)
         bot.register_next_step_handler(message, games_step_4, number, lower=1, high=100, count=1)
 
 
+# @Decorators.registration_of_actions
 def games_step_4(message, number, lower, high, count):
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Больше':
@@ -755,11 +616,7 @@ def games_step_4(message, number, lower, high, count):
     elif message.text == 'В точку':
         print(f'{message.text}\n')
         answer_message = f'Я угадал твоё число за {count} ходов'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        # text_message_2 = 'Сыграем ещё? /games'
-        # bot.send_message(message.from_user.id, text_message_2)
-        # print(f'{answer_message}\n{text_message_2}\n')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
         exit()
     else:
         print(message.text)
@@ -772,13 +629,11 @@ def games_step_4(message, number, lower, high, count):
     ]
     random_phrase = random.choice(list_phrase)
     answer_message = f'{random_phrase} {middle}'
-    print(answer_message)
     count += 1
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Больше', 'Меньше', 'В точку']
     keyboard.add(*buttons)
-    types_message(message)
-    bot.reply_to(message, answer_message, reply_markup=keyboard)
+    answer_bot(message, answer_message, keyboard=keyboard)
     bot.register_next_step_handler(message, games_step_4, middle, lower, high, count)
 
 
@@ -832,6 +687,7 @@ def games_step_4(message, number, lower, high, count):
 
 
 @bot.message_handler(commands=['defrosters'])
+@Decorators.registration_of_actions
 def check_defroster_step_1(message):
     """Подписка на мониторинг показаний дефростеров. Результат - придёт авто обновляемое сообщение."""
 
@@ -845,26 +701,20 @@ def check_defroster_step_1(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Да', 'Отмена']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard=keyboard)
         bot.register_next_step_handler(message, check_defroster_step_2)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         answer_message = existence(message)
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message)
 
 
+@Decorators.registration_of_actions
 def check_defroster_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Да':
         SQL().change_status_DB(message.from_user.id, 'def')  # Изменить текущий статус
         answer_message = 'Статус успешно изменён'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
         time.sleep(3)
 
         if SQL().check_status_DB(message.from_user.id, 'def',
@@ -878,12 +728,10 @@ def check_defroster_step_2(message):
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
 
             end_message = 'Теперь вам доступны показания датчиков дефростеров. Сообщение обновляется автоматически.'
-            bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                             text=f'{full_name_user(message)} начал отслеживать показания датчиков дефростеров.')
+            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            #                  text=f'{full_name_user(message)} начал отслеживать показания датчиков дефростеров.')
 
-            types_message(message)
-            bot.send_message(chat_id=message.from_user.id, text=end_message)
-            print(f'{answer_bot}{end_message}\n')
+            answer_bot(message, end_message)
         else:
             if SQL().check_for_existence(message.from_user.id, 'tracking_sensor_defroster') is False:
                 pass
@@ -897,56 +745,42 @@ def check_defroster_step_2(message):
                 SQL().log_out(message.from_user.id, 'tracking_sensor_defroster')
 
                 end_message = 'Вы прекратили отслеживать показания. Если передумаете клик - /defrosters.'
-                bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                                 text=f'{full_name_user(message)} прекратил отслеживать показания датчиков '
-                                      f'дефростеров.')
+                # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                #                  text=f'{full_name_user(message)} прекратил отслеживать показания датчиков '
+                #                       f'дефростеров.')
 
-                types_message(message)
-                bot.send_message(chat_id=message.from_user.id, text=end_message)
-                print(f'{answer_bot}{end_message}\n')
+                answer_bot(message, end_message)
     elif message.text == 'Отмена':
         end_text = 'Операция прервана'
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['all_sensors'])
+@Decorators.registration_of_actions
 def check_error_sensor(message):
-    # if rights_admin(message) is True:  # Проверка на наличие юзера в БД и является ли он админом
-    #     Если пользователь не наблюдатель
     if SQL().check_status_DB(message.from_user.id, 'observer_all_sensor', 'yes') is False:
-        answer_message = 'Инструмент позволяет отслеживать неисправные термодатчики. Вам придёт авто-обновляемое ' \
-                         'сообщение со списком. А так же будут поступать сообщения как только обнаружится ' \
-                         'неисправность. На данный момент вы не подписаны на уведомления. Хотите начать?\n' \
-                         '*** выберите действие ниже ***'
+        answer_message = ('Инструмент позволяет отслеживать неисправные термодатчики. Вам придёт авто-обновляемое '
+                          'сообщение со списком. А так же будут поступать сообщения как только обнаружится '
+                          'неисправность. На данный момент вы не подписаны на уведомления. Хотите начать?\n'
+                          '*** выберите действие ниже ***')
     else:
-        answer_message = 'На данный момент вы подписаны на уведомления о неисправных датчиках. ' \
-                         'Прекратить отслеживать?\n' \
-                         '*** выберите действие ниже ***'
+        answer_message = ('На данный момент вы подписаны на уведомления о неисправных датчиках. '
+                          'Прекратить отслеживать?\n'
+                          '*** выберите действие ниже ***')
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Да', 'Отмена']
     keyboard.add(*buttons)
-    types_message(message)
-    bot.reply_to(message, answer_message, reply_markup=keyboard)
+    answer_bot(message, answer_message, keyboard=keyboard)
     bot.register_next_step_handler(message, check_error_sensor_step_2)  # Регистрация следующего действия
-    print(f'{answer_bot}{answer_message}\n')
-    # else:
-    #     answer_message = existence(message)
-    #     types_message(message)
-    #     bot.reply_to(message, answer_message)
-    #     print(f'{answer_bot}{answer_message}\n')
 
 
+@Decorators.registration_of_actions
 def check_error_sensor_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Да':
         SQL().change_status_DB(message.from_user.id, 'observer_all_sensor')  # Изменить текущий статус
         answer_message = 'Статус успешно изменён'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
         time.sleep(3)
 
         if SQL().check_status_DB(message.from_user.id, 'observer_all_sensor',
@@ -961,12 +795,10 @@ def check_error_sensor_step_2(message):
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
 
             end_message = 'Теперь вам доступен список неисправных датчиков. Сообщение обновляется автоматически.'
-            bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                             text=f'{full_name_user(message)} начал отслеживать список неисправных датчиков.')
+            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            #                  text=f'{full_name_user(message)} начал отслеживать список неисправных датчиков.')
 
-            types_message(message)
-            bot.send_message(chat_id=message.from_user.id, text=end_message)
-            print(f'{answer_bot}{end_message}\n')
+            answer_bot(message, end_message)
         else:  # Если пользователь не подписан на отслеживание показаний
             # Проверка на наличие пользователя в БД
             if SQL().check_for_existence(message.from_user.id, 'observers_for_faulty_sensors') is False:
@@ -982,45 +814,40 @@ def check_error_sensor_step_2(message):
 
                 end_message = 'Вы прекратили отслеживать список неисправных датчиков. ' \
                               'Если передумаете клик - /all_sensors.'
-                bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                                 text=f'{full_name_user(message)} прекратил отслеживать список неисправных датчиков.')
+                # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                #                  text=f'{full_name_user(message)} прекратил отслеживать список неисправных датчиков.')
 
-                types_message(message)
-                bot.send_message(chat_id=message.from_user.id, text=end_message)
-                print(f'{answer_bot}{end_message}\n')
+                answer_bot(message, end_message)
     elif message.text == 'Отмена':
-        end_text = ''
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        end_text = 'Операция отменена'
+        answer_bot(message, end_text)
 
 
 @bot.message_handler(commands=['answer'])
+@Decorators.registration_of_actions
 def answer(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     if message.from_user.id == Secret.list_admins.get('Никита'):
         if SQL().count_not_answer() > 0:
             answer_message = SQL().search_not_answer()
             message_bot = f'Как ответить на это сообщение?\n<{answer_message}>'
-            bot.reply_to(message, message_bot)
+            answer_bot(message, message_bot)
             bot.register_next_step_handler(message, answer_step_two, answer_message)
         else:
             message_bot = SQL().search_not_answer()
-            bot.reply_to(message, message_bot)
-        print(f'{answer_bot}{message_bot}\n')
+            answer_bot(message, message_bot)
 
 
+# @Decorators.registration_of_actions
 def answer_step_two(message, question):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     text_answer = message.text
     SQL().update_answer_speak_DB(question, text_answer)
 
     message_bot = 'Запомнил. Продолжим? /answer'
-    bot.reply_to(message, message_bot)
-    print(f'{answer_bot}{message_bot}\n')
+    answer_bot(message, message_bot)
 
 
 @bot.message_handler(commands=['vacation'])
+@Decorators.registration_of_actions
 def get_number_vacation_days(message):
     """Функция возвращает кол-во накопившихся дней отпуска либо текст с описанием при возникновении ошибки."""
 
@@ -1038,22 +865,17 @@ def get_number_vacation_days(message):
                                      f'получил ответ от ERP по кол-ву накопленных дней отпуска.')
             else:
                 answer_message = str(count_day)  # Тут текст ошибки
-                types_message(message)
-                bot.send_message(chat_id=message.from_user.id, text=answer_message)
-                print(f'{answer_bot}{answer_message}\n')
+                answer_bot(message, answer_message)
         else:
             verify_error = 'Чтобы воспользоваться функцией необходимо пройти верификацию в 1С -> /verification'
-            types_message(message)
-            bot.send_message(chat_id=message.from_user.id, text=verify_error)
-            print(f'{answer_bot}{verify_error}\n')
+            answer_bot(message, verify_error)
     else:
         answer_message = existence(message)
-        types_message(message)
         bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
 
 
 @bot.message_handler(commands=['verification'])
+@Decorators.registration_of_actions
 def verification(message):
     """Предлагает пользователю обновить ID Telegram в 1С с указанным ИНН. Либо возвращает str(ошибку)."""
 
@@ -1066,53 +888,40 @@ def verification(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Ок', 'Отмена']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard=keyboard)
         bot.register_next_step_handler(message, verification_step_2)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         answer_message = existence(message)
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message)
 
 
+@Decorators.registration_of_actions
 def verification_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Ок':
         answer_message = 'Введите номер вашего ИНН'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        answer_bot(message, answer_message, keyboard=hide_keyboard)
         bot.register_next_step_handler(message, verification_step_3)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     elif message.text == 'Отмена':
         end_text = 'Операция прервана. Когда будете готовы клик -> /verification'
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
-        # exit()
+        answer_bot(message, end_text)
 
 
+@Decorators.registration_of_actions
 def verification_step_3(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     if len(message.text) == 12:
         answer_message = ERP.Exchange_with_ERP(
             {Secret.number: message.from_user.id, Secret.verification: message.text}).answer_from_ERP()
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
-        logging_telegram_bot('info',
-                             f'Пользователь {message.from_user.first_name}({message.from_user.id}) '
-                             f'получил ответ от ERP по верификации.')
+        answer_bot(message, answer_message)
         SQL().update_sqlite_table('yes', message.from_user.id, 'verify_erp')
     else:
         error_text = 'Не удалось выполнить запрос. Номер ИНН должен состоять из 12 символов и содержать ' \
                      'только цифры. Проверьте корректно ли вы указали данные. Попробуйте снова -> /verification'
-        bot.reply_to(message, error_text)
-        print(f'{answer_bot}{error_text}\n')
+        answer_bot(message, error_text)
 
 
 @bot.message_handler(commands=['baraholka'])
+@Decorators.registration_of_actions
 def baraholka(message):
     user_id = message.from_user.id
     if existence(message) is True:
@@ -1126,9 +935,9 @@ def baraholka(message):
                      'Чтобы понять как работает барахолка, настоятельно рекомендуем ознакомиться с описанием!'
 
         text_to_user = f'Давно не виделись {message.from_user.first_name}! В данный момент {status}'
-        bot.reply_to(message, text=text_to_user)
-        print(f'{answer_bot}{text_to_user}\n')
+        answer_bot(message, text_to_user)
         time.sleep(3)
+
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Изменить статус', 'Оставить как есть']
         manual = ['Как это работает?']
@@ -1136,34 +945,23 @@ def baraholka(message):
         keyboard.add(*manual)
         types_message(message)
         text_to_user = 'Выберите действие:'
-        bot.send_message(chat_id=user_id,
-                         text=text_to_user,
-                         reply_markup=keyboard)
-        print(f'{answer_bot}{text_to_user}\n')
+        answer_bot(message, text_to_user, keyboard)
         bot.register_next_step_handler(message, baraholka_step_2)
     else:
         answer_message = existence(message)
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message)
 
 
+@Decorators.registration_of_actions
 def baraholka_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Изменить статус':
         answer_SQL = SQL().change_status_bar(message.from_user.id)
-        text_to_user = 'Статус успешно изменён!'
-        bot.send_message(chat_id=message.from_user.id,
-                         text=f'{text_to_user}\n{answer_SQL}',
-                         reply_markup=hide_keyboard)
-        print(f'{answer_bot}{text_to_user}\n')
+        text_to_user = f'Статус успешно изменён!\n{answer_SQL}'
+        answer_bot(message, text_to_user, hide_keyboard)
     elif message.text == 'Оставить как есть':
         text_to_user = 'Хорошо. До новых сообщений! ;)'
-        bot.send_message(chat_id=message.from_user.id,
-                         text=text_to_user,
-                         reply_markup=hide_keyboard)
-        print(f'{answer_bot}{text_to_user}\n')
+        answer_bot(message, text_to_user, hide_keyboard)
     elif message.text == 'Как это работает?':
         manual = 'IT - отдел периодически списывает оборудование и комплектующие. С помощью барахолки мы ' \
                  'реализовали возможность выдавать это на руки тем, кто в них заинтересован.\n' \
@@ -1183,14 +981,11 @@ def baraholka_step_2(message):
                  'лоты могут быть платными, но цена, как правило символичная.\n' \
                  'Если готовы приступить нажмите сюда -> /baraholka и далее на кнопку "Изменить статус"'
 
-        bot.send_message(chat_id=message.from_user.id,
-                         text=manual,
-                         reply_markup=hide_keyboard)
-
-        print(f'{answer_bot}{manual}\n')
+        answer_bot(message, manual, hide_keyboard)
 
 
 @bot.message_handler(commands=['place_a_lot'])
+@Decorators.registration_of_actions
 def place_a_lot(message):
     user_id = message.from_user.id
     if rights_admin(message) is True:
@@ -1202,35 +997,29 @@ def place_a_lot(message):
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Создать лот', 'Возможно позже']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.send_message(chat_id=user_id, text=text_answer, reply_markup=keyboard)
-        print(f'{answer_bot}{text_answer}\n')
+        answer_bot(message, text_answer, keyboard)
         bot.register_next_step_handler(message, place_a_lot_step_2)
     else:
         answer_message = existence(message)
-        types_message(message)
-        bot.reply_to(message, answer_message)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message)
 
 
+@Decorators.registration_of_actions
 def place_a_lot_step_2(message):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     user_id = message.from_user.id
     name_lot = None
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Создать лот':
         answer_text = 'Как будет называться лот?'
-        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, hide_keyboard)
         bot.register_next_step_handler(message, place_a_lot_step_3, name_lot)
     elif message.text == 'Возможно позже':
         answer_text = 'Создание лота отменено.'
-        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, hide_keyboard)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_3(message, name_lot):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     user_id = message.from_user.id
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if name_lot is None:
@@ -1241,44 +1030,28 @@ def place_a_lot_step_3(message, name_lot):
     answer_text = 'Теперь отправь мне фотографию лота.\n' \
                   '*Примечание: при отправке нескольких фото, будет использоваться первая прикреплённая!'
 
-    bot.send_message(chat_id=user_id,
-                     text=answer_text,
-                     reply_markup=hide_keyboard)
-    print(f'{answer_bot}{answer_text}\n')
+    answer_bot(message, answer_text, hide_keyboard)
     bot.register_next_step_handler(message, place_a_lot_step_4, name_lot)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_4(message, name_lot):
-    # name_lot = name_lot
-    # print(message)
     if message.photo is not None:
-        print(f'{full_name_user(message)} прикрепил фото.')
         photo_id = message.photo[0].file_id
-
         answer_text = 'Теперь нужно добавить описание к лоту (что это, рабочее ли состояние, возможные дефекты)'
-
-        bot.send_message(message.chat.id, text=answer_text)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text)
         bot.register_next_step_handler(message, place_a_lot_step_5, name_lot, photo_id)
     else:
-        print(f'{full_name_user(message)} прикрепил не фото а что-то другое.')
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Ещё попытка']
         keyboard.add(*buttons)
-        types_message(message)
-
         answer_text = 'Не спеши! На данном этапе мне нужна фотография. Попробуем ещё раз. Нажми на кнопку ниже'
-
-        bot.send_message(message.chat.id,
-                         text=answer_text,
-                         reply_markup=keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, keyboard)
         bot.register_next_step_handler(message, place_a_lot_step_3, name_lot)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_5(message, name_lot, photo_id):
-    print(f'{full_name_user(message)} прикрепил фото.')
-    user_id = message.from_user.id
     description_lot = message.text
 
     answer_text = 'Указать стоимость лота?\n' \
@@ -1287,76 +1060,55 @@ def place_a_lot_step_5(message, name_lot, photo_id):
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Указать цену', 'Бесплатно']
     keyboard.add(*buttons)
-    types_message(message)
-    bot.send_message(chat_id=user_id, text=answer_text, reply_markup=keyboard)
-
-    print(f'{answer_bot}{answer_text}\n')
+    answer_bot(message, answer_text, keyboard)
     bot.register_next_step_handler(message, place_a_lot_step_6, name_lot, photo_id, description_lot)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     user_id = message.from_user.id
 
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Указать цену':
         answer_text = 'Сколько будет стоить лот?'
-        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, hide_keyboard)
         bot.register_next_step_handler(message, place_a_lot_step_7, name_lot, photo_id, description_lot)
     elif message.text == 'Бесплатно':
-        # answer_text = 'Записано'
-        # bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
-        # print(f'{answer_bot}{answer_text}\n')
         price = "бесплатно"
-
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Продолжить']
         keyboard.add(*buttons)
-        types_message(message)
-
         answer_text = 'Для того чтобы продолжить нажмите кнопку ниже'
-
-        bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, keyboard)
         bot.register_next_step_handler(message, place_a_lot_step_8, name_lot, photo_id, description_lot, price)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_7(message, name_lot, photo_id, description_lot):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     price = f'{message.text}₽'
     if message.text is not None:
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Продолжить']
         keyboard.add(*buttons)
-        types_message(message)
-
         answer_text = 'Для того чтобы продолжить нажмите кнопку ниже'
-
-        bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, keyboard)
         bot.register_next_step_handler(message, place_a_lot_step_8, name_lot, photo_id, description_lot, price)
     else:
         answer_text = "Кажется вы забыли указать цену! Укажите её прямо сейчас:"
-        bot.reply_to(text=answer_text)
+        answer_bot(message, answer_text)
         bot.register_next_step_handler(message, place_a_lot_step_7, name_lot, photo_id, description_lot)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_8(message, name_lot, photo_id, description_lot, price):
     lot_number = Working_with_notifications.Notification().get_last_record_lots() + 1
-    # name_lot = name_lot
-    # photo_id = photo_id
-    # description_lot = message.text
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Разместить', 'Создать заново', 'Удалить пост']
     keyboard.add(*buttons)
-    types_message(message)
-
     answer_text = 'Вот так пользователи будут видеть созданный лот:\n' \
                   '*Выбери действие*'
 
-    bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
-    print(f'{answer_bot}{answer_text}\n')
+    answer_bot(message, answer_text, keyboard)
     bot.send_photo(message.chat.id,
                    caption=f'Лот №{lot_number}\n\n'
                            f'Название: {name_lot}\n\n'
@@ -1366,9 +1118,8 @@ def place_a_lot_step_8(message, name_lot, photo_id, description_lot, price):
     bot.register_next_step_handler(message, place_a_lot_step_9, name_lot, photo_id, description_lot, price)
 
 
+# @Decorators.registration_of_actions
 def place_a_lot_step_9(message, name_lot, photo_id, description_lot, price):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
-    user_id = message.from_user.id
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Разместить':
         SQL().record_lot_to_DB(name_lot, photo_id, description_lot)  # Помещаем имя, id фото и описание в БД
@@ -1379,79 +1130,57 @@ def place_a_lot_step_9(message, name_lot, photo_id, description_lot, price):
         keyboard.add(button)
 
         answer_text = 'Лот успешно разослан подписчикам барахолки!'
-
-        bot.send_message(chat_id=user_id,
-                         text=answer_text,
-                         reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_text}\n')
-        # bot.answer_callback_query(chat_id=user_id,
-        #                           text='Лот успешно разослан подписчикам барахолки!',
-        #                           reply_markup=hide_keyboard)
+        answer_bot(message, answer_text, hide_keyboard)
     elif message.text == 'Создать заново':
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Начать']
         keyboard.add(*buttons)
-        types_message(message)
-
         answer_text = 'Для того чтобы продолжить нажмите кнопку ниже'
-
-        bot.send_message(message.chat.id, text=answer_text, reply_markup=keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, keyboard)
         bot.register_next_step_handler(message, place_a_lot)
     elif message.text == 'Удалить пост':
         answer_text = 'Публикация поста отменена'
-        bot.send_message(chat_id=user_id, text=answer_text, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_text}\n')
+        answer_bot(message, answer_text, hide_keyboard)
 
 
 @bot.message_handler(commands=['urgent_message'])
+@Decorators.registration_of_actions
 def urgent_message(message):
     if rights_admin(message) is True:
         answer_message = 'Кому вы собираетесь разослать сообщение?'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Всем пользователям', 'Подписчикам', 'Админам', 'Барахольщикам', 'Отмена']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard)
         bot.register_next_step_handler(message, urgent_message_step_2, buttons)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         end_text = rights_admin(message)
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+        answer_bot(message, end_text)
 
 
+# @Decorators.registration_of_actions
 def urgent_message_step_2(message, list_sheet):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Отмена':
         answer_message = 'Операция прервана.'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, hide_keyboard)
     elif message.text not in list_sheet:
-        answer_message = f'<{message.text}> не подходит.. Необходимо выбрать из списка!'
+        answer_message = f'"{message.text}" не подходит.. Необходимо выбрать из списка!'
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         buttons = ['Ок']
         keyboard.add(*buttons)
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=keyboard)
+        answer_bot(message, answer_message, keyboard)
         bot.register_next_step_handler(message, create_record)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
     else:
         list_of_answers = [message.text]
         answer_message = 'Введи текст уведомления'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
+        answer_bot(message, answer_message, hide_keyboard)
         bot.register_next_step_handler(message, urgent_message_step_3,
                                        list_of_answers)  # Регистрация следующего действия
-        print(f'{answer_bot}{answer_message}\n')
 
 
+# @Decorators.registration_of_actions
 def urgent_message_step_3(message, list_of_answers):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
-
     list_of_answers.append(message.text)
 
     sheet_name = list_of_answers[0]
@@ -1475,8 +1204,7 @@ def urgent_message_step_3(message, list_of_answers):
         keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
         keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
         error_message = 'Что-то пошло не так. Обратитесь к разработчику.'
-        types_message(message)
-        bot.reply_to(message, error_message, reply_markup=keyboard)
+        answer_bot(message, error_message, keyboard)
 
     confirm_message = f'Уведомление будет выглядеть вот так: \n•••••\n' \
                       f'{end_message}\n•••••\n' \
@@ -1485,15 +1213,12 @@ def urgent_message_step_3(message, list_of_answers):
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     buttons = ['Да', 'Отмена']
     keyboard.add(*buttons)
-    types_message(message)
-    bot.reply_to(message, confirm_message, reply_markup=keyboard)
+    answer_bot(message, confirm_message, keyboard)
     bot.register_next_step_handler(message, urgent_message_step_4, list_of_answers)  # Регистрация следующего действия
-    print(f'{answer_bot}{confirm_message}\n')
 
 
+# @Decorators.registration_of_actions
 def urgent_message_step_4(message, list_of_answers):
-    print(f'{full_name_user(message)} написал:\n{message.text}')
-
     sheet_name = list_of_answers[0]
     text_event = list_of_answers[1]
 
@@ -1519,19 +1244,17 @@ def urgent_message_step_4(message, list_of_answers):
             keyboard = telebot.types.InlineKeyboardMarkup()  # Вызов кнопки
             keyboard.add(telebot.types.InlineKeyboardButton('Написать разработчику', url='t.me/nikita_it_remit'))
             error_message = 'Что-то пошло не так. Обратитесь к разработчику.'
-            types_message(message)
-            bot.reply_to(message, error_message, reply_markup=keyboard)
+            answer_bot(message, error_message, keyboard)
     elif message.text == 'Отмена':
         hide_keyboard = telebot.types.ReplyKeyboardRemove()
         answer_message = 'Операция прервана.'
-        types_message(message)
-        bot.reply_to(message, answer_message, reply_markup=hide_keyboard)
-        print(f'{answer_bot}{answer_message}\n')
+        answer_bot(message, answer_message, hide_keyboard)
 
     exit()
 
 
 @bot.message_handler(commands=['secret_santa'])
+@Decorators.registration_of_actions
 def secret_santa(message):
     current_year = datetime.datetime.now().year
     date_start = datetime.datetime.strptime(f'{current_year}-11-01', '%Y-%m-%d').date()
@@ -1543,15 +1266,14 @@ def secret_santa(message):
             user_name = message.from_user.first_name
             hello_message = (f'Привет {user_name}!\n'
                              f'Уже совсем скоро наступят новогодние праздники. А какой самый главный атрибут '
-                             f'любого праздника? Конечно подарки! Возможно ты уже участвовал(а) в подобном мероприятии, а '
-                             f'если нет, жми кнопку узнать правила.')
+                             f'любого праздника? Конечно подарки! Возможно ты уже участвовал(а) в подобном мероприятии,'
+                             f' а если нет, жми кнопку узнать правила.')
 
             link_picture = 'https://6404332.ru/wa-data/public/shop/products/76/75/7576/images/10067/10067.750x0.jpg'
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
             buttons = ['Узнать правила', 'Отмена']
             keyboard.add(*buttons)
 
-            types_message(message)
             bot.send_photo(chat_id=message.from_user.id,
                            photo=link_picture,
                            caption=hello_message,
@@ -1559,17 +1281,16 @@ def secret_santa(message):
             bot.register_next_step_handler(message, secret_santa_step_2)  # Регистрация следующего действия
         else:
             verify_error = 'Чтобы принять участие необходимо пройти верификацию в 1С -> /verification'
-            types_message(message)
-            bot.send_message(chat_id=message.from_user.id, text=verify_error)
-            print(f'{answer_bot}{verify_error}\n')
+            answer_bot(message, verify_error)
     else:
-        # print(f'{datetime.date.today()} не в диапазоне между {date_start} и {date_finish}')
         format_date_start = date_start.strftime('%d.%m.%Y')
         format_date_finish = date_finish.strftime('%d.%m.%Y')
-        bot.reply_to(message, text=f'Начать регистрацию на участие в проведении "Тайного Санты" можно '
-                                   f'в период с {format_date_start} по {format_date_finish}')
+        error_text = (f'Начать регистрацию на участие в проведении "Тайного Санты" можно в '
+                      f'период с {format_date_start} по {format_date_finish}')
+        answer_bot(message, error_text)
 
 
+@Decorators.registration_of_actions
 def secret_santa_step_2(message):
     rules = (f'Бюджет для подарка вы определяете сами, но ширина кармана у всех разная, поэтому не стоит ожидать, что '
              f'Porsche или Cartier лучшая мысль :)\nЕсли вам сложно определиться с суммой, давайте условимся о '
@@ -1597,64 +1318,53 @@ def secret_santa_step_2(message):
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
 
     keyboard.add(*buttons)
-    types_message(message)
 
     if message.text == 'Узнать правила':
-        bot.reply_to(message=message,
-                     text=rules,
-                     reply_markup=keyboard)
+        answer_bot(message, rules, keyboard)
         bot.register_next_step_handler(message, secret_santa_step_3)  # Регистрация следующего действия
     elif message.text == 'Отмена':
-        bot.reply_to(message=message,
-                     text='Я вас понял. Если передумаете клик -> /secret_santa',
-                     reply_markup=hide_keyboard)
+        answer_bot(message, 'Я вас понял. Если передумаете клик -> /secret_santa', hide_keyboard)
 
 
+@Decorators.registration_of_actions
 def secret_santa_step_3(message):
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Пройти регистрацию':
         user_id = message.from_user.id
         if SQL().check_user_in_table_secret_santa(user_id=user_id) is False:
             user_name = message.from_user.first_name
-            types_message(message)
 
             SQL().registration_secret_santa(user_id, user_name)
-            types_message(message)
-            bot.reply_to(message=message,
-                         text='Вы успешно зарегистрированы! Теперь перечислите те вещи, которые вам не хотелось бы '
-                              'получить в подарок',
-                         reply_markup=hide_keyboard)
+            answer_bot(message, 'Вы успешно зарегистрированы! Теперь перечислите те вещи, которые вам не '
+                                'хотелось бы получить в подарок', hide_keyboard)
             bot.register_next_step_handler(message, secret_santa_step_4)  # Регистрация следующего действия
         else:
-            types_message(message)
-            bot.reply_to(message=message,
-                         text='Вы уже являетесь участником жеребьёвки',
-                         reply_markup=hide_keyboard)
+            answer_bot(message, 'Вы уже являетесь участником жеребьёвки', hide_keyboard)
     elif message.text == 'Не хочу участвовать':
-        bot.reply_to(message=message,
-                     text='Не знаете от чего отказываетесь ;)\nЕсли передумаете клик -> /secret_santa',
-                     reply_markup=hide_keyboard)
+        answer_bot(message, 'Не знаете от чего отказываетесь ;)\nЕсли передумаете клик -> /secret_santa',
+                   hide_keyboard)
 
 
+@Decorators.registration_of_actions
 def secret_santa_step_4(message):
-    types_message(message)
-    bot.reply_to(message=message,
-                 text='Супер! Теперь расскажите о том, что для вас было бы желанным подарком')
-    text = message.text
-    bot.register_next_step_handler(message, secret_santa_step_5, text)  # Регистрация следующего действия
-
-
-def secret_santa_step_5(message, good_gift):
+    answer_message = 'Супер! Теперь расскажите о том, что для вас было бы желанным подарком'
+    answer_bot(message, answer_message)
     bad_gift = message.text
+    bot.register_next_step_handler(message, secret_santa_step_5, bad_gift)  # Регистрация следующего действия
+
+
+# @Decorators.registration_of_actions
+def secret_santa_step_5(message, bad_gift):
+    good_gift = message.text
     user_id = message.from_user.id
     SQL().update_data_secret_santa(user_id=user_id, good_gift=good_gift, bad_gift=bad_gift)
-    bot.reply_to(message=message,
-                 text='Всё прошло успешно! Данные записаны. Ожидайте регистрации всех участников. '
-                      'В следующем этапе вы получите вводные о том кому и что готовить. Немного терпения, '
-                      'скоро начнём! :)')
+    answer_text = ('Всё прошло успешно! Данные записаны. Ожидайте регистрации всех участников. В следующем этапе вы '
+                   'получите вводные о том кому и что готовить. Немного терпения, скоро начнём! :)')
+    answer_bot(message, answer_text)
 
 
 @bot.callback_query_handler(func=lambda c: True)
+@Decorators.registration_of_actions
 def inline(c):
     user_id = c.from_user.id  # Получаем user_id
     user_name = c.from_user.first_name  # Получаем имя пользователя
@@ -1696,33 +1406,27 @@ def inline(c):
 
 
 @bot.message_handler(content_types=['text'])
+@Decorators.registration_of_actions
 def speak(message):
-    # if existence(message) is True:
-    text_message_user = message.text.capitalize()
-    the_answer_to_the_question = SQL().talk(text_message_user)
-    if the_answer_to_the_question is None:
-        text_one = random.choice(Secret.list_answer_speak)
-        text_two = '\nГоворите со мной чаще, я научусь!'
-        end_text = f'{text_one} {text_two}'
-        types_message(message)
-        bot.reply_to(message, end_text)
-        print(f'{answer_bot}{end_text}\n')
+    text_message_user = message.text.capitalize()  # Делаем все буквы строчными
+    the_answer_to_the_question = SQL().talk(text_message_user)  # Поиск ответа в БД
+    if the_answer_to_the_question is None:  # Если ответа в БД нет
+        end_text = f'{random.choice(Secret.list_answer_speak)}\nГоворите со мной чаще, я научусь!'
+        answer_bot(message, end_text)
 
         count = SQL().count_not_answer()
-        end_message = f'На данный момент есть {count} вопросов без ответа. Ответить на вопросы - /answer'
+        how_much = declension(count, 'вопрос', 'вопроса', 'вопросов')
+        end_message = f'На данный момент есть {count} {how_much} без ответа. Ответить на вопросы - /answer'
         bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=end_message)
     else:
-        types_message(message)
-        bot.reply_to(message, the_answer_to_the_question)
-        print(f'{answer_bot}{the_answer_to_the_question}\n')
-        # bot.send_message(message.from_user.id, answer)
+        answer_bot(message, the_answer_to_the_question)
 
 
 if __name__ == '__main__':
     while True:
         try:
             text_message = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
-                           f'Telegram_bot.py начал работу'
+                           f'Telegram_bot.py начал работу\n'
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text_message)
             print(text_message)
             bot.polling(none_stop=True)
@@ -1752,11 +1456,20 @@ if __name__ == '__main__':
             print(str(text_error))
         except Exception as e:
             time.sleep(3)
-            text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n' \
-                   f'В Telegram_bot.py возникла ошибка: {e} '
+
+            #  Получить имя модуля в котором сработало исключение
+            frm = inspect.trace()[-1]
+            file_name = frm[1]
+            line_error = frm[2]
+
+            text = (f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+                    f'Сработало исключение: "{e}"\n'
+                    f'Имя файла: {file_name}\n'
+                    f'Строка: {line_error}\n')
+
             bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
-            print(str(e))
-            logging_telegram_bot('error', str(e))
-        except BaseException:  # noqa
-            print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
-                  f'Возникла ошибка типа передаваемых данных')
+            print(text)
+            logging_telegram_bot('error', text_log=text)
+        # except BaseException:  # noqa
+        #     print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
+        #           f'Возникла ошибка типа передаваемых данных')

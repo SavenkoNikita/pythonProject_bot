@@ -9,13 +9,6 @@ import time
 import telebot
 
 from src.Body_bot import Secret
-
-# from Data import list_command_admin, list_command_user
-# from datetime import datetime, date, timedelta
-#
-# from Other_functions.Working_with_notifications import Notification
-# from  import Notification
-# import src.Other_functions.Functions
 from src.Other_functions import Working_with_notifications, Exchange_with_yougile
 
 
@@ -260,7 +253,7 @@ class SQL:
             # self.cursor.close()
             end_text = f'Обновлены данные пользователя\n{data_user()}\n'
             # Data.bot.send_message(chat_id=Data.list_admins.get('Никита'), text=end_text)
-            print(end_text)
+            # print(end_text)
         else:
             end_text = 'Пользователь уже есть в базе данных!\n' + data_user() + '\n'
             Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=end_text)
@@ -305,11 +298,6 @@ class SQL:
 
     def update_data_user(self, user_id, first_name, last_name, username):
         """Обновить данные о пользователе"""
-        # user_id = message.from_user.id
-        # # user_id = message.id и далее везде
-        # first_name = message.from_user.first_name
-        # last_name = message.from_user.last_name
-        # username = message.from_user.username
         if self.check_for_existence(user_id) is True:
             try:
                 self.cursor.execute(f'SELECT * '
@@ -544,12 +532,9 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
 
     def insert_data_speak_DB(self, text_message):
-        """Если вопрос отсутствует в БД, добавляет его."""
+        """Добавляет ответ на вопрос в БД."""
 
         try:
             self.cursor.execute(f'INSERT INTO talk (question, answer) '
@@ -560,9 +545,6 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
-        # finally:
-        #     if self.sqlite_connection:
-        #         self.sqlite_connection.close()
 
     def update_answer_speak_DB(self, question, answer):
         """"""
@@ -625,23 +607,21 @@ class SQL:
             if self.sqlite_connection:
                 self.sqlite_connection.close()
 
-    def update_data_in_table_SQL(self, name_table, set_name_column, set_value_column):
+    def update_data_in_table_SQL(self, name_table, set_name_column, set_value_column, user_id):
 
         """Обновляет данные в таблице {name_table},
-        устанавливает в колонке {set_name_column} значение {set_value_column}"""
+        устанавливает в колонке {set_name_column} значение {set_value_column} пользователю {user_id}"""
 
         try:
             sqlite_update_query = (f'UPDATE {name_table} '
-                                   f'SET {set_name_column} = "{set_value_column}"')  # WHERE {where_name_column}=?'
-            self.cursor.execute(sqlite_update_query)  # , where_value_column,))
+                                   f'SET {set_name_column} = "{set_value_column}" '
+                                   f'WHERE user_id = "{user_id}"')
+            self.cursor.execute(sqlite_update_query)
             self.sqlite_connection.commit()
             self.cursor.close()
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
 
     def select_data(self, name_table):
         """"""
@@ -718,9 +698,6 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
-        finally:
-            if self.sqlite_connection:
-                self.sqlite_connection.close()
 
     def get_value(self, name_column, user_id, poll_id):
         """"""
@@ -815,9 +792,26 @@ class SQL:
                                         f'last_update = "{last_update}", '
                                         f'detect_count = 0, name_sensor = "{name_sensor}" '
                                         f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
+                    self.cursor.execute(sql_update_query)
+                    self.sqlite_connection.commit()
+
+                    select_query = self.cursor.execute(f'SELECT id_task_yougile '
+                                                       f'FROM sensors '
+                                                       f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
+                    id_task_yougile = select_query.fetchone()[0]
+
+                    Exchange_with_yougile.delete_task(id_task_yougile)
+
+                    sql_update_query = (f'UPDATE sensors '
+                                        f'SET id_task_yougile = "" '
+                                        f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
+                    self.cursor.execute(sql_update_query)
+                    self.sqlite_connection.commit()
+
                 self.cursor.execute(sql_update_query)
                 self.sqlite_connection.commit()
                 # self.cursor.close()
+
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_sensors, 'error', str(error))
@@ -2019,14 +2013,20 @@ class SQL:
 
                 for name_faulty_sensor in detected_list:
                     title = f'Больше часа нет ответа от датчика <{name_faulty_sensor}>'
-                    log_text = f'{self.get_list_faulty_sensors.__name__}\n' \
+                    log_text = f'{self.get_list_faulty_sensors.__name__}()\n' \
                                f'В YouGile в колонку "Контроль температур" добавлена задача:\n' \
                                f'{title}\n\n'
-                    Exchange_with_yougile.post_task_to_column_sensors(title_text=title)
+                    id_task_yougile = Exchange_with_yougile.post_task_to_column_sensors(title_text=title)
                     print(log_text)
-                    Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
-                                            text=log_text)
+                    # Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                    #                         text=log_text)
                     time.sleep(1)
+
+                    sql_update_query = (f'UPDATE sensors '
+                                        f'SET id_task_yougile = "{id_task_yougile}" '
+                                        f'WHERE name_sensor = "{name_faulty_sensor}"')
+                    self.cursor.execute(sql_update_query)
+                    self.sqlite_connection.commit()
 
         except sqlite3.Error as error:
             error_message = f'{self.get_list_faulty_sensors.__name__}\n' \
@@ -2191,6 +2191,19 @@ class SQL:
             return True
         else:
             return False
+
+    def update_data_in_out(self, last_checkpoint):
+        """Обновляет данные в таблице {IN_OUT}, устанавливает в колонке {Status} значение {last_checkpoint}"""
+
+        try:
+            sqlite_update_query = (f'UPDATE IN_OUT '
+                                   f'SET Status = "{last_checkpoint}"')
+            self.cursor.execute(sqlite_update_query)
+            self.sqlite_connection.commit()
+            self.cursor.close()
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
 
 class Decorators:

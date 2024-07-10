@@ -32,29 +32,26 @@ class Working_with_a_file:
             self.count_meaning = 3  # Количество непустых колонок 3
         else:
             self.count_meaning = 2  # Количество непустых колонок 2
+        self.date_now = datetime.datetime.now().strftime('%d.%m.%Y %H:%M')
 
     def difference_date(self, date):
         f"""На вход принимает дату. Возвращает int(разницу) в днях между сегодня и {date}. 
         Где "0" означает сегодня, "1" - "завтра" и тд"""
 
-        # difference = date - self.now_date  # Разница между 1‑й датой и сегодня
-        # difference = difference.days + 1  # Форматируем в кол-во дней +1
-        difference = (date - self.now_date).days + 1
+        difference = (date - self.now_date).days + 1  # Разница между 1‑й датой и сегодня
 
-        if difference == -1:
-            print('Событие было вчера')
-        elif difference == 0:
-            print('Событие сегодня')
-        elif difference == 1:
-            print('Событие завтра')
+        # if difference == -1:
+        #     print('Событие было вчера')
+        # elif difference == 0:
+        #     print('Событие сегодня')
+        # elif difference == 1:
+        #     print('Событие завтра')
 
         text_to_log = f'difference_date(): ' \
                       f'Передана дата {date}. ' \
                       f'Текущая дата {self.now_date}. ' \
                       f'Разница между датами = {difference}.'
         logging_file_processing('info', text_to_log)
-        # print(text_to_log)
-        # print(f'Событие через: {difference}')
 
         return difference
 
@@ -95,7 +92,8 @@ class Working_with_a_file:
                         line = [date_one, date_two, meaning]  # Лист из 3 значений
                         date_list.append(line)  # Добавить лист в общий список
 
-            text_log = f'read_file(): Данные сформированы и переданы из листа {self.sheet_name}'
+            text_log = (f'{self.date_now}\n{self.read_file.__name__}: '
+                        f'Данные сформированы и переданы из листа {self.sheet_name}')
             logging_file_processing('info', text_log)
         except Exception.__traceback__:
             error = traceback.format_exc()
@@ -106,12 +104,14 @@ class Working_with_a_file:
             # print(date_list)
 
             if len(date_list) == 0:  # Если список пуст
-                no_data_available = f'read_file(): Список <{self.sheet_name}> пуст'
+                no_data_available = (f'{self.date_now}\n{self.read_file.__name__}: '
+                                     f'Список <{self.sheet_name}> пуст')
                 logging_file_processing('info', no_data_available)
                 print(f'{no_data_available}\n')
                 return None
             else:
-                read_file = f'read_file(): Прочитаны и возвращены данные листа <{self.sheet_name}>'
+                read_file = (f'{self.date_now}\n{self.read_file.__name__}: '
+                             f'Прочитаны и возвращены данные листа <{self.sheet_name}>')
                 logging_file_processing('info', read_file)
                 # print(date_list)
                 return date_list
@@ -306,8 +306,8 @@ class Working_with_a_file:
 
                     sticker_dej = SQL().get_a_user_sticker_from_the_database(get_key(name))
 
-                    # Notification().send_notification_to_subscribers(text_message)
-                    # Notification().send_sticker_to_subscribers(sticker_dej)
+                    Notification().send_notification_to_subscribers(text_message)
+                    Notification().send_sticker_to_subscribers(sticker_dej)
 
                     # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
                     # Data.bot.send_sticker(Data.list_admins.get('Никита'), sticker_dej)
@@ -315,8 +315,6 @@ class Working_with_a_file:
                     text_log = f'{self.check_dej_tomorrow.__name__}: Событие в прошлом.'
                     logging_file_processing('info', text_log)
                     self.clear_old_data()
-                # else:
-                #     print(f'Дата {date} не наступила')
 
     def create_event(self, date, text_event):
         """Принимает дату и текст уведомления и записывает в файл. Возвращает текст с описанием созданного
