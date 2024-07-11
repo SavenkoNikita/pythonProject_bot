@@ -12,7 +12,7 @@ class Exchange_with_ERP:
         self.login = Secret.login_erp
         self.password = Secret.pass_erp
         self.user_agent_val = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                              'Chrome/75.0.3770.142 Safari/537.36 '
+                              'Chrome/75.0.3770.142 Safari/537.36'
         # self.headers = {'Cache-Control': 'private',
         #                 'Content-Type': 'text/html; charset=utf-8',
         #                 'Server': 'Microsoft-IIS/8.5',

@@ -140,7 +140,7 @@ class TrackingSensor:
                         f'Имя файла: {file_name}\n'
                         f'Строка: {line_error}\n')
 
-                bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
+                # bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
                 print(text)
 
         return sensors_with_an_error

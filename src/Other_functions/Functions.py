@@ -780,7 +780,7 @@ class SQL:
                 # self.cursor.close()
             else:  # Иначе обновляем данные
                 # 0.5 из-за задвоения get_data()
-                if int(float(last_value)) < int(float(-100)):
+                if int(float(last_value)) < int(float(-100)) or int(float(100)) < int(float(last_value)):
                     sql_update_query = (f'UPDATE sensors '
                                         f'SET online = "{True}", last_value = "{last_value}", '
                                         f'last_update = "{last_update}", detect_count = detect_count + 0.5, '
@@ -800,13 +800,15 @@ class SQL:
                                                        f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
                     id_task_yougile = select_query.fetchone()[0]
 
-                    Exchange_with_yougile.delete_task(id_task_yougile)
+                    if id_task_yougile != '':
+                        # print(f'<{id_task_yougile}> != ""')
+                        Exchange_with_yougile.YouGile().delete_task(id_task_yougile)
 
-                    sql_update_query = (f'UPDATE sensors '
-                                        f'SET id_task_yougile = "" '
-                                        f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
-                    self.cursor.execute(sql_update_query)
-                    self.sqlite_connection.commit()
+                        sql_update_query = (f'UPDATE sensors '
+                                            f'SET id_task_yougile = "" '
+                                            f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
+                        self.cursor.execute(sql_update_query)
+                        self.sqlite_connection.commit()
 
                 self.cursor.execute(sql_update_query)
                 self.sqlite_connection.commit()
@@ -2016,17 +2018,21 @@ class SQL:
                     log_text = f'{self.get_list_faulty_sensors.__name__}()\n' \
                                f'В YouGile в колонку "Контроль температур" добавлена задача:\n' \
                                f'{title}\n\n'
-                    id_task_yougile = Exchange_with_yougile.post_task_to_column_sensors(title_text=title)
-                    print(log_text)
+                    # id_task_yougile = Exchange_with_yougile.post_task_to_column_sensors(title_text=title)
+                    id_task_yougile = Exchange_with_yougile.YouGile().post_task(title_task=title,
+                                                                                column_task=Secret.column_termosensors)
+
                     # Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
                     #                         text=log_text)
                     time.sleep(1)
-
-                    sql_update_query = (f'UPDATE sensors '
-                                        f'SET id_task_yougile = "{id_task_yougile}" '
-                                        f'WHERE name_sensor = "{name_faulty_sensor}"')
-                    self.cursor.execute(sql_update_query)
-                    self.sqlite_connection.commit()
+                    if id_task_yougile is not None:
+                        print(log_text)
+                        print(id_task_yougile)
+                        sql_update_query = (f'UPDATE sensors '
+                                            f'SET id_task_yougile = "{id_task_yougile}" '
+                                            f'WHERE name_sensor = "{name_faulty_sensor}"')
+                        self.cursor.execute(sql_update_query)
+                        self.sqlite_connection.commit()
 
         except sqlite3.Error as error:
             error_message = f'{self.get_list_faulty_sensors.__name__}\n' \
