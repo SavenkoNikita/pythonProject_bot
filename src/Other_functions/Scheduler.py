@@ -2,25 +2,25 @@ import datetime
 import inspect
 import random
 import time
-import traceback
 
 import requests
 import schedule
 
-# import Data
 from Tests.Test_2 import test
 from src.Body_bot import Secret
 from src.Body_bot.Secret import bot, list_admins
+from src.Other_functions.File_processing import (check_event_for_all_users,
+                                                 check_event_for_notif_users, check_event_for_admins,
+                                                 check_event_for_subs_bar, check_event_invent, check_dej)
 from src.Other_functions.Functions import SQL, name_hero
-from src.Other_functions.Working_with_notifications import Notification
-from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Tracking_devices import TrackingSensor
+from src.Other_functions.Working_with_notifications import Notification
 
 
-def test_random_time():
-    bot.send_message(chat_id=list_admins.get('Никита'),
-                     text='Test random time\n'
-                          '07:{:02d}.format(random.randint(0, 59))')
+# def test_random_time():
+#     bot.send_message(chat_id=list_admins.get('Никита'),
+#                      text='Test random time\n'
+#                           '07:{:02d}.format(random.randint(0, 59))')
 
 
 def top_statistic():
@@ -31,6 +31,7 @@ def top_statistic():
 
 
 def check_top_byers(silent=True):
+    """Если сегодня 1-е число месяца создаёт рейтинг барахольщиков за всё время."""
     if datetime.date.today().day == 1:  # Если сегодня 1-е число месяца
         top = SQL().create_string_top_byers_all_time()
         Notification().send_notification_to_administrators(top, silent)
@@ -55,71 +56,48 @@ def start_the_draw_santa():
 
 
 def schedule_next_run():
-    def create_random_time(summary=None):
+    def create_random_time(summary=None, name_func='?'):
         hour = '{:02d}'.format(random.randint(00, 23))
 
-        if summary == 'first':
+        if summary == 'first summary':
+            """Формирует время <07:random(0:59)>"""
             hour = '07'
-        elif summary == 'second':
+        elif summary == 'second summary':
+            """Формирует время <08:random(0:59)>"""
             hour = '08'
-        elif summary == 'daily':
+        elif summary == 'daily summary':
+            """Формирует время <random(14-17):random(0:59)>"""
             hour = '{:02d}'.format(random.randint(14, 17))
         else:
             hour = hour
 
         minutes = '{:02d}'.format(random.randint(0, 59))
         time_str = f'{hour}:{minutes}'
-        # print(time_str)
+        print(f'Функция "{name_func}.tag({summary})" должна сработать {datetime.datetime.now().strftime("%d.%m.%Y")} в '
+              f'{time_str}')
         return time_str
 
-    print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nОбновление расписания заданий\n')
+    print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")} Обновление расписания заданий:')
 
-    schedule.clear('first summary')  # Clear old time
-    schedule.clear('second summary')
-    schedule.clear('daily summary')
+    list_func = [
+        {'first summary': [check_event_invent]},
+        {'second summary': [name_hero, check_event_for_notif_users, check_event_for_all_users,
+                            check_event_for_admins, check_event_for_subs_bar]},
+        {'daily summary': [check_top_byers, the_most_active_user, check_dej]}
+    ]
 
-    # schedule.every().day.at(create_random_time(summary='first')). \
-    #     do(test_random_time). \
-    #     tag('first summary')
+    def create_schedule(list_funcs):
+        """Пересоздаёт расписание выполнения заданий по тегам на текущий день"""
+        for element in list_funcs:
+            for time_of_day, funcs in element.items():
+                schedule.clear(time_of_day)  # Clear old time
+                print(f'Удалено расписание заданий с тегом "{time_of_day}"')
+                for func in funcs:
+                    (schedule.every().day.at(create_random_time(summary=time_of_day, name_func=func.__name__)).
+                     do(func).
+                     tag(time_of_day))
 
-    # Если инвент вот-вот начнётся, придёт уведомление
-    schedule.every().day.at(create_random_time(summary='first')). \
-        do(Working_with_a_file('Инвентаризация').check_event_today, silent=True). \
-        tag('first summary')
-
-    # Присылает имя того кто идёт в цех
-    schedule.every().day.at(create_random_time(summary='second')). \
-        do(name_hero). \
-        tag('second summary')
-
-    # Проверяет есть ли сегодня уведомления для подписчиков и отправляет их
-    schedule.every().day.at(create_random_time(summary='second')). \
-        do(Working_with_a_file('Уведомления для подписчиков').check_event_today). \
-        tag('second summary')
-
-    # Проверяет есть ли сегодня уведомления для всех и отправляет их
-    schedule.every().day.at(create_random_time(summary='second')). \
-        do(Working_with_a_file('Уведомления для всех').check_event_today). \
-        tag('second summary')
-
-    # Проверяет есть ли сегодня уведомления для админов и отправляет их
-    schedule.every().day.at(create_random_time(summary='second')). \
-        do(Working_with_a_file('Уведомления для админов').check_event_today). \
-        tag('second summary')
-
-    # Проверяет есть ли сегодня уведомления для подписчиков барахолки и отправляет их
-    schedule.every().day.at(create_random_time(summary='second')). \
-        do(Working_with_a_file('Уведомления для барахолки').check_event_today). \
-        tag('second summary')
-
-    # Присылает админам топ самых жадных барахольщиков
-    schedule.every().day.at(create_random_time(summary='daily')). \
-        do(check_top_byers, silent=True).tag('daily summary')
-
-    # Рассылает всем причастным, топ самых активных пользователей
-    schedule.every().day.at(create_random_time(summary='daily')). \
-        do(the_most_active_user). \
-        tag('daily summary')
+    create_schedule(list_funcs=list_func)
 
 
 def update_data_sensors():
@@ -138,18 +116,21 @@ def update_data_sensors():
                                set_value_column='no')
 
 
-# Проверяет и уведомляет есть ли завтра дежурный
-schedule.every().day.at('15:00').do(Working_with_a_file('Дежурный').check_dej_tomorrow)
+def schedule_run_every_minutes(list_func):
+    """Создаёт расписание для функций из списка для выполнения их ежеминутно"""
+    for func in list_func:
+        schedule.every().minutes.do(func)
+        print(f'Создано задание для выполнения функции "{func.__name__}" ежеминутно')
 
-# Обновляет информацию о датчиках
-schedule.every(1).minutes.do(update_data_sensors)
 
-# Добавляет в Yougile задачу если есть неисправный датчик
-schedule.every(1).minutes.do(SQL().get_list_faulty_sensors)
+list_every_minutes = [
+    update_data_sensors,
+    SQL().get_list_faulty_sensors,
+    SQL().schedule_cancel_booking,
+    SQL().schedule_cancel_lot
+]
 
-# Обновить статус брони лотов
-schedule.every(1).minutes.do(SQL().schedule_cancel_booking)
-schedule.every(1).minutes.do(SQL().schedule_cancel_lot)
+schedule_run_every_minutes(list_every_minutes)
 
 #  Create random schedule with jobs
 schedule.every().day.at('00:00').do(schedule_next_run)
@@ -192,7 +173,6 @@ while True:
                 f'Сработало исключение: "{e}"\n'
                 f'Имя файла: "{file_name}"\n'
                 f'Строка: {line_error}\n')
-                # f'Работа остановлена')
 
         bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
         print(text)

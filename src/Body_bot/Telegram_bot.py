@@ -6,13 +6,13 @@ import time
 import requests
 import telebot
 
-from src.Other_functions import Working_with_notifications, File_processing, ERP
+from src.Body_bot import Secret
+from src.Other_functions import Decorators
+from src.Other_functions import Working_with_notifications, ERP
 from src.Other_functions.File_processing import Working_with_a_file
 from src.Other_functions.Functions import SQL, can_help, logging_telegram_bot, number_of_events, declension_day, \
     string_to_dict, declension
 from src.Other_functions.Working_with_notifications import Notification
-from src.Body_bot import Secret
-from src.Other_functions import Decorators
 
 time_now = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Secret.bot
@@ -489,7 +489,6 @@ def feed_back_step_3(message, text_problem):
         answer_message = 'Обращение отменено.'
         answer_bot(message, answer_message, keyboard=hide_keyboard)
     else:
-        # problem = f'FEED_BACK:\n{text_problem}{message.text}'
         answer_message = (f'Ваше обращение создано!\n'
                           f'Тип: {text_problem}\n'
                           f'Текст сообщения: {message.text}')
@@ -857,7 +856,7 @@ def get_number_vacation_days(message):
             if isinstance(count_day, int):
                 days = declension_day(count_day)
                 answer_message = f'На данный момент у вас накоплено ||{count_day} {days}|| отпуска'
-                types_message(message)
+                # types_message(message)
                 bot.send_message(chat_id=message.from_user.id, text=answer_message, parse_mode='MarkdownV2')
                 print(f'{answer_bot}На данный момент у вас накоплено &&& дней отпуска\n')
                 logging_telegram_bot('info',
@@ -943,7 +942,7 @@ def baraholka(message):
         manual = ['Как это работает?']
         keyboard.add(*buttons)
         keyboard.add(*manual)
-        types_message(message)
+        # types_message(message)
         text_to_user = 'Выберите действие:'
         answer_bot(message, text_to_user, keyboard)
         bot.register_next_step_handler(message, baraholka_step_2)
@@ -987,7 +986,7 @@ def baraholka_step_2(message):
 @bot.message_handler(commands=['place_a_lot'])
 @Decorators.registration_of_actions
 def place_a_lot(message):
-    user_id = message.from_user.id
+    # user_id = message.from_user.id
     if rights_admin(message) is True:
         text_answer = 'Для создания лота, необходимо\n' \
                       '• Дать ему название\n' \
@@ -1006,7 +1005,7 @@ def place_a_lot(message):
 
 @Decorators.registration_of_actions
 def place_a_lot_step_2(message):
-    user_id = message.from_user.id
+    # user_id = message.from_user.id
     name_lot = None
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Создать лот':
@@ -1020,7 +1019,7 @@ def place_a_lot_step_2(message):
 
 # @Decorators.registration_of_actions
 def place_a_lot_step_3(message, name_lot):
-    user_id = message.from_user.id
+    # user_id = message.from_user.id
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if name_lot is None:
         name_lot = message.text
@@ -1066,7 +1065,7 @@ def place_a_lot_step_5(message, name_lot, photo_id):
 
 # @Decorators.registration_of_actions
 def place_a_lot_step_6(message, name_lot, photo_id, description_lot):
-    user_id = message.from_user.id
+    # user_id = message.from_user.id
 
     hide_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Указать цену':
@@ -1285,7 +1284,7 @@ def secret_santa(message):
     else:
         format_date_start = date_start.strftime('%d.%m.%Y')
         format_date_finish = date_finish.strftime('%d.%m.%Y')
-        error_text = (f'Начать регистрацию на участие в проведении "Тайного Санты" можно в '
+        error_text = (f'Начать регистрацию на участие в проведении "Тайного Санты" можно в '  # noqa
                       f'период с {format_date_start} по {format_date_finish}')
         answer_bot(message, error_text)
 

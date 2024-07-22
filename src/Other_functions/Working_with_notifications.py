@@ -67,7 +67,7 @@ class Notification:
         это будет выглядеть так: notification_for('Сообщение, которое хочу передать', 'notification', 'yes')."""
 
         try:
-            self.cursor.execute(f'SELECT * FROM users WHERE {column}= ?', [column_meaning])
+            self.cursor.execute(f'SELECT * FROM users WHERE {column}={column_meaning}')#, [column_meaning])
             records = self.cursor.fetchall()
             # print('Список ID:\n')
             all_id_sql = []
@@ -214,7 +214,7 @@ class Notification:
                         Secret.bot.send_message(chat_id=Secret.list_admins.get('Никита'),
                                                 text=answer_message)
         except sqlite3.Error as error:
-            print(f'Ошибка при работе с SQLite:\nerror')
+            print(f'Ошибка при работе с SQLite:\n{error}')
             # Functions.logging_event(Data.way_to_log_telegram_bot, 'error', str(error))
 
     def notification_for_subs_lots(self, name_lot, photo_id, description, price, name_key_callback_data='lot'):

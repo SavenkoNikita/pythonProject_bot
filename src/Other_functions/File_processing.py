@@ -13,6 +13,30 @@ from src.Other_functions.Working_with_notifications import Notification
 from urllib.request import urlopen
 
 
+def check_event_for_all_users():
+    Working_with_a_file('Уведомления для всех').check_event_today()
+
+
+def check_event_for_notif_users():
+    Working_with_a_file('Уведомления для подписчиков').check_event_today()
+
+
+def check_event_for_admins():
+    Working_with_a_file('Уведомления для админов').check_event_today()
+
+
+def check_event_for_subs_bar():
+    Working_with_a_file('Уведомления для барахолки').check_event_today()
+
+
+def check_event_invent():
+    Working_with_a_file('Инвентаризация').check_event_today(silent=True)
+
+
+def check_dej():
+    Working_with_a_file('Дежурный').check_dej_tomorrow()
+
+
 class Working_with_a_file:
     """Обработка файла"""
 
@@ -243,7 +267,7 @@ class Working_with_a_file:
                             if self.sheet_name == 'Уведомления для всех':
                                 text_message = f'• Уведомление для зарегистрированных пользователей •\n\n' \
                                                f'{meaning}'
-                                text_log = f'check_event_today(): {text_message}'
+                                text_log = f'{self.check_event_today.__name__}(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
                                 Notification().send_a_notification_to_all_users(text_message, silent)
@@ -251,7 +275,7 @@ class Working_with_a_file:
                             elif self.sheet_name == 'Уведомления для подписчиков':
                                 text_message = f'• Уведомление для подписчиков •\n\n' \
                                                f'{meaning}'
-                                text_log = f'check_event_today(): {text_message}'
+                                text_log = f'{self.check_event_today.__name__}(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
                                 Notification().send_notification_to_subscribers(text_message, silent)
@@ -259,7 +283,7 @@ class Working_with_a_file:
                             elif self.sheet_name == 'Уведомления для админов':
                                 text_message = f'• Уведомление для администраторов •\n\n' \
                                                f'{meaning}'
-                                text_log = f'check_event_today(): {text_message}'
+                                text_log = f'{self.check_event_today.__name__}(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
                                 Notification().send_notification_to_administrators(text_message, silent)
@@ -267,7 +291,7 @@ class Working_with_a_file:
                             elif self.sheet_name == 'Уведомления для барахолки':
                                 text_message = f'• Уведомление для подписчиков барахолки •\n\n' \
                                                f'{meaning}'
-                                text_log = f'check_event_today(): {text_message}'
+                                text_log = f'{self.check_event_today.__name__}(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
                                 Notification().notification_for_sub_baraholka(text_message, silent)
@@ -276,7 +300,7 @@ class Working_with_a_file:
                             if self.sheet_name == 'Инвентаризация':
                                 text_message = f'• Уведомление для администраторов •\n\n' \
                                                f'{self.next_invent()}'
-                                text_log = f'check_event_today(): {text_message}'
+                                text_log = f'{self.check_event_today.__name__}(): {text_message}'
                                 logging_file_processing('info', text_log)
                                 print(text_message)
                                 Notification().send_notification_to_administrators(text_message, silent)
@@ -309,8 +333,8 @@ class Working_with_a_file:
                     Notification().send_notification_to_subscribers(text_message)
                     Notification().send_sticker_to_subscribers(sticker_dej)
 
-                    # Data.bot.send_message(Data.list_admins.get('Никита'), text_message)
-                    # Data.bot.send_sticker(Data.list_admins.get('Никита'), sticker_dej)
+                    # Secret.bot.send_message(Secret.list_admins.get('Никита'), text_message)
+                    # Secret.bot.send_sticker(Secret.list_admins.get('Никита'), sticker_dej)
                 elif self.difference_date(date) < 0:  # Если событие в прошлом
                     text_log = f'{self.check_dej_tomorrow.__name__}: Событие в прошлом.'
                     logging_file_processing('info', text_log)

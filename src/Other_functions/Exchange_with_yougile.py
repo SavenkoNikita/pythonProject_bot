@@ -1,3 +1,4 @@
+import datetime
 import http.client
 import json
 
@@ -57,6 +58,7 @@ class YouGile:
 
     def delete_task(self, id_task):
         data_task = self.get_data_task(id_task)
+        datetime_now = datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
         if data_task is not None:
             id_column = data_task.get('columnId')
@@ -73,4 +75,4 @@ class YouGile:
                 res = self.connect.getresponse()
                 response_status = res.status
                 if response_status == 200:
-                    print(f'Задача {title_task} с ID {id_task} удалена')
+                    print(f'Date and time: {datetime_now}\nЗадача "{title_task}" с ID "{id_task}" удалена.')
