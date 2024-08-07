@@ -16,16 +16,12 @@ from src.Other_functions.Functions import SQL, name_hero
 from src.Other_functions.Tracking_devices import TrackingSensor
 from src.Other_functions.Working_with_notifications import Notification
 
-
-# def test_random_time():
-#     bot.send_message(chat_id=list_admins.get('Никита'),
-#                      text='Test random time\n'
-#                           '07:{:02d}.format(random.randint(0, 59))')
+developer = list_admins.get('Никита')
 
 
 def top_statistic():
     text_top_user = SQL().top_chart()
-    bot.send_message(chat_id=list_admins.get('Никита'),
+    bot.send_message(chat_id=developer,
                      text=text_top_user,
                      disable_notification=True)
 
@@ -51,11 +47,9 @@ def start_the_draw_santa():
         SQL().selecting_opponent_secret_santa()
 
 
-###
-"""Test rand time job"""
-
-
 def schedule_next_run():
+    """Обновляет расписание заданий"""
+
     def create_random_time(summary=None, name_func='?'):
         hour = '{:02d}'.format(random.randint(00, 23))
 
@@ -127,7 +121,8 @@ list_every_minutes = [
     update_data_sensors,
     SQL().get_list_faulty_sensors,
     SQL().schedule_cancel_booking,
-    SQL().schedule_cancel_lot
+    SQL().schedule_cancel_lot,
+    # SQL().schedule_updating_data_on_lots
 ]
 
 schedule_run_every_minutes(list_every_minutes)
@@ -153,7 +148,7 @@ while True:
     except requests.exceptions.ReadTimeout:
         time.sleep(3)
         text = f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\nПревышено время ожидания запроса'
-        # bot.send_message(chat_id=Data.list_admins.get('Никита'), text=text)
+        # bot.send_message(chat_id=developer, text=text)
         print(text)
     except requests.ConnectionError as error_connection:
         print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
@@ -174,6 +169,9 @@ while True:
                 f'Имя файла: "{file_name}"\n'
                 f'Строка: {line_error}\n')
 
-        bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
+        bot.send_message(chat_id=developer, text=text)
         print(text)
         # break
+    except Secret.telebot.apihelper.ApiTelegramException as error:
+        print(error)
+        time.sleep(3)

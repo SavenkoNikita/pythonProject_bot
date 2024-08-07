@@ -2,10 +2,12 @@ import datetime as datetime
 import inspect
 import random
 import time
+from pprint import pprint
 
 import requests
 import telebot
 
+import src.Other_functions.Functions
 from src.Body_bot import Secret
 from src.Other_functions import Decorators
 from src.Other_functions import Working_with_notifications, ERP
@@ -16,6 +18,7 @@ from src.Other_functions.Working_with_notifications import Notification
 
 time_now = lambda x: time.strftime("%d.%m.%Y %H:%M:%S", time.localtime(x))  # Конвертация даты в читабельный вид
 bot = Secret.bot
+dev_id = Secret.list_admins.get('Никита')
 
 
 def answer_bot(message, text_answer, keyboard=None):
@@ -336,7 +339,7 @@ def set_subscribe(message):
                         'Чтобы отказаться от рассылки, жми /unsubscribe')
             answer_bot(message, end_text)
             #  Отсылка уведомлений о действии разработчику
-            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            # bot.send_message(chat_id=dev_id,
             #                  text=f'{full_name_user(message)} подписался на уведомления.')
         else:  # Если подписчик пытается подписаться, то получит ошибку
             end_text = 'Вы уже подписаны на уведомления.'
@@ -357,7 +360,7 @@ def set_subscribe(message):
             end_text = 'Рассылка отключена.\n Чтобы подписаться жми /subscribe'
             answer_bot(message, end_text)
             #  Отсылка уведомлений о действии разработчику
-            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            # bot.send_message(chat_id=dev_id,
             #                  text=f'{full_name_user(message)} отписался от уведомлений.')
         else:  # Если не подписчик пытается отписаться, то получит ошибку
             end_text = 'Нельзя отказаться от уведомлений на которые не подписан.'
@@ -493,7 +496,7 @@ def feed_back_step_3(message, text_problem):
                           f'Тип: {text_problem}\n'
                           f'Текст сообщения: {message.text}')
         answer_bot(message, answer_message, keyboard=hide_keyboard)
-        bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+        bot.send_message(chat_id=dev_id,
                          text=f'Поступило новое обращение от пользователя:\n'
                               f'Тип: {text_problem}\n'
                               f'Текст сообщения: {message.text}')
@@ -727,7 +730,7 @@ def check_defroster_step_2(message):
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
 
             end_message = 'Теперь вам доступны показания датчиков дефростеров. Сообщение обновляется автоматически.'
-            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            # bot.send_message(chat_id=dev_id,
             #                  text=f'{full_name_user(message)} начал отслеживать показания датчиков дефростеров.')
 
             answer_bot(message, end_message)
@@ -744,7 +747,7 @@ def check_defroster_step_2(message):
                 SQL().log_out(message.from_user.id, 'tracking_sensor_defroster')
 
                 end_message = 'Вы прекратили отслеживать показания. Если передумаете клик - /defrosters.'
-                # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                # bot.send_message(chat_id=dev_id,
                 #                  text=f'{full_name_user(message)} прекратил отслеживать показания датчиков '
                 #                       f'дефростеров.')
 
@@ -794,7 +797,7 @@ def check_error_sensor_step_2(message):
             bot.pin_chat_message(message.from_user.id, message_id=message_id)  # Закрепляет сообщение у пользователя
 
             end_message = 'Теперь вам доступен список неисправных датчиков. Сообщение обновляется автоматически.'
-            # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+            # bot.send_message(chat_id=dev_id,
             #                  text=f'{full_name_user(message)} начал отслеживать список неисправных датчиков.')
 
             answer_bot(message, end_message)
@@ -813,7 +816,7 @@ def check_error_sensor_step_2(message):
 
                 end_message = 'Вы прекратили отслеживать список неисправных датчиков. ' \
                               'Если передумаете клик - /all_sensors.'
-                # bot.send_message(chat_id=Secret.list_admins.get('Никита'),
+                # bot.send_message(chat_id=dev_id,
                 #                  text=f'{full_name_user(message)} прекратил отслеживать список неисправных датчиков.')
 
                 answer_bot(message, end_message)
@@ -825,7 +828,7 @@ def check_error_sensor_step_2(message):
 @bot.message_handler(commands=['answer'])
 @Decorators.registration_of_actions
 def answer(message):
-    if message.from_user.id == Secret.list_admins.get('Никита'):
+    if message.from_user.id == dev_id:
         if SQL().count_not_answer() > 0:
             answer_message = SQL().search_not_answer()
             message_bot = f'Как ответить на это сообщение?\n<{answer_message}>'
@@ -1266,7 +1269,7 @@ def secret_santa(message):
             hello_message = (f'Привет {user_name}!\n'
                              f'Уже совсем скоро наступят новогодние праздники. А какой самый главный атрибут '
                              f'любого праздника? Конечно подарки! Возможно ты уже участвовал(а) в подобном мероприятии,'
-                             f' а если нет, жми кнопку узнать правила.')
+                             f' а если нет - жми кнопку узнать правила.')
 
             link_picture = 'https://6404332.ru/wa-data/public/shop/products/76/75/7576/images/10067/10067.750x0.jpg'
             keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -1362,8 +1365,133 @@ def secret_santa_step_5(message, bad_gift):
     answer_bot(message, answer_text)
 
 
-@bot.callback_query_handler(func=lambda c: True)
+@bot.message_handler(commands=['creative_nickname'])
 @Decorators.registration_of_actions
+def creative_santa_name(message):
+    current_year = datetime.datetime.now().year
+    date_start = datetime.datetime.strptime(f'{current_year}-02-01', '%Y-%m-%d').date()
+    date_finish = datetime.datetime.strptime(f'{current_year}-10-29', '%Y-%m-%d').date()
+
+    if date_start <= datetime.date.today() <= date_finish:  # Если дата в диапазоне
+        name_user = message.from_user.first_name
+        availability = src.Other_functions.Functions.SQL().checking_for_availability_in_cnn(message.from_user.id)
+        count_symbol = 20
+        hello_message = ''
+        rules = ('  Оно должно быть новогоднее или как-то связано с Ремитом, возможно состоящее из '
+                 f'нескольких слов, главное не длиннее {count_symbol} '
+                 f'{declension(count_symbol, "символ", "символа", "символов")}. '
+                 f'Например "Оливье", "Дед мороз" или "Почти директор"\n\n'
+                 f'••• Выбери действие ниже •••')
+
+        if availability is False:
+            hello_message = (f'Привет {name_user}!\n    Очень нужна твоя креативная помощь! Мы тут кое к чему '
+                             f'готовимся, и без тебя никак! Нужно придумать короткое и лаконичное имя для участие в '
+                             f'игре о которой все узнают немного позже.\n')
+        else:
+            hello_message = (f'Давно не виделись {name_user}!\n Рассказывай, что удалось придумать :)\nНапомню правила '
+                             f'составления имён:\n')
+
+        answer_message = f'{hello_message}{rules}'
+
+        keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        buttons = ['Предложить псевдоним', 'Возможно позже']
+        keyboard.add(*buttons)
+
+        answer_bot(message, answer_message, keyboard)
+        bot.register_next_step_handler(message, creative_santa_name_step_2)
+    else:
+        next_date = datetime.datetime.strptime(f'{current_year + 1}-02-01', '%Y-%m-%d').date()
+        format_date = next_date.strftime('%d.%m.%Y')
+        answer_message = f'Функция станет доступна после {format_date}'
+        answer_bot(message, answer_message)
+
+
+@Decorators.registration_of_actions
+def creative_santa_name_step_2(message):
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+
+    if message.text == 'Предложить псевдоним':
+        answer_message = 'Хорошо, как будет звучать имя?'
+        answer_bot(message, answer_message, hide_keyboard)
+        bot.register_next_step_handler(message, creative_santa_name_step_3)  # Регистрация следующего действия
+    elif message.text == 'Возможно позже':
+        answer_bot(message, 'Я вас понял. Если передумаете клик -> /creative_nickname', hide_keyboard)
+
+
+@Decorators.registration_of_actions
+def creative_santa_name_step_3(message):
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+
+    nickname = message.text
+    length_nickname = len(nickname)
+    count_symbol = 20
+    declension_symbol = declension(length_nickname, "символ", "символа", "символов")
+
+    if length_nickname <= count_symbol:
+        format_nickname = f'#{nickname.lower().replace(" ", "_")}'
+        having_a_name_DB = src.Other_functions.Functions.SQL().check_nickname_in_db(format_nickname)
+        if having_a_name_DB is False:
+            src.Other_functions.Functions.SQL().record_nickname_from_db(message.from_user.id, format_nickname)
+            text_mes_from_dev = 'Пользователь предложил новое имя для Тайного Санты -> /approve_nickname'
+            bot.send_message(chat_id=dev_id, text=text_mes_from_dev)
+            answer_message = (f'"{nickname}" звучит отлично! Имя отправлено на модерацию. Если оно будет одобрено, вам '
+                              f'придёт уведомление. Спасибо что помогаете развитию проектов!\n'
+                              f'Есть ещё идеи? Жми -> /creative_nickname')
+            answer_bot(message, answer_message, hide_keyboard)
+        else:
+            answer_message = f'Такое имя уже кто-то придумал. Попробуйте ещё :) -> /creative_nickname'
+            answer_bot(message, answer_message, hide_keyboard)
+    else:
+        # print(f'"{text}" = {len(text)}\nТекст не должен превышать {count_symbol} символов')
+        answer_message = (f'Не подходит :(\n'
+                          f'Длина "{nickname}" составляет {length_nickname} {declension_symbol}.\n'
+                          f'Суммарно имя не должно превышать {count_symbol} '
+                          f'{declension(count_symbol, "символ", "символа", "символов")}\n'
+                          f'Сократите количество на {length_nickname - count_symbol} и попробуйте снова.'
+                          f'Чтобы попробовать снова -> /creative_nickname')
+        answer_bot(message, answer_message, hide_keyboard)
+
+
+@bot.message_handler(commands=['approve_nickname'])
+@Decorators.registration_of_actions
+def approve_nickname(message):
+    if message.from_user.id == dev_id:
+        nickname = src.Other_functions.Functions.SQL().check_not_approve_nickname()
+        if nickname is not None:
+            keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            buttons = ['Одобрить', 'Отклонить']
+            keyboard.add(*buttons)
+
+            answer_message = f'Что делаем с ником "{nickname}"?'
+
+            answer_bot(message, answer_message, keyboard)
+            bot.register_next_step_handler(message, approve_nickname_step_2, nickname)
+        else:
+            answer_message = 'Все псевдонимы обработаны'
+            answer_bot(message, answer_message)
+
+
+def approve_nickname_step_2(message, nickname):
+    hide_keyboard = telebot.types.ReplyKeyboardRemove()
+    answer_message = ''
+    if message.text == 'Одобрить':
+        status_approve = 1
+        id_user_in_db = src.Other_functions.Functions.SQL().approve_nickname(nickname, status_approve)
+        answer_message = f'Никнейм "{nickname}" одобрен.'
+    elif message.text == 'Отклонить':
+        status_approve = 0
+        id_user_in_db = src.Other_functions.Functions.SQL().approve_nickname(nickname, status_approve)
+        answer_message = f'Никнейм "{nickname}" отклонён.'
+
+    end_text = f'{answer_message}\nПродолжим? -> /approve_nickname'
+    answer_bot(message, end_text, hide_keyboard)
+
+    message_to_user = f'Недавно вы предлагали псевдоним. Как и обещал, вернулся с ответом:\n{answer_message}'
+    bot.send_message(chat_id=id_user_in_db, text=message_to_user)
+
+
+@bot.callback_query_handler(func=lambda c: True)
+# @Decorators.registration_of_actions
 def inline(c):
     user_id = c.from_user.id  # Получаем user_id
     user_name = c.from_user.first_name  # Получаем имя пользователя
@@ -1372,10 +1500,17 @@ def inline(c):
     number_lot = dict_data.get(key)  # Достаём значение из словаря
 
     SQL().collect_statistical_information(user_id)
-
+    print(user_id)
+    print(key)
+    print(number_lot)
+    print(c.data)
+    print(c)
     if key == 'lot':
+        print('key == lot')
         answer_sql = SQL().booked_lots(number_lot, user_id)  # Попытка юзером забронировать лот
+        print(f'answer_sql = {answer_sql}')
         if answer_sql != 'Success':  # Если лот забронирован
+            print('Нельзя забронировать лот')
             bot.answer_callback_query(c.id, text=answer_sql)  # Вызывает у юзера всплывающее окно с текстом ошибки
         elif answer_sql == 'Success':  # Если лот не забронирован
             count_booked_lot = SQL().count_booked_lot(user_id)
@@ -1403,6 +1538,8 @@ def inline(c):
         print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
               f'Администратор {user_name} опроверг выдачу лота №{number_lot}.\n')
 
+    # SQL().schedule_updating_data_on_lots()
+
 
 @bot.message_handler(content_types=['text'])
 @Decorators.registration_of_actions
@@ -1416,9 +1553,15 @@ def speak(message):
         count = SQL().count_not_answer()
         how_much = declension(count, 'вопрос', 'вопроса', 'вопросов')
         end_message = f'На данный момент есть {count} {how_much} без ответа. Ответить на вопросы - /answer'
-        bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=end_message)
+        bot.send_message(chat_id=dev_id, text=end_message)
     else:
         answer_bot(message, the_answer_to_the_question)
+
+
+@bot.message_handler(content_types=['photo'])
+@Decorators.registration_of_actions
+def return_data_of_message(message):
+    print(message)
 
 
 if __name__ == '__main__':
@@ -1444,14 +1587,14 @@ if __name__ == '__main__':
             logging_telegram_bot('error', text)
         except requests.ConnectionError:
             print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
-                  f'Нет соединения с сервером {requests.ConnectionError.__name__}')
+                  f'Нет соединения с сервером')
             time.sleep(60)
             print(f'{datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
                   f'Попытка соединения')
         except Secret.telebot.apihelper.ApiTelegramException as error_telegram:
             time.sleep(3)
             text_error = f'ApiTelegramException:\n{error_telegram}'
-            bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text_error)
+            bot.send_message(chat_id=dev_id, text=text_error)
             print(str(text_error))
         except Exception as e:
             time.sleep(3)
@@ -1466,7 +1609,7 @@ if __name__ == '__main__':
                     f'Имя файла: {file_name}\n'
                     f'Строка: {line_error}\n')
 
-            bot.send_message(chat_id=Secret.list_admins.get('Никита'), text=text)
+            bot.send_message(chat_id=dev_id, text=text)
             print(text)
             logging_telegram_bot('error', text_log=text)
         # except BaseException:  # noqa

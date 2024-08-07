@@ -67,7 +67,7 @@ class Notification:
         это будет выглядеть так: notification_for('Сообщение, которое хочу передать', 'notification', 'yes')."""
 
         try:
-            self.cursor.execute(f'SELECT * FROM users WHERE {column}={column_meaning}')#, [column_meaning])
+            self.cursor.execute(f'SELECT * FROM users WHERE {column} = "{column_meaning}"')#, [column_meaning])
             records = self.cursor.fetchall()
             # print('Список ID:\n')
             all_id_sql = []
@@ -115,7 +115,7 @@ class Notification:
     def send_sticker_for(self, column, column_meaning, user_sticker):
         """Уведомления для юзеров с указанными параметрами"""
         try:
-            self.cursor.execute(f'SELECT * FROM users WHERE {column}= ?', [column_meaning])
+            self.cursor.execute(f'SELECT * FROM users WHERE {column}="{column_meaning}"')  # ?', [column_meaning])
             records = self.cursor.fetchall()
             # print('Список ID:\n')
             all_id_sql = []

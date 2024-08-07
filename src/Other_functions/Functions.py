@@ -768,7 +768,7 @@ class SQL:
                                          f'WHERE id_sensor = "{id_sensor}" AND ip_host = "{ip_host}"')
             if status.fetchone() is None:  # Если датчика нет в БД
                 # print(f'Датчика "{name_sensor}" нет в таблице')
-                data = (id_sensor, name_sensor, ip_host, name_host, online, last_value, last_update)
+                # data = (id_sensor, name_sensor, ip_host, name_host, online, last_value, last_update)
                 self.cursor.execute(f'INSERT INTO sensors(id_sensor, name_sensor, ip_host, name_host, online, '
                                     f'last_value, last_update) '
                                     f'VALUES("{id_sensor}", "{name_sensor}", "{ip_host}", "{name_host}", "{online}", '
@@ -1170,6 +1170,7 @@ class SQL:
 
         try:
             count_booked = self.count_booked_lot(user_id)
+            print(count_booked)
 
             if count_booked < 3:
                 select_query = (f'SELECT booked '
@@ -1177,6 +1178,7 @@ class SQL:
                                 f'WHERE ID = "{number_lot}"')
                 self.cursor.execute(select_query)
                 status_booked = self.cursor.fetchone()[0]
+                print(status_booked)
                 if status_booked == 'no':
                     date = datetime.datetime.today()
                     update_query = (f'UPDATE lots '
@@ -1205,292 +1207,336 @@ class SQL:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
-    def edit_message_lots(self, number_lot):
-        """"""
-        try:
-            select_query = (f'SELECT ids_message '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            dict_user_mess = self.cursor.fetchone()[0]
-            dict_user_mess = eval(dict_user_mess)
-            # print(dict_user_mess)
-            # print(type(dict_user_mess))
-
-            select_query = (f'SELECT name '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            name_lot = self.cursor.fetchone()[0]  # Получаем название лота
-
-            select_query = (f'SELECT description '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            description_lot = self.cursor.fetchone()[0]  # Получаем описание лота
-
-            select_query = (f'SELECT booked '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            status_lot = self.cursor.fetchone()[0]  # Получаем статус лота
-
-            select_query = (f'SELECT booked_by_whom '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            booked_by_whom = self.cursor.fetchone()[0]  # Получаем user_id пользователя кто забронировал лот
-
-            select_query = (f'SELECT booking_date '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            str_booking_date = self.cursor.fetchone()[0]  # Получаем дату брони
-            date_of_cancel_format = ''
-            if str_booking_date != '':
-                booking_date = datetime.datetime.strptime(str_booking_date, '%Y-%m-%d %H:%M:%S.%f')
-                date_of_cancel = booking_date + datetime.timedelta(days=1)
-                date_of_cancel_format = date_of_cancel.strftime("%d.%m.%Y %H:%M:%S")
-
-            select_query = (f'SELECT on_the_hands '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            on_the_hands = self.cursor.fetchone()[0]  # Получаем статус лота (на руках он или нет)
-
-            select_query = (f'SELECT confirm '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            confirm = self.cursor.fetchone()[0]  # Получаем статус подтверждения выдачи
-
-            select_query = (f'SELECT date_of_public '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            date_public = self.cursor.fetchone()[0]  # Получаем дату поста
-            # date_public_datetime = datetime.datetime.strptime(date_public, "%Y-%m-%d")
-            date = date_public
-            # date_public_format = date.strftime('%d.%m.%Y')
-
-            select_query = (f'SELECT status '
-                            f'FROM lots '
-                            f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(select_query)
-            status_active_lot = self.cursor.fetchone()[0]  # Получаем статус активности лота
-
-            # В этом блоке проверяются посты статус которых "active". Если пост размещён более 30 дней назад, он
-            # становится неактивным у всех, в БД меняется статус на "cancel" и впредь не попадает под проверку
-            if status_active_lot == 'active':
-                # date_format = date.strftime('%d.%m.%Y')
-                # print(date_format)
-                date_today = datetime.datetime.now()
-                date_today_day = date_today.date()
-                date_today_format = date_today_day.strftime('%d.%m.%Y')
-
-                dif_day = date_today - date_today_day
-                dif_day = dif_day.days
-                # print(dif_day)
-                if dif_day > 30:
-                    update_query = (f'UPDATE lots '
-                                    f'SET status = "cancel" '
-                                    f'WHERE ID = "{number_lot}"')
-                    self.cursor.execute(update_query)
-                    self.sqlite_connection.commit()
-            elif status_active_lot == 'cancel':
-                date_today = datetime.datetime.now()
-                date_today_day = date_today.date()
-                date_today_format = date_today_day.strftime('%d.%m.%Y')
-
-                for user_id, message_id in dict_user_mess.items():
-                    description = f'Лот №{number_lot}\n\n' \
-                                  f'Название: {name_lot}\n\n' \
-                                  f'Описание: {description_lot}\n\n' \
-                                  f'#####\n' \
-                                  f'Пост аннулирован {date_today_format} из-за срока давности\n' \
-                                  f'#####'
-                    Secret.bot.edit_message_caption(chat_id=user_id,
-                                                    message_id=message_id,
-                                                    caption=description)
-
-                    Secret.bot.unpin_chat_message(chat_id=user_id,
-                                                  message_id=message_id)
-                    # print(f'Лот №{number_lot}: у пользователя {user_id} обновлено сообщение {message_id}')
-                    # continue
-
-            if status_lot == 'yes' and on_the_hands == 'no':
-                for user_id, message_id in dict_user_mess.items():
-                    if user_id != booked_by_whom:
-                        if self.check_for_admin(user_id) is True:
-                            select_query = (f'SELECT user_first_name, user_last_name '
-                                            f'FROM users '
-                                            f'WHERE user_id = "{booked_by_whom}"')
-                            self.cursor.execute(select_query)
-                            data_of_user = self.cursor.fetchone()  # Получаем данные о пользователе
-                            temp_list = []
-                            for elem in data_of_user:
-                                if elem is not None:
-                                    temp_list.append(elem)
-
-                            full_name_user = ' '.join(temp_list)
-
-                            description = f'Лот №{number_lot}\n\n' \
-                                          f'Название: {name_lot}\n\n' \
-                                          f'Описание: {description_lot}\n\n' \
-                                          f'#####\n' \
-                                          f'Лот зарезервирован пользователем <{full_name_user}>. ' \
-                                          f'Бронирование недоступно. ' \
-                                          f'Если до {date_of_cancel_format} его не заберут, ' \
-                                          f'бронь аннулируется и вы сможете отложить его для себя.\n' \
-                                          f'#####'
-                            Secret.bot.edit_message_caption(chat_id=user_id,
-                                                            message_id=message_id,
-                                                            caption=description)
-                        else:
-                            description = f'Лот №{number_lot}\n\n' \
-                                          f'Название: {name_lot}\n\n' \
-                                          f'Описание: {description_lot}\n\n' \
-                                          f'#####\n' \
-                                          f'Лот зарезервирован. Бронирование недоступно. ' \
-                                          f'Если до {date_of_cancel_format} его не заберут, ' \
-                                          f'бронь аннулируется и вы сможете отложить его для себя.\n' \
-                                          f'#####'
-                            Secret.bot.edit_message_caption(chat_id=user_id,
-                                                            message_id=message_id,
-                                                            caption=description)
-                    else:
-                        str_dict_cancel = str({'cancel': number_lot})
-                        str_dict_sold = str({'sold': number_lot})
-
-                        keyboard = telebot.types.InlineKeyboardMarkup()
-                        button = telebot.types.InlineKeyboardButton(text='Отменить бронь',
-                                                                    callback_data=str_dict_cancel)
-                        button_2 = telebot.types.InlineKeyboardButton(text='Лот уже у меня',
-                                                                      callback_data=str_dict_sold)
-                        keyboard.add(button, button_2)
-
-                        Secret.bot.edit_message_caption(chat_id=user_id,
-                                                        message_id=message_id,
-                                                        caption=f'Лот №{number_lot}\n\n'
-                                                                f'Название: {name_lot}\n\n'
-                                                                f'Описание: {description_lot}\n\n'
-                                                                f'#####\n'
-                                                                f'Этот лот забронирован вами '
-                                                                f'до {date_of_cancel_format}. '
-                                                                f'Если забрать не успеваете, бронь аннулируется!\n'
-                                                                f'#####',
-                                                        reply_markup=keyboard)
-            elif status_lot == 'yes' and on_the_hands == 'yes':
-                for user_id, message_id in dict_user_mess.items():
-                    if user_id != booked_by_whom:
-                        if self.check_for_admin(user_id) is True and confirm == 'no':
-                            str_dict_confirm = str({'confirm': number_lot})
-                            str_dict_refute = str({'refute': number_lot})
-
-                            keyboard = telebot.types.InlineKeyboardMarkup()
-                            button = telebot.types.InlineKeyboardButton(text='Подтвердить выдачу',
-                                                                        callback_data=str_dict_confirm)
-                            button_2 = telebot.types.InlineKeyboardButton(text='Лот не выдан',
-                                                                          callback_data=str_dict_refute)
-                            keyboard.add(button, button_2)
-                            description = f'Лот №{number_lot}\n\n' \
-                                          f'Название: {name_lot}\n\n' \
-                                          f'Описание: {description_lot}\n\n' \
-                                          f'#####\n' \
-                                          f'Ожидает подтверждения выдачи\n' \
-                                          f'#####'
-                            Secret.bot.edit_message_caption(chat_id=user_id,
-                                                            message_id=message_id,
-                                                            caption=description,
-                                                            reply_markup=keyboard)
-                        else:
-                            if confirm == 'no':
-                                description = f'Лот №{number_lot}\n\n' \
-                                              f'Название: {name_lot}\n\n' \
-                                              f'Описание: {description_lot}\n\n' \
-                                              f'#####\n' \
-                                              f'Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
-                                              f'лот снова станет доступен. Следите за обновлениями!\n' \
-                                              f'#####'
-                                Secret.bot.edit_message_caption(chat_id=user_id,
-                                                                message_id=message_id,
-                                                                caption=description)
-                            else:
-                                description = f'Лот №{number_lot}\n\n' \
-                                              f'Название: {name_lot}\n\n' \
-                                              f'Описание: {description_lot}\n\n' \
-                                              f'#####\n' \
-                                              f'Лот забрали. Он более недоступен.\n' \
-                                              f'#####'
-                                Secret.bot.edit_message_caption(chat_id=user_id,
-                                                                message_id=message_id,
-                                                                caption=description)
-
-                                Secret.bot.unpin_chat_message(chat_id=user_id,
-                                                              message_id=message_id)
-                    else:
-                        if confirm == 'no':
-                            description = f'Лот №{number_lot}\n\n' \
-                                          f'Название: {name_lot}\n\n' \
-                                          f'Описание: {description_lot}\n\n' \
-                                          f'#####\n' \
-                                          f'Вы указали, что забрали этот лот! Если выдача не подтвердится, ' \
-                                          f'статус сменится на "Этот лот забронирован вами".\n' \
-                                          f'При получении лота покажите это сообщение, оно ' \
-                                          f'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не ' \
-                                          f'кем-то другим.\n' \
-                                          f'ВАЖНО!\n' \
-                                          f'После того как лот окажется у вас на руках, обязательно подтвердите ' \
-                                          f'получение нажав кнопку "Лот уже у меня"!' \
-                                          f'#####'
-
-                            Secret.bot.edit_message_caption(chat_id=user_id,
-                                                            message_id=message_id,
-                                                            caption=description)
-                        elif confirm == 'yes':
-                            description = f'Лот №{number_lot}\n\n' \
-                                          f'Название: {name_lot}\n\n' \
-                                          f'Описание: {description_lot}\n\n' \
-                                          f'#####\n' \
-                                          f'Выдача лота подтверждена.\n' \
-                                          f'Поздравляем с приобретением!\n' \
-                                          f'#####'
-                            Secret.bot.edit_message_caption(chat_id=user_id,
-                                                            message_id=message_id,
-                                                            caption=description)
-
-                            Secret.bot.unpin_chat_message(chat_id=user_id,
-                                                          message_id=message_id)
-            elif status_lot == 'no':
-                # print('status lot no')
-                str_dict_lot = str({'lot': number_lot})
-                keyboard = telebot.types.InlineKeyboardMarkup()
-                button = telebot.types.InlineKeyboardButton(text='Забронировать лот',
-                                                            callback_data=str_dict_lot)
-                keyboard.add(button)
-                for user_id, message_id in dict_user_mess.items():
-                    Secret.bot.edit_message_caption(chat_id=user_id,
-                                                    message_id=message_id,
-                                                    caption=f'Лот №{number_lot}\n\n'
-                                                            f'Название: {name_lot}\n\n'
-                                                            f'Описание: {description_lot}\n\n',
-                                                    reply_markup=keyboard)
-        except sqlite3.Error as error:
-            print("Ошибка при работе с SQLite", error)
-            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
-            pass
-        except Secret.telebot.apihelper.ApiTelegramException as error:
-            text_error = f'Не удаётся обновить лот {number_lot} у пользователя {user_id}. Not message {message_id}\n' \
-                         f'{error}\n\n'
-            del dict_user_mess[user_id]
-            update_ids_for_lot = (f'UPDATE lots '
-                                  f'SET ids_message = "{dict_user_mess}"'
-                                  f'WHERE ID = "{number_lot}"')
-            self.cursor.execute(update_ids_for_lot)
-            self.sqlite_connection.commit()
-            self.edit_message_lots(number_lot=number_lot)
-        # finally:
-        #     print('У всех пользователей обновлены лоты')
+    # def edit_message_lots(self, number_lot):
+    #     """"""
+    #     try:
+    #         # select_query = (f'SELECT ids_message '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # dict_user_mess = self.cursor.fetchone()[0]  # Словарь user.id:message.id
+    #         # dict_user_mess = eval(dict_user_mess)
+    #         # # print(f'Словарь user.id:message.id = {dict_user_mess}')
+    #         #
+    #         # select_query = (f'SELECT name '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # name_lot = self.cursor.fetchone()[0]  # Получаем название лота
+    #         # # print(f'Название лота = {name_lot}')
+    #         #
+    #         # select_query = (f'SELECT description '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # description_lot = self.cursor.fetchone()[0]  # Получаем описание лота
+    #         # # print(f'Описание лота = {description_lot}')
+    #         #
+    #         # select_query = (f'SELECT booked '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # status_lot = self.cursor.fetchone()[0]  # Получаем статус лота
+    #         # # print(f'Статус лота = {status_lot}')
+    #         #
+    #         # select_query = (f'SELECT booked_by_whom '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # booked_by_whom = self.cursor.fetchone()[0]  # Получаем user_id пользователя кто забронировал лот
+    #         # # print(f'id пользователя кто забронировал лот = {booked_by_whom}')
+    #         #
+    #         # select_query = (f'SELECT booking_date '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # str_booking_date = self.cursor.fetchone()[0]  # Получаем дату брони
+    #         # # print(f'Дата брони = {str_booking_date}')
+    #         #
+    #         # date_of_cancel_format = ''
+    #         # if str_booking_date != '':
+    #         #     booking_date = datetime.datetime.strptime(str_booking_date, '%Y-%m-%d %H:%M:%S.%f')
+    #         #     date_of_cancel = booking_date + datetime.timedelta(days=1)
+    #         #     date_of_cancel_format = date_of_cancel.strftime("%d.%m.%Y %H:%M:%S")
+    #         #
+    #         # select_query = (f'SELECT on_the_hands '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # on_the_hands = self.cursor.fetchone()[0]  # Получаем статус лота (на руках он или нет)
+    #         # # print(f'Статус лота (на руках он или нет) = {on_the_hands}')
+    #         #
+    #         # select_query = (f'SELECT confirm '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # confirm = self.cursor.fetchone()[0]  # Получаем статус подтверждения выдачи
+    #         # # print(f'Статус подтверждения выдачи = {confirm}')
+    #         #
+    #         # select_query = (f'SELECT date_of_public '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # date_public = self.cursor.fetchone()[0]  # Получаем дату поста
+    #         # date = date_public
+    #         # # print(f'Дата поста = {date}')
+    #         #
+    #         # select_query = (f'SELECT status '
+    #         #                 f'FROM lots '
+    #         #                 f'WHERE ID = "{number_lot}"')
+    #         # self.cursor.execute(select_query)
+    #         # status_active_lot = self.cursor.fetchone()[0]  # Получаем статус активности лота
+    #         # print(f'Статус лота = {status_active_lot}')
+    #
+    #         # В этом блоке проверяются посты статус которых "active". Если пост размещён более 30 дней назад, он
+    #         # становится неактивным у всех, в БД меняется статус на "cancel" и впредь не попадает под проверку
+    #         # if status_active_lot == 'active':
+    #         #     date_format = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+    #         #     today = datetime.datetime.now().date()
+    #         #
+    #         #     dif_day = today - date_format
+    #         #     dif_day = dif_day.days
+    #         #     if dif_day > 30:
+    #         #         update_query = (f'UPDATE lots '
+    #         #                         f'SET status = "cancel" '
+    #         #                         f'WHERE ID = "{number_lot}"')
+    #         #         self.cursor.execute(update_query)
+    #         #         self.sqlite_connection.commit()
+    #         # elif status_active_lot == 'cancel':
+    #         #     date_today = datetime.datetime.now()
+    #         #     date_today_day = date_today.date()
+    #         #     date_today_format = date_today_day.strftime('%d.%m.%Y')
+    #         #
+    #         #     for user_id, message_id in dict_user_mess.items():
+    #         #         description = f'Лот №{number_lot}\n\n' \
+    #         #                       f'Название: {name_lot}\n\n' \
+    #         #                       f'Описание: {description_lot}\n\n' \
+    #         #                       f'#####\n' \
+    #         #                       f'Пост аннулирован {date_today_format} из-за срока давности\n' \
+    #         #                       f'#####'
+    #         #         Secret.bot.edit_message_caption(chat_id=user_id,
+    #         #                                         message_id=message_id,
+    #         #                                         caption=description)
+    #         #
+    #         #         Secret.bot.unpin_chat_message(chat_id=user_id,
+    #         #                                       message_id=message_id)
+    #         #         # print(f'Лот №{number_lot}: у пользователя {user_id} обновлено сообщение {message_id}')
+    #         #         # continue
+    #
+    #         if status_lot == 'yes' and on_the_hands == 'no':
+    #             for user_id, message_id in dict_user_mess.items():
+    #                 if user_id != booked_by_whom:
+    #                     if self.check_for_admin(user_id) is True:
+    #                         select_query = (f'SELECT user_first_name, user_last_name '
+    #                                         f'FROM users '
+    #                                         f'WHERE user_id = "{booked_by_whom}"')
+    #                         self.cursor.execute(select_query)
+    #                         data_of_user = self.cursor.fetchone()  # Получаем данные о пользователе
+    #                         temp_list = []
+    #                         for elem in data_of_user:
+    #                             if elem is not None:
+    #                                 temp_list.append(elem)
+    #
+    #                         full_name_user = ' '.join(temp_list)
+    #
+    #                         description = f'Лот №{number_lot}\n\n' \
+    #                                       f'Название: {name_lot}\n\n' \
+    #                                       f'Описание: {description_lot}\n\n' \
+    #                                       f'#####\n' \
+    #                                       f'Лот зарезервирован пользователем <{full_name_user}>. ' \
+    #                                       f'Бронирование недоступно. ' \
+    #                                       f'Если до {date_of_cancel_format} его не заберут, ' \
+    #                                       f'бронь аннулируется и вы сможете отложить его для себя.\n' \
+    #                                       f'#####'
+    #                         Secret.bot.edit_message_caption(chat_id=user_id,
+    #                                                         message_id=message_id,
+    #                                                         caption=description)
+    #                 #     else:
+    #                 #         description = f'Лот №{number_lot}\n\n' \
+    #                 #                       f'Название: {name_lot}\n\n' \
+    #                 #                       f'Описание: {description_lot}\n\n' \
+    #                 #                       f'#####\n' \
+    #                 #                       f'Лот зарезервирован. Бронирование недоступно. ' \
+    #                 #                       f'Если до {date_of_cancel_format} его не заберут, ' \
+    #                 #                       f'бронь аннулируется и вы сможете отложить его для себя.\n' \
+    #                 #                       f'#####'
+    #                 #         Secret.bot.edit_message_caption(chat_id=user_id,
+    #                 #                                         message_id=message_id,
+    #                 #                                         caption=description)
+    #                 # else:
+    #                     # str_dict_cancel = str({'cancel': number_lot})
+    #                     # str_dict_sold = str({'sold': number_lot})
+    #                     #
+    #                     # keyboard = telebot.types.InlineKeyboardMarkup()
+    #                     # button = telebot.types.InlineKeyboardButton(text='Отменить бронь',
+    #                     #                                             callback_data=str_dict_cancel)
+    #                     # button_2 = telebot.types.InlineKeyboardButton(text='Лот уже у меня',
+    #                     #                                               callback_data=str_dict_sold)
+    #                     # keyboard.add(button, button_2)
+    #                     #
+    #                     # Secret.bot.edit_message_caption(chat_id=user_id,
+    #                     #                                 message_id=message_id,
+    #                     #                                 caption=f'Лот №{number_lot}\n\n'
+    #                     #                                         f'Название: {name_lot}\n\n'
+    #                     #                                         f'Описание: {description_lot}\n\n'
+    #                     #                                         f'#####\n'
+    #                     #                                         f'Этот лот забронирован вами '
+    #                     #                                         f'до {date_of_cancel_format}. '
+    #                     #                                         f'Если забрать не успеваете, бронь аннулируется!\n'
+    #                     #                                         f'#####',
+    #                     #                                 reply_markup=keyboard)
+    #         # elif status_lot == 'yes' and on_the_hands == 'yes':
+    #         #     for user_id, message_id in dict_user_mess.items():
+    #         #         if user_id != booked_by_whom:
+    #         #             if self.check_for_admin(user_id) is True and confirm == 'no':
+    #                         # str_dict_confirm = str({'confirm': number_lot})
+    #                         # str_dict_refute = str({'refute': number_lot})
+    #                         #
+    #                         # keyboard = telebot.types.InlineKeyboardMarkup()
+    #                         # button = telebot.types.InlineKeyboardButton(text='Подтвердить выдачу',
+    #                         #                                             callback_data=str_dict_confirm)
+    #                         # button_2 = telebot.types.InlineKeyboardButton(text='Лот не выдан',
+    #                         #                                               callback_data=str_dict_refute)
+    #                         # keyboard.add(button, button_2)
+    #                         description = f'Лот №{number_lot}\n\n' \
+    #                                       f'Название: {name_lot}\n\n' \
+    #                                       f'Описание: {description_lot}\n\n' \
+    #                                       f'#####\n' \
+    #                                       f'Ожидает подтверждения выдачи\n' \
+    #                                       f'#####'
+    #                         Secret.bot.edit_message_caption(chat_id=user_id,
+    #                                                         message_id=message_id,
+    #                                                         caption=description,
+    #                                                         reply_markup=keyboard)
+    #                     # else:
+    #                         # if confirm == 'no':
+    #                         #     description = f'Лот №{number_lot}\n\n' \
+    #                         #                   f'Название: {name_lot}\n\n' \
+    #                         #                   f'Описание: {description_lot}\n\n' \
+    #                         #                   f'#####\n' \
+    #                         #                   f'Ожидает подтверждения выдачи. Если выдача не подтвердится, ' \
+    #                         #                   f'лот снова станет доступен. Следите за обновлениями!\n' \
+    #                         #                   f'#####'
+    #                         #     Secret.bot.edit_message_caption(chat_id=user_id,
+    #                         #                                     message_id=message_id,
+    #                         #                                     caption=description)
+    #                         # else:
+    #                 #             description = f'Лот №{number_lot}\n\n' \
+    #                 #                           f'Название: {name_lot}\n\n' \
+    #                 #                           f'Описание: {description_lot}\n\n' \
+    #                 #                           f'#####\n' \
+    #                 #                           f'Лот забрали. Он более недоступен.\n' \
+    #                 #                           f'#####'
+    #                 #             Secret.bot.edit_message_caption(chat_id=user_id,
+    #                 #                                             message_id=message_id,
+    #                 #                                             caption=description)
+    #                 #
+    #                 #             Secret.bot.unpin_chat_message(chat_id=user_id,
+    #                 #                                           message_id=message_id)
+    #                 # else:
+    #                     # if confirm == 'no':
+    #                     #     description = f'Лот №{number_lot}\n\n' \
+    #                     #                   f'Название: {name_lot}\n\n' \
+    #                     #                   f'Описание: {description_lot}\n\n' \
+    #                     #                   f'#####\n' \
+    #                     #                   f'Вы указали, что забрали этот лот! Если выдача не подтвердится, ' \
+    #                     #                   f'статус сменится на "Этот лот забронирован вами".\n' \
+    #                     #                   f'При получении лота покажите это сообщение, оно ' \
+    #                     #                   f'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не ' \
+    #                     #                   f'кем-то другим.\n' \
+    #                     #                   f'ВАЖНО!\n' \
+    #                     #                   f'После того как лот окажется у вас на руках, обязательно подтвердите ' \
+    #                     #                   f'получение нажав кнопку "Лот уже у меня"!' \
+    #                     #                   f'#####'
+    #                     #
+    #                     #     Secret.bot.edit_message_caption(chat_id=user_id,
+    #                     #                                     message_id=message_id,
+    #                     #                                     caption=description)
+    #                     # elif confirm == 'yes':
+    #                     #     description = f'Лот №{number_lot}\n\n' \
+    #                     #                   f'Название: {name_lot}\n\n' \
+    #                     #                   f'Описание: {description_lot}\n\n' \
+    #                     #                   f'#####\n' \
+    #                     #                   f'Выдача лота подтверждена.\n' \
+    #                     #                   f'Поздравляем с приобретением!\n' \
+    #                     #                   f'#####'
+    #                     #     Secret.bot.edit_message_caption(chat_id=user_id,
+    #                     #                                     message_id=message_id,
+    #                     #                                     caption=description)
+    #                     #
+    #                     #     Secret.bot.unpin_chat_message(chat_id=user_id,
+    #                     #                                   message_id=message_id)
+    #         # elif status_lot == 'no':
+    #         #     # print('status lot no')
+    #         #     str_dict_lot = str({'lot': number_lot})
+    #         #     keyboard = telebot.types.InlineKeyboardMarkup()
+    #         #     button = telebot.types.InlineKeyboardButton(text='Забронировать лот',
+    #         #                                                 callback_data=str_dict_lot)
+    #         #     keyboard.add(button)
+    #     #         for user_id, message_id in dict_user_mess.items():
+    #     #             Secret.bot.edit_message_caption(chat_id=user_id,
+    #     #                                             message_id=message_id,
+    #     #                                             caption=f'Лот №{number_lot}\n\n'
+    #     #                                                     f'Название: {name_lot}\n\n'
+    #     #                                                     f'Описание: {description_lot}\n\n',
+    #     #                                             reply_markup=keyboard)
+    #     # except sqlite3.Error as error:
+    #     #     print("Ошибка при работе с SQLite", error)
+    #     #     logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+    #     #     pass
+    #     # except Secret.telebot.apihelper.ApiTelegramException as error:
+    #     #     text_error = f'Не удаётся обновить лот {number_lot} у пользователя {user_id}'
+    #     #     response = error.result_json
+    #     #     # print(response)
+    #     #     status = response.get('ok')
+    #     #     if status is not True:
+    #     #         # print('status not True')
+    #     #         description = response.get('description')
+    #     #         reason = description
+    #     #         if error.error_code == 400:
+    #     #             if description == ('Bad Request: message is not modified: specified new message content and '
+    #     #                                'reply markup are exactly the same as a current content and reply markup '
+    #     #                                'of the message'):
+    #     #                 reason = 'Сообщение не изменено т.к. нет изменений.'
+    #     #                 pass
+    #     #             elif description == 'Bad Request: message to edit not found':
+    #     #                 reason = 'Сообщения с таким id не существует.'
+    #     #                 del dict_user_mess[user_id]
+    #     #                 update_ids_for_lot = (f'UPDATE lots '
+    #     #                                       f'SET ids_message = "{dict_user_mess}"'
+    #     #                                       f'WHERE ID = "{number_lot}"')
+    #     #                 self.cursor.execute(update_ids_for_lot)
+    #     #                 self.sqlite_connection.commit()
+    #     #                 self.edit_message_lots(number_lot=number_lot)
+    #     #             elif description == 'Bad Request: chat not found':
+    #     #                 reason = f'Боту неизвестен чат с пользователем {user_id}'
+    #     #                 del dict_user_mess[user_id]
+    #     #                 update_ids_for_lot = (f'UPDATE lots '
+    #     #                                       f'SET ids_message = "{dict_user_mess}"'
+    #     #                                       f'WHERE ID = "{number_lot}"')
+    #     #                 self.cursor.execute(update_ids_for_lot)
+    #     #                 self.sqlite_connection.commit()
+    #     #                 self.edit_message_lots(number_lot=number_lot)
+    #     #             elif description == 'Forbidden: bot was blocked by the user':
+    #     #                 reason = f'Пользователь {user_id} заблокировал бота'
+    #     #                 del dict_user_mess[user_id]
+    #     #                 update_ids_for_lot = (f'UPDATE lots '
+    #     #                                       f'SET ids_message = "{dict_user_mess}"'
+    #     #                                       f'WHERE ID = "{number_lot}"')
+    #     #                 self.cursor.execute(update_ids_for_lot)
+    #     #                 self.sqlite_connection.commit()
+    #     #                 self.edit_message_lots(number_lot=number_lot)
+    #     #
+    #     #         answer_message = f'{self.edit_message_lots.__name__}\n{text_error}\n{reason}'
+    #     #         print(answer_message)
+    #     #
+    #     #     # del dict_user_mess[user_id]
+    #     #     # update_ids_for_lot = (f'UPDATE lots '
+    #     #     #                       f'SET ids_message = "{dict_user_mess}"'
+    #     #     #                       f'WHERE ID = "{number_lot}"')
+    #     #     # self.cursor.execute(update_ids_for_lot)
+    #     #     # self.sqlite_connection.commit()
+    #     #     # self.edit_message_lots(number_lot=number_lot)
 
     def get_id_mes_lot(self, id_lot, user_id):
         """"""
@@ -1511,7 +1557,8 @@ class SQL:
         """"""
         try:
             update_query = (f'UPDATE lots '
-                            f'SET booked = "no", booked_by_whom = "", booking_date = "" '
+                            f'SET booked = "no", booked_by_whom = "", booking_date = "", on_the_hands = "no", '
+                            f'who_took_it = "", date_of_issue = "" '
                             f'WHERE ID = "{id_lot}"')
             self.cursor.execute(update_query)
             self.sqlite_connection.commit()
@@ -1600,8 +1647,8 @@ class SQL:
         """Проверяет дату размещения поста. Если пост висит более 30 дней, лот аннулируется"""
 
         try:
-            today = datetime.datetime.today()
-            today = today.date()
+            # today = datetime.datetime.today()
+            # today = today.date()
 
             select_query = (f'SELECT date_of_public, ID '
                             f'FROM lots '
@@ -1661,15 +1708,15 @@ class SQL:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
 
-    def test(self):
-        select_query = f'SELECT user_id, today FROM statistic'  # Получаем все строки в таблице statistic
-        self.cursor.execute(select_query)
-        count_today = self.cursor.fetchall()
-        # print(count_today)
-        for row in count_today:  # Повторить для каждой строки
-            user_id = row[0]
-            count_request = row[1]
-            # print(f'юзер {user_id} - счётчик {count_request}')
+    # def test(self):
+    #     select_query = f'SELECT user_id, today FROM statistic'  # Получаем все строки в таблице statistic
+    #     self.cursor.execute(select_query)
+    #     count_today = self.cursor.fetchall()
+    #     # print(count_today)
+    #     for row in count_today:  # Повторить для каждой строки
+    #         user_id = row[0]
+    #         count_request = row[1]
+    #         # print(f'юзер {user_id} - счётчик {count_request}')
 
     def get_name_attr_class_or_insert_button(self, name_button, value_button):
         print(f'get_or_insert_button: {name_button}, {value_button}')
@@ -1719,13 +1766,13 @@ class SQL:
                 description_lot = lots[2]
                 id_photo = lots[3]
                 booked = lots[4]
-                booked_by_whom = lots[5]
+                # booked_by_whom = lots[5]
                 booking_date = lots[6]
                 on_the_hands = lots[7]
-                who_took_it = lots[8]
-                date_of_issue = lots[9]
+                # who_took_it = lots[8]
+                # date_of_issue = lots[9]
                 ids_message = eval(lots[10])
-                confirm = lots[11]
+                # confirm = lots[11]
 
                 # data_lot = [number_lot, name_lot, description_lot, id_photo, booked, booked_by_whom, booking_date,
                 #             on_the_hands, who_took_it, date_of_issue, ids_message, confirm]
@@ -1988,7 +2035,7 @@ class SQL:
             #           f'{list_sensors}')
 
             if len(detected_list) != 0:
-                nl = '\n'
+                # nl = '\n'
                 data_list = self.get_dict('observers_for_faulty_sensors')
                 # print(data_list)
 
@@ -2043,16 +2090,24 @@ class SQL:
         try:
             select_query = f'SELECT nickname FROM secret_santa_{self.current_year}'
             self.cursor.execute(select_query)
-            list_nickname = self.cursor.fetchall()
+            list_nickname = self.cursor.fetchall()  # Список никнеймов уже присутствующих в игре ТС
 
             # print(list_nickname)
+            #
+            # # nickname = random.choice(Secret.list_nicknames)
+            select_query = f'SELECT proposal FROM creative_nick_NY WHERE approval = 1'
+            self.cursor.execute(select_query)
+            list_nicknames = self.cursor.fetchall()  # Список всех одобренных псевдонимов для ТС
+            update_list_nicknames = []
+            for lists in list_nicknames:
+                update_list_nicknames.append(lists[0])
+            nickname = random.choice(update_list_nicknames)
 
-            nickname = random.choice(Secret.list_nicknames)
             if list_nickname is not None:
                 for elements in list_nickname:
-                    nickname = random.choice(Secret.list_nicknames)
+                    nickname = random.choice(update_list_nicknames)
                     if nickname in list_nickname:
-                        Secret.list_nicknames.pop(nickname)
+                        update_list_nicknames.pop(nickname)
                     else:
                         nickname = nickname
 
@@ -2060,10 +2115,10 @@ class SQL:
                                     f'FROM secret_santa_{self.current_year} '
                                     f'WHERE user_id = "{user_id}"')
             self.cursor.execute(select_query_user_id)
-            user_id_in_sql = self.cursor.fetchone()
+            user_id_in_sql = self.cursor.fetchone()  # Проверка юзера на наличие в таблице secret_santa_{current_year}
             # print(user_id_in_sql)
 
-            if user_id_in_sql is None:
+            if user_id_in_sql is None:  # Если юзера нет - создаёт запись
                 insert_query = (f'INSERT INTO secret_santa_{self.current_year} (user_id, user_name, nickname) '
                                 f'VALUES ("{user_id}", "{user_name}", "{nickname}")')
                 self.cursor.execute(insert_query)
@@ -2207,6 +2262,306 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
             logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+
+    def checking_for_availability_in_cnn(self, user_id):
+        """Возвращает True или False в зависимости от того, есть ли от пользователя предложения никнейма для
+        Тайного Санты"""
+        try:
+            select_query = (f'SELECT id_user '
+                            f'FROM creative_nick_NY '
+                            f'WHERE id_user = "{user_id}"')
+            self.cursor.execute(select_query)
+            search_id = self.cursor.fetchone()
+            if search_id is not None:
+                return True
+            else:
+                return False
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            # logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+
+    def check_nickname_in_db(self, nickname):
+        """Возвращает True или False в зависимости от того, есть ли никнейм в БД для Тайного Санты"""
+        try:
+            select_query = (f'SELECT id_user '
+                            f'FROM creative_nick_NY '
+                            f'WHERE proposal = "{nickname}"')
+            self.cursor.execute(select_query)
+            search_nickname = self.cursor.fetchone()
+            if search_nickname is not None:
+                return True
+            else:
+                return False
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+
+    def record_nickname_from_db(self, user_id, nickname):
+        """Записывает новое имя для Тайного санты"""
+        try:
+            insert_query = f'INSERT INTO creative_nick_NY (id_user, proposal) ' \
+                           f'VALUES ("{user_id}", "{nickname}")'
+            self.cursor.execute(insert_query)
+            self.sqlite_connection.commit()
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+
+    def check_not_approve_nickname(self):
+        """Возвращает имя которое не обработано админом"""
+        try:
+            select_query = (f'SELECT proposal '
+                            f'FROM creative_nick_NY '
+                            f'WHERE approval IS NULL')
+            self.cursor.execute(select_query)
+            search_nickname = self.cursor.fetchone()
+            print(search_nickname)
+            if search_nickname is not None:
+                return search_nickname[0]
+            else:
+                return None
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+
+    def approve_nickname(self, nickname, status=None):
+        """Устанавливает статус для присланных никнеймов. Возвращает user_id по найденному никнейму"""
+        try:
+            sqlite_update_query = (f'UPDATE creative_nick_NY '
+                                   f'SET approval = "{status}" '
+                                   f'WHERE proposal = "{nickname}"')
+            self.cursor.execute(sqlite_update_query)
+            self.sqlite_connection.commit()
+
+            select_query = (f'SELECT id_user '
+                            f'FROM creative_nick_NY '
+                            f'WHERE proposal = "{nickname}"')
+            self.cursor.execute(select_query)
+            search_id_user = self.cursor.fetchone()
+            if search_id_user is not None:
+                return search_id_user[0]
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+
+    def edit_message_lots(self, number_lot):
+        try:
+            select_query = (f'SELECT * '
+                            f'FROM lots '
+                            f'WHERE ID = "{number_lot}"')
+            self.cursor.execute(select_query)
+            data_from_db = self.cursor.fetchall()[0]
+
+            name_lot = data_from_db[1]
+            description_lot = data_from_db[2]
+            id_photo = data_from_db[3]
+            booked = data_from_db[4]
+            booked_by_whom = data_from_db[5]
+            booking_date = data_from_db[6]
+            on_the_hands = data_from_db[7]
+            who_took_it = data_from_db[8]
+            date_of_issue = data_from_db[9]
+            ids_message = eval(data_from_db[10])
+            confirm = data_from_db[11]
+            date_of_public = data_from_db[12]
+            status = data_from_db[13]
+
+            if booking_date != '':
+                booking_date = datetime.datetime.strptime(booking_date, '%Y-%m-%d %H:%M:%S.%f')
+                date_of_cancel = booking_date + datetime.timedelta(days=1)
+                date_of_cancel_format = date_of_cancel.strftime("%d.%m.%Y %H:%M:%S")
+
+            print(data_from_db)
+
+            print(f'name_lot = {name_lot}')  # Название лота
+            print(f'description_lot = {description_lot}')  # Описание лота
+            print(f'id_photo = {id_photo}')  # ID фото
+            print(f'booked = {booked}')  # Статус резерва (yes/no)
+            print(f'booked_by_whom = {booked_by_whom}')  # Кем зарезервирован
+            print(f'booking_date = {booking_date}')  # Дата брони
+            print(f'on_the_hands = {on_the_hands}')  # Лот на руках? (yes/no)
+            print(f'who_took_it = {who_took_it}')  # У кого на руках лот
+            print(f'date_of_issue = {date_of_issue}')  # Дата выдачи лота на руки
+            print(f'ids_message = {ids_message}')  # Словарь с id.user: id.message
+            print(f'confirm = {confirm}')  # Подтверждение выдачи (yes/no)
+            print(f'date_of_public = {date_of_public}')  # Дата публикации лота
+            print(f'status = {status}')  # Статус активности лота (active/cancel)
+
+            def edit_message(id_user, id_message, text=None, my_keyboard=None):
+                if text is None:
+                    description = (f'Лот №{number_lot}\n\n'
+                                   f'Название: {name_lot}\n\n'
+                                   f'Описание: {description_lot}\n\n')
+                else:
+                    description = (f'Лот №{number_lot}\n\n'
+                                   f'Название: {name_lot}\n\n'
+                                   f'Описание: {description_lot}\n\n'
+                                   f'#####\n'
+                                   f'{text}\n'
+                                   f'#####')
+
+                if my_keyboard is None:
+                    Secret.bot.edit_message_caption(chat_id=id_user,
+                                                    message_id=id_message,
+                                                    caption=description)
+                else:
+                    Secret.bot.edit_message_caption(chat_id=id_user,
+                                                    message_id=id_message,
+                                                    caption=description,
+                                                    reply_markup=my_keyboard)
+
+            for user_id, message_id in ids_message.items():
+                if status == 'cancel':  # Если лот аннулирован
+                    date_today = datetime.datetime.now()
+                    date_today_day = date_today.date()
+                    date_today_format = date_today_day.strftime('%d.%m.%Y')
+
+                    addition = f'Пост аннулирован {date_today_format} из-за срока давности\n'
+
+                    edit_message(id_user=user_id, id_message=message_id, text=addition)
+                elif status == 'active':  # Если лот активен
+                    date_format = datetime.datetime.strptime(date_of_public, '%Y-%m-%d').date()
+                    today = datetime.datetime.now().date()
+
+                    dif_day = today - date_format
+                    dif_day = dif_day.days
+                    if dif_day > 30:  # Если лот активен более месяца
+                        update_query = (f'UPDATE lots '
+                                        f'SET status = "cancel" '
+                                        f'WHERE ID = "{number_lot}"')
+                        self.cursor.execute(update_query)
+                        self.sqlite_connection.commit()
+                    if confirm == 'yes':  # Если выдача лота подтверждена
+                        if user_id == booked_by_whom:
+                            addition = ('Выдача лота подтверждена.\n'
+                                        'Поздравляем с приобретением!')
+
+                            edit_message(id_user=user_id, id_message=message_id, text=addition)
+                        else:
+                            addition = 'Лот забрали. Он более недоступен'
+
+                            edit_message(id_user=user_id, id_message=message_id, text=addition)
+                    elif confirm == 'no':  # Если выдача лота не подтверждена
+                        if on_the_hands == 'yes':  # Если пользователь указал что лот у него на руках
+                            if user_id == booked_by_whom:
+                                if self.check_for_admin(user_id) is True:  # Если пользователь админ
+                                    str_dict_confirm = str({'confirm': number_lot})
+                                    str_dict_refute = str({'refute': number_lot})
+
+                                    keyboard = telebot.types.InlineKeyboardMarkup()
+                                    button = telebot.types.InlineKeyboardButton(text='Подтвердить выдачу',
+                                                                                callback_data=str_dict_confirm)
+                                    button_2 = telebot.types.InlineKeyboardButton(text='Лот не выдан',
+                                                                                  callback_data=str_dict_refute)
+                                    keyboard.add(button, button_2)
+                                    addition = 'Забрал лот?'
+                                    edit_message(id_user=user_id, id_message=message_id, text=addition,
+                                                 my_keyboard=keyboard)
+                                else:
+                                    addition = ('Вы указали, что забрали этот лот! Если выдача не подтвердится, '
+                                                'статус сменится на "Этот лот забронирован вами".\n'
+                                                'При получении лота покажите это сообщение, оно '
+                                                'подтверждает, что он ЗАБРОНИРОВАН ВАМИ, а не '
+                                                'кем-то другим.\n'
+                                                'ВАЖНО!\n'
+                                                'После того как лот окажется у вас на руках, обязательно подтвердите '
+                                                'получение нажав кнопку "Лот уже у меня"!')
+
+                                    edit_message(id_user=user_id, id_message=message_id, text=addition)
+                            elif user_id != booked_by_whom:
+                                if self.check_for_admin(user_id) is True:  # Если пользователь админ
+                                    str_dict_confirm = str({'confirm': number_lot})
+                                    str_dict_refute = str({'refute': number_lot})
+
+                                    keyboard = telebot.types.InlineKeyboardMarkup()
+                                    button = telebot.types.InlineKeyboardButton(text='Подтвердить выдачу',
+                                                                                callback_data=str_dict_confirm)
+                                    button_2 = telebot.types.InlineKeyboardButton(text='Лот не выдан',
+                                                                                  callback_data=str_dict_refute)
+                                    keyboard.add(button, button_2)
+                                    addition = 'Подтвердить выдачу лота?'
+                                    edit_message(id_user=user_id, id_message=message_id, text=addition,
+                                                 my_keyboard=keyboard)
+                                else:
+                                    addition = ('Ожидает подтверждения выдачи. Если выдача не подтвердится, лот снова '
+                                                'станет доступен. Следите за обновлениями!')
+
+                                    edit_message(id_user=user_id, id_message=message_id, text=addition)
+                        elif on_the_hands == 'no':
+                            if booked == 'yes':  # Если пользователь забронировал лот
+                                # Если получатель сообщения тот же человек, что забронировал лот
+                                if user_id == booked_by_whom:
+                                    str_dict_cancel = str({'cancel': number_lot})
+                                    str_dict_sold = str({'sold': number_lot})
+
+                                    keyboard = telebot.types.InlineKeyboardMarkup()
+                                    button = telebot.types.InlineKeyboardButton(text='Отменить бронь',
+                                                                                callback_data=str_dict_cancel)
+                                    button_2 = telebot.types.InlineKeyboardButton(text='Лот уже у меня',
+                                                                                  callback_data=str_dict_sold)
+                                    keyboard.add(button, button_2)
+
+                                    addition = (f'Этот лот забронирован вами до {date_of_cancel_format}. '
+                                                f'Если забрать не успеваете, бронь аннулируется!')
+
+                                    edit_message(id_user=user_id, id_message=message_id, text=addition,
+                                                 my_keyboard=keyboard)
+                                elif user_id != booked_by_whom:
+                                    if self.check_for_admin(user_id) is True:  # Если пользователь админ
+                                        select_query = (f'SELECT user_first_name, user_last_name '
+                                                        f'FROM users '
+                                                        f'WHERE user_id = "{booked_by_whom}"')
+                                        self.cursor.execute(select_query)
+                                        data_of_user = self.cursor.fetchone()  # Получаем данные о пользователе
+                                        temp_list = []
+                                        for elem in data_of_user:
+                                            if elem is not None:
+                                                temp_list.append(elem)
+
+                                        full_name_user = ' '.join(temp_list)
+
+                                        addition = (f'Лот зарезервирован пользователем <{full_name_user}>. '
+                                                    f'Бронирование недоступно. '
+                                                    f'Если до {date_of_cancel_format} его не заберут, '
+                                                    f'бронь аннулируется и вы сможете отложить его для себя.')
+                                        edit_message(id_user=user_id, id_message=message_id, text=addition)
+                                    else:
+                                        addition = (f'Лот зарезервирован. Бронирование недоступно. '
+                                                    f'Если до {date_of_cancel_format} его не заберут, '
+                                                    f'бронь аннулируется и вы сможете отложить его для себя.')
+                                        edit_message(id_user=user_id, id_message=message_id, text=addition)
+                            elif booked == 'no':
+                                str_dict_lot = str({'lot': number_lot})
+                                keyboard = telebot.types.InlineKeyboardMarkup()
+                                button = telebot.types.InlineKeyboardButton(text='Забронировать лот',
+                                                                            callback_data=str_dict_lot)
+                                keyboard.add(button)
+                                edit_message(id_user=user_id, id_message=message_id, my_keyboard=keyboard)
+        except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite", error)
+            logging_event(Secret.way_to_log_telegram_bot, 'error', str(error))
+            pass
+        except Secret.telebot.apihelper.ApiTelegramException as error:
+            response = error.result_json
+            print(response)
+            status = response.get('ok')
+            if status is not True:
+                text_error = f'Не удаётся обновить лот у пользователя {user_id}.'
+                print('status not True')
+                description = response.get('description')
+                reason = description
+                if error.error_code == 400:
+                    if description == ('Bad Request: message is not modified: specified new message content '
+                                       'and reply markup are exactly the same as a current content and reply '
+                                       'markup of the message'):
+                        reason = 'Сообщение не изменено т.к. нет изменений.'
+                        pass
+                    elif description == 'Bad Request: message to edit not found':
+                        reason = 'Сообщения с таким id не существует.'
+                    elif description == 'Bad Request: chat not found':
+                        reason = f'Боту неизвестен чат с пользователем {user_id}'
+                    elif description == 'Forbidden: bot was blocked by the user':
+                        reason = f'Пользователь {user_id} заблокировал бота'
+
+                answer_message = f'{text_error}\n{reason}'
+                print(answer_message)
 
 
 class Decorators:
